@@ -1,65 +1,121 @@
-# vphilox
+<p align="center">
+  <img src="docs/assets/vphilox-logo.png" width="220" height="220"
+       alt="Four parallel number streams passing through a counter to form the vphilox logo">
+</p>
 
-[![Build and test](https://github.com/sinhaparth5/vphilox/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/sinhaparth5/vphilox/actions/workflows/ci.yml)
+<h1 align="center">vphilox</h1>
 
-SIMD-accelerated counter-based pseudorandom number generation for parallel CPU
-systems. Header-only, zero-dependency, C++20.
+<p align="center">
+  <a href="https://github.com/sinhaparth5/vphilox/actions/workflows/ci.yml"><img alt="Build and test status" src="https://github.com/sinhaparth5/vphilox/actions/workflows/ci.yml/badge.svg?branch=master"></a>
+  <a href="VERSIONING.md"><img alt="Development version 2026.08.0" src="https://img.shields.io/badge/version-2026.08.0-22c55e"></a>
+  <a href="CMakeLists.txt"><img alt="C++20" src="https://img.shields.io/badge/C%2B%2B-20-00599c?logo=cplusplus"></a>
+  <a href="CMakeLists.txt"><img alt="Header-only library" src="https://img.shields.io/badge/header--only-yes-334155"></a>
+  <a href="#license"><img alt="MIT or Apache 2.0 license" src="https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-22c55e"></a>
+</p>
 
-> **Early development.** The scalar reference engine, the C++20 wrapper, and
-> the dispatch layer work and are tested against the published Random123
-> vectors. The SIMD kernels — the entire point of the library — are stubbed and
-> currently fall back to scalar. See [ROADMAP.md](ROADMAP.md).
+<p align="center">
+  Fast, repeatable random numbers for C++ programs that do work in parallel.
+</p>
 
-## The problem
+vphilox is a small C++20 library for simulations, tests, games, data tools, and
+other programs that need a lot of random numbers. Give it the same seed and it
+produces the same results, even when the work is split across threads.
 
-Counter-based PRNGs compute `R = f(key, counter)` instead of stepping a state
-machine. That buys three things a stateful generator cannot offer: O(1) seeking
-to any point in the stream, lock-free parallelism across threads, and
-bit-identical output on any hardware.
+> vphilox is still in early development. The scalar engine works and passes the
+> published Random123 test vectors. The AVX2, AVX-512, and NEON paths currently
+> fall back to scalar code, so the planned speedup is not here yet. Follow the
+> work in the [roadmap](ROADMAP.md).
 
-The catch is CPU throughput. Philox leans on 32×32→64 wide multiplies, and each
-round depends on the previous one's product. On x86 that dependency chain
-stalls the pipeline — NVIDIA engineers measured scalar Philox running roughly
-**10× slower than `std::mt19937`** while investigating XGBoost's RNG, and
-compilers cannot auto-vectorize their way out of it because the dependency is
-real.
+## What it gives you
 
-vphilox fixes this by vectorizing *across* independent counter streams rather
-than within one. Several Philox evaluations occupy the lanes of a single SIMD
-register, so the multiply latency amortizes across all of them and the pipeline
-stays fed.
+- A given seed produces repeatable results across runs and supported machines.
+- Each thread can own a random stream without locks or shared state.
+- `discard()` jumps to a later point in a stream immediately.
+- The engine works with standard C++ algorithms and distributions.
+- The library is header-only and has no runtime dependencies.
 
-## Usage
+## A small example
 
 ```cpp
+#include <algorithm>
+#include <cstdint>
+#include <random>
+#include <vector>
+
 #include <vphilox/vphilox.hpp>
 
-vphilox::engine g{seed};
+vphilox::engine random{42};
 
-std::uint32_t x = g();            // raw 32 bits
-float f = g.next_float();         // uniform [0, 1), no division
-double d = g.next_double();
+std::uint32_t bits = random();
+float chance = random.next_float();   // between 0 and 1
+double precise = random.next_double();
 
-g.discard(1ull << 40);            // O(1) — jump a trillion draws ahead
+std::vector<int> values{1, 2, 3, 4, 5};
+std::shuffle(values.begin(), values.end(), random);
 
-// Drops into anything taking a UniformRandomBitGenerator:
-std::shuffle(v.begin(), v.end(), g);
-std::normal_distribution<double> norm(0.0, 1.0);
-double z = norm(g);
+std::normal_distribution<double> normal{0.0, 1.0};
+double sample = normal(random);
 ```
 
-Per-thread streams need no synchronization — give each worker its own key, or
-its own counter range:
+Jump ahead without generating everything in between:
+
+```cpp
+random.discard(1ull << 40);
+```
+
+That jump takes constant time.
+
+## Using it from several threads
+
+Give each worker its own seed. The workers do not need to coordinate access to
+one shared generator.
 
 ```cpp
 #pragma omp parallel
 {
-    vphilox::engine g{static_cast<std::uint64_t>(omp_get_thread_num())};
-    // ... no locks, no atomics, no false sharing
+    auto worker = static_cast<std::uint64_t>(omp_get_thread_num());
+    vphilox::engine random{worker};
+
+    // Use random() inside this worker.
 }
 ```
 
-## Building
+For reproducible jobs, keep the worker-to-seed mapping stable between runs.
+
+## How it works
+
+Most random-number engines keep changing an internal state. vphilox instead
+treats a key and a counter like coordinates: the same pair always gives the
+same output. That makes it easy to split a large job into independent pieces or
+resume at a known position.
+
+Philox calculations are also independent of one another. vphilox is being
+built to process several of them together with the vector instructions already
+available on modern CPUs. The plain scalar path is the reference that every
+faster path must match bit for bit.
+
+## Add vphilox to a project
+
+With an installed copy:
+
+```cmake
+find_package(vphilox 2026.08 REQUIRED)
+target_link_libraries(your_app PRIVATE vphilox::vphilox)
+```
+
+Or keep the repository inside your project:
+
+```cmake
+add_subdirectory(vphilox)
+target_link_libraries(your_app PRIVATE vphilox::vphilox)
+```
+
+Tests, benchmarks, and command-line tools stay off when vphilox is included as
+a subdirectory of another project.
+
+## Build and test
+
+You need CMake 3.24 or newer, Ninja, and a C++20 compiler.
 
 ```bash
 cmake --preset default
@@ -67,117 +123,93 @@ cmake --build --preset default
 ctest --preset default
 ```
 
-Or with plain CMake:
+Before sending a pull request, run the stricter checks too:
 
 ```bash
-cmake -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build
-ctest --test-dir build --output-on-failure
+cmake --preset debug
+cmake --build --preset debug
+ctest --preset debug
+
+cmake --preset asan
+cmake --build --preset asan
+ctest --preset asan
 ```
 
-### Consuming it
+GoogleTest and Google Benchmark are downloaded during configuration when they
+are not already installed. Set `VPHILOX_FETCH_DEPS=OFF` for an offline build
+that uses only installed packages.
 
-```cmake
-find_package(vphilox 2026.08 REQUIRED)
-target_link_libraries(your_app PRIVATE vphilox::vphilox)
-```
+<details>
+<summary>CMake options</summary>
 
-Or vendor it — `add_subdirectory(vphilox)` gives you the same target, with
-tests and benchmarks off by default when it is not the top-level project.
-
-### Options
-
-| Option | Default | Effect |
+| Option | Default | Purpose |
 |---|---|---|
-| `VPHILOX_BUILD_TESTS` | ON when top-level | GoogleTest suite |
-| `VPHILOX_BUILD_BENCHMARKS` | ON when top-level | Google Benchmark suite |
-| `VPHILOX_BUILD_TOOLS` | ON when top-level | `vphilox_stream` for PractRand |
-| `VPHILOX_INSTALL` | ON when top-level | Install and export rules |
-| `VPHILOX_FETCH_DEPS` | ON | Fetch GTest/Benchmark if not found locally |
-| `VPHILOX_ENABLE_AVX2` | ON | Compile the AVX2 kernel in |
-| `VPHILOX_ENABLE_AVX512` | ON | Compile the AVX-512 kernel in |
-| `VPHILOX_ENABLE_NEON` | ON | Compile the NEON kernel in |
-| `VPHILOX_FORCE_SCALAR` | OFF | Ignore every SIMD kernel |
+| `VPHILOX_BUILD_TESTS` | On at the top level | Build the GoogleTest suite |
+| `VPHILOX_BUILD_BENCHMARKS` | On at the top level | Build performance checks |
+| `VPHILOX_BUILD_TOOLS` | On at the top level | Build the PractRand stream tool |
+| `VPHILOX_INSTALL` | On at the top level | Create install and package files |
+| `VPHILOX_FETCH_DEPS` | On | Download missing test dependencies |
+| `VPHILOX_ENABLE_AVX2` | On | Include the AVX2 backend |
+| `VPHILOX_ENABLE_AVX512` | On | Include the AVX-512 backend |
+| `VPHILOX_ENABLE_NEON` | On | Include the ARM NEON backend |
+| `VPHILOX_FORCE_SCALAR` | Off | Use only the scalar backend |
 
-Enabling a kernel does not force it onto a CPU that cannot run it — runtime
-dispatch decides, so one binary runs everywhere. Set `VPHILOX_BACKEND` in the
-environment (`scalar`, `avx2`, `avx512`, `neon`) to pin one for testing.
+</details>
 
-## Layout
+At runtime, vphilox chooses a backend supported by the current CPU. Set
+`VPHILOX_BACKEND` to `scalar`, `avx2`, `avx512`, or `neon` when you need to pin
+one for testing.
 
+## Correctness comes first
+
+The same key and counter must always produce the same bits. That rule applies
+across compiler versions, CPU types, and future vphilox releases.
+
+`tests/test_reference_vectors.cpp` checks the scalar engine against the
+published Random123 values. `tests/test_kernel_parity.cpp` checks that each SIMD
+backend gives the same answer, including requests that do not fill a complete
+vector register.
+
+Long statistical runs with PractRand and TestU01 are planned for Phase 4. They
+have not been completed yet.
+
+## Repository map
+
+```text
+include/vphilox/          Public headers
+include/vphilox/detail/   Scalar and SIMD backends, CPU checks, dispatch
+tests/                    GoogleTest correctness tests
+benchmarks/               Google Benchmark programs
+tools/                    Raw output tool for statistical testing
+docs/                     Theory, research, plans, and recorded results
 ```
-include/vphilox/
-  vphilox.hpp            umbrella header
-  config.hpp             feature macros, architecture detection
-  constants.hpp          Philox constants, counter4 / key2
-  counter.hpp            128-bit counter arithmetic (this is what makes seeking O(1))
-  float_cast.hpp         IEEE-754 mantissa injection
-  philox.hpp             the engine: C++20 concept + aligned refill buffer
-  version.hpp.in         generated from the VERSION file
-  detail/
-    kernel_scalar.hpp    reference implementation and ground truth
-    kernel_avx2.hpp      Phase 2 — stubbed
-    kernel_avx512.hpp    Phase 2 — stubbed
-    kernel_neon.hpp      Phase 2 — stubbed
-    cpu_features.hpp     runtime CPU probe
-    dispatch.hpp         kernel selection
-tests/                   GoogleTest, one file per concern
-benchmarks/              Google Benchmark
-tools/vphilox_stream.cpp raw bytes on stdout for PractRand / TestU01
-docs/                    theory, prior art, development strategy and phases
-```
 
-Every kernel implements the same contract: `generate(base_counter, key, out,
-blocks)` writes `blocks * 4` words, where block *i* is
-`philox4x32(base + i, key)`. Output does not depend on how the caller chunks
-the request, which is what makes the parity tests meaningful.
+The technical background lives in the documentation:
 
-## Correctness
-
-`tests/test_reference_vectors.cpp` checks the scalar core against the
-`kat_vectors` published with Random123 (all-zeros, all-ones, digits of pi). Those
-values are the contract — every SIMD kernel added later has to reproduce them
-bit for bit, and `tests/test_kernel_parity.cpp` enforces that across a range of
-counters, keys, and block counts, including the tails that do not fill a vector
-register.
-
-Statistical validation (PractRand to 1 TB, TestU01 BigCrush) is Phase 4.
+- [How Philox and vphilox work](docs/vPhilox%20theory.md)
+- [Research and prior work](docs/Research%20on%20vPhilox.md)
+- [Development strategy](docs/Vector%20Philox%20Development%20Strategy.md)
+- [Current roadmap](ROADMAP.md)
 
 ## Versioning
 
-CalVer, `YYYY.0M.MICRO`. The generated bit stream for a given (key, counter) is
-frozen permanently — reproducibility is the product. See
-[VERSIONING.md](VERSIONING.md).
+Versions use `YYYY.0M.MICRO`, with the value stored in [`VERSION`](VERSION).
+The bit stream for an existing key and counter will not change. Read
+[`VERSIONING.md`](VERSIONING.md) for the compatibility rules.
 
-## Documentation
+## Contributing
 
-- [`docs/vPhilox theory.md`](docs/vPhilox%20theory.md) — CBRNG theory, Philox mechanics, SIMD interleaving, float conversion math
-- [`docs/Research on vPhilox.md`](docs/Research%20on%20vPhilox.md) — prior art and what vphilox does differently
-- [`docs/Vector Philox Development Strategy.md`](docs/Vector%20Philox%20Development%20Strategy.md) — the full technical write-up
-- [`docs/VPhilox Development Phases.md`](docs/VPhilox%20Development%20Phases.md) — the five-phase plan
+Start with [`CONTRIBUTING.md`](CONTRIBUTING.md). New behavior needs a focused
+test. New SIMD code must pass the shared parity checks and should include
+benchmark results in both cycles per byte and GB/s.
 
-## References
+## Reference
 
-J. K. Salmon, M. A. Moraes, R. O. Dror, D. E. Shaw. *Parallel Random Numbers:
-As Easy as 1, 2, 3.* SC'11.
+J. K. Salmon, M. A. Moraes, R. O. Dror, and D. E. Shaw. *Parallel Random
+Numbers: As Easy as 1, 2, 3.* SC'11.
 
 ## License
 
-Dual-licensed under either of
-
-- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or
-  <https://www.apache.org/licenses/LICENSE-2.0>)
-- MIT License ([LICENSE-MIT](LICENSE-MIT) or <https://opensource.org/licenses/MIT>)
-
-at your option. Source files carry `SPDX-License-Identifier: MIT OR Apache-2.0`.
-
-The dual form is the C++/Rust ecosystem convention: Apache-2.0 supplies an
-explicit patent grant, and MIT stays compatible with GPLv2 projects, which
-Apache-2.0 alone is not. Taking either one is enough — you do not have to
-comply with both.
-
-### Contribution
-
-Unless you explicitly state otherwise, any contribution intentionally submitted
-for inclusion in this work by you, as defined in the Apache-2.0 license, shall
-be dual licensed as above, without any additional terms or conditions.
+Use vphilox under either the [MIT license](LICENSE-MIT) or the
+[Apache License 2.0](LICENSE-APACHE), at your choice. Contributions are offered
+under the same `MIT OR Apache-2.0` terms.
