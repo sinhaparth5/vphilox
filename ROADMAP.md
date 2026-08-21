@@ -49,9 +49,12 @@ tests, and the benchmark baseline.
   - [ ] **The ~10× scalar-Philox slowdown did not reproduce** — on Coffee Lake / GCC 15 scalar
         Philox runs at 0.96× of `std::mt19937`, not 0.1×. Re-measure on AVX-512 and ARM parts
         before the paper commits to that framing; if it holds up nowhere, cite it as reported
-        context rather than as a result. See the baseline doc for the analysis.
-  - [ ] Add a cycles-per-byte counter (rdtsc or `--benchmark_perf_counters`) — GB/s alone is not comparable across machines
-  - [ ] Re-run on a quiet, frequency-pinned machine; the current numbers are from WSL2
+        context rather than as a result. See the baseline doc for the analysis. The current
+        host has neither AVX-512 nor ARM, so this remains open.
+  - [x] Add a cycles-per-byte counter (serialized `RDTSC`, or Google Benchmark's `CYCLES`
+        performance counter when available); keep GB/s as the secondary metric
+  - [ ] Re-run on a quiet, frequency-pinned machine; the current numbers and verification
+        rerun are from WSL2, which exposes no frequency controls
 
 **Deliverable:** a passing scalar baseline that reproduces Salmon et al.'s
 published vectors and quantifies the CPU penalty vphilox exists to remove.
