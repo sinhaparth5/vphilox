@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/vphilox-logo.png" width="220" height="220"
+  <img src="docs/assets/vphilox-logo-v2.png" width="220" height="220"
        alt="Four parallel number streams passing through a counter to form the vphilox logo">
 </p>
 
