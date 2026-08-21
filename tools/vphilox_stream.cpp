@@ -21,43 +21,61 @@
 #include "vphilox/vphilox.hpp"
 
 #if defined(_WIN32)
-#  include <fcntl.h>
-#  include <io.h>
+#include <fcntl.h>
+#include <io.h>
 #endif
 
 namespace {
 
 void usage(const char* argv0) {
     std::fprintf(stderr,
-        "vphilox_stream (vphilox %s)\n"
-        "\n"
-        "Writes raw pseudorandom bytes to stdout.\n"
-        "\n"
-        "Usage: %s [options]\n"
-        "  --seed N        64-bit seed (default 0)\n"
-        "  --bytes N       stop after N bytes; accepts K/M/G/T suffixes\n"
-        "                  (default: unlimited -- let the consumer stop us)\n"
-        "  --format FMT    raw32 (default) or float32\n"
-        "  --backend B     force scalar|avx2|avx512|neon (same as VPHILOX_BACKEND)\n"
-        "  --info          print the resolved backend to stderr and exit\n"
-        "  --help\n",
-        vphilox::version_string, argv0);
+                 "vphilox_stream (vphilox %s)\n"
+                 "\n"
+                 "Writes raw pseudorandom bytes to stdout.\n"
+                 "\n"
+                 "Usage: %s [options]\n"
+                 "  --seed N        64-bit seed (default 0)\n"
+                 "  --bytes N       stop after N bytes; accepts K/M/G/T suffixes\n"
+                 "                  (default: unlimited -- let the consumer stop us)\n"
+                 "  --format FMT    raw32 (default) or float32\n"
+                 "  --backend B     force scalar|avx2|avx512|neon (same as VPHILOX_BACKEND)\n"
+                 "  --info          print the resolved backend to stderr and exit\n"
+                 "  --help\n",
+                 vphilox::version_string, argv0);
 }
 
 /// Parse a byte count with an optional K/M/G/T suffix (powers of 1024).
 bool parse_size(const char* s, std::uint64_t& out) {
-    char* end = nullptr;
+    char* end                  = nullptr;
     const unsigned long long n = std::strtoull(s, &end, 10);
     if (end == s) return false;
 
     std::uint64_t mult = 1;
     switch (*end) {
-        case '\0': break;
-        case 'k': case 'K': mult = 1ull << 10; ++end; break;
-        case 'm': case 'M': mult = 1ull << 20; ++end; break;
-        case 'g': case 'G': mult = 1ull << 30; ++end; break;
-        case 't': case 'T': mult = 1ull << 40; ++end; break;
-        default: return false;
+        case '\0':
+            break;
+        case 'k':
+        case 'K':
+            mult = 1ull << 10;
+            ++end;
+            break;
+        case 'm':
+        case 'M':
+            mult = 1ull << 20;
+            ++end;
+            break;
+        case 'g':
+        case 'G':
+            mult = 1ull << 30;
+            ++end;
+            break;
+        case 't':
+        case 'T':
+            mult = 1ull << 40;
+            ++end;
+            break;
+        default:
+            return false;
     }
     if (*end == 'B' || *end == 'b') ++end;
     if (*end != '\0') return false;
@@ -69,14 +87,14 @@ bool parse_size(const char* s, std::uint64_t& out) {
 }  // namespace
 
 int main(int argc, char** argv) {
-    std::uint64_t seed = 0;
+    std::uint64_t seed  = 0;
     std::uint64_t limit = 0;  // 0 == unlimited
-    std::string format = "raw32";
-    bool info_only = false;
+    std::string format  = "raw32";
+    bool info_only      = false;
 
     for (int i = 1; i < argc; ++i) {
         const std::string arg = argv[i];
-        auto next = [&](const char* what) -> const char* {
+        auto next             = [&](const char* what) -> const char* {
             if (i + 1 >= argc) {
                 std::fprintf(stderr, "vphilox_stream: %s needs a value\n", what);
                 std::exit(2);
@@ -84,11 +102,16 @@ int main(int argc, char** argv) {
             return argv[++i];
         };
 
-        if (arg == "--help" || arg == "-h") { usage(argv[0]); return 0; }
-        else if (arg == "--info")   { info_only = true; }
-        else if (arg == "--seed")   { seed = std::strtoull(next("--seed"), nullptr, 0); }
-        else if (arg == "--format") { format = next("--format"); }
-        else if (arg == "--backend") {
+        if (arg == "--help" || arg == "-h") {
+            usage(argv[0]);
+            return 0;
+        } else if (arg == "--info") {
+            info_only = true;
+        } else if (arg == "--seed") {
+            seed = std::strtoull(next("--seed"), nullptr, 0);
+        } else if (arg == "--format") {
+            format = next("--format");
+        } else if (arg == "--backend") {
             // Routed through the same env var the library reads, so there is
             // one override mechanism rather than two.
 #if defined(_WIN32)
@@ -96,14 +119,12 @@ int main(int argc, char** argv) {
 #else
             setenv("VPHILOX_BACKEND", next("--backend"), 1);
 #endif
-        }
-        else if (arg == "--bytes") {
+        } else if (arg == "--bytes") {
             if (!parse_size(next("--bytes"), limit)) {
                 std::fprintf(stderr, "vphilox_stream: bad --bytes value\n");
                 return 2;
             }
-        }
-        else {
+        } else {
             std::fprintf(stderr, "vphilox_stream: unknown option '%s'\n", arg.c_str());
             usage(argv[0]);
             return 2;
@@ -118,8 +139,7 @@ int main(int argc, char** argv) {
     vphilox::engine g{seed};
 
     std::fprintf(stderr, "vphilox %s | backend=%s | seed=%llu | format=%s\n",
-                 vphilox::version_string,
-                 vphilox::backend_name(vphilox::engine::which_backend()),
+                 vphilox::version_string, vphilox::backend_name(vphilox::engine::which_backend()),
                  static_cast<unsigned long long>(seed), format.c_str());
     if (info_only) return 0;
 

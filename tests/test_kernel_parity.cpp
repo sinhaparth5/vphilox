@@ -30,8 +30,8 @@ constexpr std::size_t kBlockCounts[] = {1, 2, 3, 4, 5, 7, 8, 9, 15, 16, 17, 64, 
 const counter4 kCounters[] = {
     counter4{{0, 0, 0, 0}},
     counter4{{1, 0, 0, 0}},
-    counter4{{0xFFFFFFFDu, 0, 0, 0}},              // carries mid-batch
-    counter4{{0xFFFFFFFFu, 0xFFFFFFFFu, 0, 0}},    // carries two words
+    counter4{{0xFFFFFFFDu, 0, 0, 0}},            // carries mid-batch
+    counter4{{0xFFFFFFFFu, 0xFFFFFFFFu, 0, 0}},  // carries two words
     counter4{{0x243f6a88u, 0x85a308d3u, 0x13198a2eu, 0x03707344u}},
 };
 
@@ -46,9 +46,8 @@ void expect_matches_scalar() {
     for (const auto& ctr : kCounters) {
         for (const auto& key : kKeys) {
             for (std::size_t blocks : kBlockCounts) {
-                SCOPED_TRACE(testing::Message()
-                             << Kernel::name << " ctr=" << ctr.v[0] << " key=" << key.v[0]
-                             << " blocks=" << blocks);
+                SCOPED_TRACE(testing::Message() << Kernel::name << " ctr=" << ctr.v[0]
+                                                << " key=" << key.v[0] << " blocks=" << blocks);
 
                 const std::size_t words = blocks * block_words;
                 std::vector<u32> expected(words);
@@ -106,23 +105,39 @@ TEST(KernelParity, ScalarMatchesItself) {
 }
 
 TEST(Dispatch, ResolvesToAnAvailableBackend) {
-    const backend b = active_backend<default_rounds>();
+    const backend b                 = active_backend<default_rounds>();
     const detail::cpu_features& cpu = detail::detect_cpu();
 
     switch (b) {
-        case backend::avx512: EXPECT_TRUE(cpu.avx512); break;
-        case backend::avx2:   EXPECT_TRUE(cpu.avx2);   break;
-        case backend::neon:   EXPECT_TRUE(cpu.neon);   break;
-        case backend::scalar: SUCCEED();               break;
+        case backend::avx512:
+            EXPECT_TRUE(cpu.avx512);
+            break;
+        case backend::avx2:
+            EXPECT_TRUE(cpu.avx2);
+            break;
+        case backend::neon:
+            EXPECT_TRUE(cpu.neon);
+            break;
+        case backend::scalar:
+            SUCCEED();
+            break;
     }
     EXPECT_STRNE(backend_name(b), "unknown");
 }
 
 TEST(Dispatch, NeverSelectsAnUnimplementedKernel) {
     switch (active_backend<default_rounds>()) {
-        case backend::avx2:   EXPECT_TRUE(detail::kernel_avx2::implemented);   break;
-        case backend::avx512: EXPECT_TRUE(detail::kernel_avx512::implemented); break;
-        case backend::neon:   EXPECT_TRUE(detail::kernel_neon::implemented);   break;
-        case backend::scalar: SUCCEED(); break;
+        case backend::avx2:
+            EXPECT_TRUE(detail::kernel_avx2::implemented);
+            break;
+        case backend::avx512:
+            EXPECT_TRUE(detail::kernel_avx512::implemented);
+            break;
+        case backend::neon:
+            EXPECT_TRUE(detail::kernel_neon::implemented);
+            break;
+        case backend::scalar:
+            SUCCEED();
+            break;
     }
 }

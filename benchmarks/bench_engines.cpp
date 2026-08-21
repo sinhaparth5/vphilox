@@ -64,8 +64,7 @@ private:
     std::uint64_t total_{};
 };
 
-void report_metrics(benchmark::State& state, const cycle_counter& rdtsc,
-                    std::string label = {}) {
+void report_metrics(benchmark::State& state, const cycle_counter& rdtsc, std::string label = {}) {
     const auto bytes = static_cast<std::int64_t>(state.iterations() * kBytesPerIteration);
     state.SetBytesProcessed(bytes);
 
@@ -155,8 +154,8 @@ void BM_philox_scalar(benchmark::State& state) {
 
     for (auto _ : state) {
         cycles.start();
-        vphilox::detail::kernel_scalar::generate<vphilox::default_rounds>(
-            ctr, k, out.data(), blocks);
+        vphilox::detail::kernel_scalar::generate<vphilox::default_rounds>(ctr, k, out.data(),
+                                                                          blocks);
         vphilox::counter_add(ctr, blocks);
         benchmark::DoNotOptimize(out.data());
         benchmark::ClobberMemory();

@@ -21,7 +21,7 @@
 #include "vphilox/vphilox.hpp"
 
 #if VPHILOX_HAVE_OPENMP
-#  include <omp.h>
+#include <omp.h>
 #endif
 
 namespace {
@@ -61,12 +61,17 @@ void BM_thread_scaling(benchmark::State& state) {
         benchmark::ClobberMemory();
     }
 
-    state.SetBytesProcessed(static_cast<std::int64_t>(
-        state.iterations() * threads * kWordsPerThread * sizeof(vphilox::u32)));
+    state.SetBytesProcessed(static_cast<std::int64_t>(state.iterations() * threads *
+                                                      kWordsPerThread * sizeof(vphilox::u32)));
     state.SetLabel(vphilox::backend_name(vphilox::engine::which_backend()));
 }
 BENCHMARK(BM_thread_scaling)
-    ->Arg(1)->Arg(2)->Arg(4)->Arg(8)->Arg(16)->Arg(32)
+    ->Arg(1)
+    ->Arg(2)
+    ->Arg(4)
+    ->Arg(8)
+    ->Arg(16)
+    ->Arg(32)
     ->UseRealTime()
     ->Unit(benchmark::kMillisecond);
 

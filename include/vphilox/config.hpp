@@ -16,9 +16,9 @@
 // Architecture
 // ---------------------------------------------------------------------------
 #if defined(__x86_64__) || defined(_M_X64)
-#  define VPHILOX_ARCH_X86 1
+#define VPHILOX_ARCH_X86 1
 #elif defined(__aarch64__) || defined(_M_ARM64)
-#  define VPHILOX_ARCH_ARM64 1
+#define VPHILOX_ARCH_ARM64 1
 #endif
 
 // ---------------------------------------------------------------------------
@@ -29,36 +29,36 @@
 // CMake from the VPHILOX_ENABLE_* options; VPHILOX_FORCE_SCALAR overrides all.
 // ---------------------------------------------------------------------------
 #if defined(VPHILOX_FORCE_SCALAR)
-#  define VPHILOX_HAS_AVX2   0
-#  define VPHILOX_HAS_AVX512 0
-#  define VPHILOX_HAS_NEON   0
+#define VPHILOX_HAS_AVX2 0
+#define VPHILOX_HAS_AVX512 0
+#define VPHILOX_HAS_NEON 0
 #else
-#  if defined(VPHILOX_ARCH_X86) && !defined(VPHILOX_NO_AVX2)
-#    define VPHILOX_HAS_AVX2 1
-#  else
-#    define VPHILOX_HAS_AVX2 0
-#  endif
-#  if defined(VPHILOX_ARCH_X86) && !defined(VPHILOX_NO_AVX512)
-#    define VPHILOX_HAS_AVX512 1
-#  else
-#    define VPHILOX_HAS_AVX512 0
-#  endif
-#  if defined(VPHILOX_ARCH_ARM64) && !defined(VPHILOX_NO_NEON)
-#    define VPHILOX_HAS_NEON 1
-#  else
-#    define VPHILOX_HAS_NEON 0
-#  endif
+#if defined(VPHILOX_ARCH_X86) && !defined(VPHILOX_NO_AVX2)
+#define VPHILOX_HAS_AVX2 1
+#else
+#define VPHILOX_HAS_AVX2 0
+#endif
+#if defined(VPHILOX_ARCH_X86) && !defined(VPHILOX_NO_AVX512)
+#define VPHILOX_HAS_AVX512 1
+#else
+#define VPHILOX_HAS_AVX512 0
+#endif
+#if defined(VPHILOX_ARCH_ARM64) && !defined(VPHILOX_NO_NEON)
+#define VPHILOX_HAS_NEON 1
+#else
+#define VPHILOX_HAS_NEON 0
+#endif
 #endif
 
 // ---------------------------------------------------------------------------
 // Inlining and target attributes
 // ---------------------------------------------------------------------------
 #if defined(_MSC_VER)
-#  define VPHILOX_FORCE_INLINE __forceinline
-#  define VPHILOX_TARGET(isa)
+#define VPHILOX_FORCE_INLINE __forceinline
+#define VPHILOX_TARGET(isa)
 #else
-#  define VPHILOX_FORCE_INLINE inline __attribute__((always_inline))
-#  define VPHILOX_TARGET(isa)  __attribute__((target(isa)))
+#define VPHILOX_FORCE_INLINE inline __attribute__((always_inline))
+#define VPHILOX_TARGET(isa) __attribute__((target(isa)))
 #endif
 
 namespace vphilox {

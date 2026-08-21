@@ -56,7 +56,8 @@ public:
     /// Full control: explicit key and starting counter.
     basic_engine(key2 k, counter4 start) noexcept
         : cursor_(refill_words),  // force a refill on first use
-          key_(k), next_(start) {}
+          key_(k),
+          next_(start) {}
 
     [[nodiscard]] result_type operator()() noexcept {
         if (cursor_ >= refill_words) [[unlikely]] {
@@ -122,8 +123,8 @@ private:
     // Hot scalars first so they share a cache line with each other rather than
     // trailing the 128-byte buffer.
     std::size_t cursor_ = refill_words;
-    key2        key_{};
-    counter4    next_{};  // counter the next refill will start from
+    key2 key_{};
+    counter4 next_{};  // counter the next refill will start from
     alignas(cacheline_size) u32 buffer_[refill_words]{};
 };
 
