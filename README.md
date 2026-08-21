@@ -1,5 +1,7 @@
 # vphilox
 
+[![Build and test](https://github.com/sinhaparth5/vphilox/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/sinhaparth5/vphilox/actions/workflows/ci.yml)
+
 SIMD-accelerated counter-based pseudorandom number generation for parallel CPU
 systems. Header-only, zero-dependency, C++20.
 
