@@ -1,0 +1,36 @@
+// SPDX-License-Identifier: MIT OR Apache-2.0
+// Copyright (c) 2026 Parth Sinha
+
+// vphilox - version.hpp
+//
+// GENERATED FILE. Do not edit; edit the `VERSION` file at the repo root.
+//
+// vphilox versions are CalVer: YYYY.0M.MICRO (see VERSIONING.md).
+
+#ifndef VPHILOX_VERSION_HPP
+#define VPHILOX_VERSION_HPP
+
+#define VPHILOX_VERSION_STRING "@VPHILOX_VERSION@"
+#define VPHILOX_VERSION_YEAR   @VPHILOX_VERSION_YEAR@
+#define VPHILOX_VERSION_MONTH  @VPHILOX_VERSION_MONTH_N@
+#define VPHILOX_VERSION_MICRO  @VPHILOX_VERSION_MICRO@
+
+// Monotonic integer form, usable in preprocessor comparisons:
+//   #if VPHILOX_VERSION >= VPHILOX_VERSION_NUMBER(2026, 8, 0)
+#define VPHILOX_VERSION_NUMBER(year, month, micro) \
+    (((year) * 10000) + ((month) * 100) + (micro))
+
+#define VPHILOX_VERSION \
+    VPHILOX_VERSION_NUMBER(VPHILOX_VERSION_YEAR, VPHILOX_VERSION_MONTH, VPHILOX_VERSION_MICRO)
+
+namespace vphilox {
+
+/// Human-readable CalVer string, e.g. "2026.08.0".
+inline constexpr const char* version_string = VPHILOX_VERSION_STRING;
+
+/// Numeric CalVer, comparable with VPHILOX_VERSION_NUMBER(y, m, p).
+inline constexpr int version_number = VPHILOX_VERSION;
+
+}  // namespace vphilox
+
+#endif  // VPHILOX_VERSION_HPP

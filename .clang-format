@@ -1,0 +1,37 @@
+---
+Language: Cpp
+BasedOnStyle: Google
+Standard: c++20
+
+ColumnLimit: 100
+IndentWidth: 4
+AccessModifierOffset: -4
+
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortLoopsOnASingleLine: true
+
+# Keep intrinsic-heavy kernel code readable: aligned operands make a botched
+# lane index visible at a glance.
+AlignOperands: Align
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: Consecutive
+AlignTrailingComments: true
+
+PointerAlignment: Left
+DerivePointerAlignment: false
+
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: '^<gtest/|^<benchmark/'
+    Priority: 1
+  - Regex: '^<(immintrin|arm_neon|intrin|omp)\.h>$'
+    Priority: 2
+  - Regex: '^<.*\.h>$'
+    Priority: 3
+  - Regex: '^<.*>$'
+    Priority: 4
+  - Regex: '^"vphilox/'
+    Priority: 5
+  - Regex: '.*'
+    Priority: 6

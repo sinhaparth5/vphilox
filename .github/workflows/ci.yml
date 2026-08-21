@@ -1,0 +1,125 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: "linux-gcc",        os: ubuntu-latest,  preset: default }
+          - { name: "linux-clang",      os: ubuntu-latest,  preset: default, cxx: clang++ }
+          - { name: "linux-debug-werror", os: ubuntu-latest, preset: debug }
+          - { name: "linux-scalar",     os: ubuntu-latest,  preset: scalar }
+          - { name: "linux-asan",       os: ubuntu-latest,  preset: asan }
+          # macOS arm64 is the NEON target -- real hardware, not cross-compiled.
+          - { name: "macos-arm64",      os: macos-latest,   preset: default }
+          - { name: "windows-msvc",     os: windows-latest, preset: default }
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Ninja
+        uses: seanmiddleditch/gha-setup-ninja@v5
+
+      - name: Set up MSVC
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Select compiler
+        if: matrix.cxx != ''
+        run: echo "CXX=${{ matrix.cxx }}" >> $GITHUB_ENV
+
+      - name: Configure
+        run: cmake --preset ${{ matrix.preset }}
+
+      - name: Build
+        run: cmake --build --preset ${{ matrix.preset }}
+
+      - name: Test
+        run: ctest --preset ${{ matrix.preset }}
+
+      # The dispatch layer picks a kernel per CPU; log which one so a runner
+      # silently falling back to scalar is visible in the CI output rather than
+      # hiding behind a green check.
+      - name: Report resolved backend
+        run: ctest --preset ${{ matrix.preset }} -R Engine.ReportsItsBackend -V
+
+  install:
+    name: install + find_package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: seanmiddleditch/gha-setup-ninja@v5
+
+      - name: Build and install
+        run: |
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+                -DVPHILOX_BUILD_TESTS=OFF -DVPHILOX_BUILD_BENCHMARKS=OFF \
+                -DVPHILOX_BUILD_TOOLS=OFF
+          cmake --build build
+          cmake --install build --prefix "$PWD/staging"
+
+      - name: Consume it from a downstream project
+        run: |
+          mkdir -p /tmp/consumer && cd /tmp/consumer
+          cat > CMakeLists.txt <<'CM'
+          cmake_minimum_required(VERSION 3.24)
+          project(consumer LANGUAGES CXX)
+          find_package(vphilox REQUIRED)
+          add_executable(app main.cpp)
+          target_link_libraries(app PRIVATE vphilox::vphilox)
+          CM
+          cat > main.cpp <<'CPP'
+          #include <cstdio>
+          #include <vphilox/vphilox.hpp>
+          int main() {
+              vphilox::engine g{7};
+              std::printf("vphilox %s backend=%s\n", vphilox::version_string,
+                          vphilox::backend_name(g.which_backend()));
+              return g() == 0 ? 1 : 0;
+          }
+          CPP
+          cmake -B b -G Ninja -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/staging" .
+          cmake --build b
+          ./b/app
+
+  version-check:
+    name: VERSION matches tag
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compare tag against the VERSION file
+        run: |
+          file_version="$(tr -d '[:space:]' < VERSION)"
+          tag_version="${GITHUB_REF_NAME#v}"
+          if [ "$file_version" != "$tag_version" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match VERSION ($file_version)"
+            exit 1
+          fi
+
+  format:
+    name: clang-format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check formatting
+        run: |
+          find include tests benchmarks tools -name '*.hpp' -o -name '*.cpp' \
+            | xargs clang-format --dry-run --Werror
+
+  # TODO(phase-4): a scheduled job running PractRand for a few hours on the
+  # nightly build. Too slow for per-PR CI, but a regression in the statistical
+  # properties needs to be caught by something.

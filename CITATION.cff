@@ -1,0 +1,49 @@
+cff-version: 1.2.0
+message: "If you use vphilox in your research, please cite it as below."
+title: "vphilox: SIMD-Accelerated Counter-Based Pseudo-Random Number Generation for Parallel CPU Systems"
+abstract: >-
+  A header-only, zero-dependency C++20 implementation of the Philox4x32-10
+  counter-based pseudorandom number generator, vectorized by interleaving
+  independent counter streams across AVX2, AVX-512, and ARM NEON registers.
+  Pairs multi-stream SIMD interleaving with division-free IEEE-754 mantissa
+  injection for floating-point conversion, and satisfies
+  std::uniform_random_bit_generator.
+type: software
+authors:
+  - family-names: Sinha
+    given-names: Parth
+    email: sinhaparth555@gmail.com
+repository-code: "https://github.com/sinhaparth5/vphilox"
+license:
+  - Apache-2.0
+  - MIT
+version: 2026.08.0
+date-released: "2026-08-21"
+keywords:
+  - pseudorandom number generation
+  - counter-based PRNG
+  - Philox
+  - SIMD
+  - AVX2
+  - AVX-512
+  - ARM NEON
+  - high-performance computing
+  - reproducibility
+  - C++20
+# TODO(phase-5): add the Zenodo DOI here once assigned, and a preferred-citation
+# block pointing at the arXiv preprint.
+references:
+  - type: conference-paper
+    title: "Parallel Random Numbers: As Easy as 1, 2, 3"
+    authors:
+      - family-names: Salmon
+        given-names: John K.
+      - family-names: Moraes
+        given-names: Mark A.
+      - family-names: Dror
+        given-names: Ron O.
+      - family-names: Shaw
+        given-names: David E.
+    collection-title: "Proceedings of the International Conference for High Performance Computing, Networking, Storage and Analysis (SC'11)"
+    year: 2011
+    doi: "10.1145/2063384.2063405"
