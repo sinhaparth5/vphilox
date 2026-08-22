@@ -16,6 +16,11 @@ project(vphilox
     HOMEPAGE_URL "https://github.com/sinhaparth5/vphilox"
     LANGUAGES   CXX)
 
+# Define the standard install directories before they are referenced by the
+# vphilox target's BUILD_INTERFACE/INSTALL_INTERFACE include paths. In a fresh
+# configure these variables do not exist until GNUInstallDirs is loaded.
+include(GNUInstallDirs)
+
 message(STATUS "vphilox ${VPHILOX_VERSION} (CalVer ${VPHILOX_VERSION_YEAR}.${VPHILOX_VERSION_MONTH}.${VPHILOX_VERSION_MICRO})")
 
 # Are we the top-level project, or vendored into someone else's build?
@@ -115,7 +120,6 @@ endif()
 # Install / export
 # ---------------------------------------------------------------------------
 if(VPHILOX_INSTALL)
-    include(GNUInstallDirs)
     include(CMakePackageConfigHelpers)
 
     install(TARGETS vphilox EXPORT vphiloxTargets)
