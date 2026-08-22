@@ -35,3 +35,7 @@ cmake-build-*/
 # back the paper live in docs/benchmarks/ and docs/statistical/ and are tracked.
 *.practrand.log
 bench_results_*.json
+
+# Temporary directory produced by `gcloud compute scp`; curated files are
+# copied into results/ before committing.
+avx512-results/

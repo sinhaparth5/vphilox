@@ -25,19 +25,19 @@
 #include "vphilox/detail/kernel_scalar.hpp"
 
 #if VPHILOX_HAS_NEON
-#  include <arm_neon.h>
+#include <arm_neon.h>
 #endif
 
 namespace vphilox::detail {
 
 struct kernel_neon {
-    static constexpr const char* name = "neon";
+    static constexpr const char* name             = "neon";
     static constexpr std::size_t preferred_blocks = 2;
-    static constexpr bool implemented = false;
+    static constexpr bool implemented             = false;
 
     template <unsigned Rounds = default_rounds>
-    static void generate(const counter4& base, const key2& k,
-                         u32* out, std::size_t blocks) noexcept {
+    static void generate(const counter4& base, const key2& k, u32* out,
+                         std::size_t blocks) noexcept {
         // TODO(phase-2): replace with the vmull_u32-based NEON kernel.
         kernel_scalar::generate<Rounds>(base, k, out, blocks);
     }

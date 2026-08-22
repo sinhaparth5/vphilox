@@ -26,24 +26,21 @@ namespace {
 
 struct kat_case {
     const char* name;
-    counter4    ctr;
-    key2        key;
-    counter4    expected;
+    counter4 ctr;
+    key2 key;
+    counter4 expected;
 };
 
 const kat_case kat_philox4x32_10[] = {
-    {"zeros",
-     counter4{{0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u}},
+    {"zeros", counter4{{0x00000000u, 0x00000000u, 0x00000000u, 0x00000000u}},
      key2{{0x00000000u, 0x00000000u}},
      counter4{{0x6627e8d5u, 0xe169c58du, 0xbc57ac4cu, 0x9b00dbd8u}}},
 
-    {"ones",
-     counter4{{0xffffffffu, 0xffffffffu, 0xffffffffu, 0xffffffffu}},
+    {"ones", counter4{{0xffffffffu, 0xffffffffu, 0xffffffffu, 0xffffffffu}},
      key2{{0xffffffffu, 0xffffffffu}},
      counter4{{0x408f276du, 0x41c83b0eu, 0xa20bc7c6u, 0x6d5451fdu}}},
 
-    {"pi",
-     counter4{{0x243f6a88u, 0x85a308d3u, 0x13198a2eu, 0x03707344u}},
+    {"pi", counter4{{0x243f6a88u, 0x85a308d3u, 0x13198a2eu, 0x03707344u}},
      key2{{0xa4093822u, 0x299f31d0u}},
      counter4{{0xd16cfe09u, 0x94fdccebu, 0x5001e420u, 0x24126ea1u}}},
 };

@@ -19,8 +19,8 @@ constexpr void counter_add(counter4& c, u64 delta) noexcept {
     u64 carry = delta;
     for (std::size_t i = 0; i < block_words && carry != 0; ++i) {
         const u64 sum = static_cast<u64>(c.v[i]) + (carry & 0xFFFFFFFFu);
-        c.v[i] = static_cast<u32>(sum);
-        carry = (carry >> 32) + (sum >> 32);
+        c.v[i]        = static_cast<u32>(sum);
+        carry         = (carry >> 32) + (sum >> 32);
     }
 }
 

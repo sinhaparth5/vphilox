@@ -12,7 +12,7 @@
 #include "vphilox/config.hpp"
 
 #if defined(VPHILOX_ARCH_X86) && defined(_MSC_VER)
-#  include <intrin.h>
+#include <intrin.h>
 #endif
 
 namespace vphilox::detail {
@@ -28,17 +28,17 @@ inline const cpu_features& detect_cpu() noexcept {
     static const cpu_features features = [] {
         cpu_features f{};
 #if defined(VPHILOX_ARCH_X86)
-#  if defined(__GNUC__) || defined(__clang__)
+#if defined(__GNUC__) || defined(__clang__)
         __builtin_cpu_init();
         f.avx2   = __builtin_cpu_supports("avx2");
         f.avx512 = __builtin_cpu_supports("avx512f") && __builtin_cpu_supports("avx512dq");
-#  elif defined(_MSC_VER)
+#elif defined(_MSC_VER)
         // TODO(phase-3): MSVC path -- __cpuidex leaf 7 (EBX bit 5 = AVX2,
         // bit 16 = AVX512F, bit 17 = AVX512DQ) plus an XGETBV check that the
         // OS actually saves the YMM/ZMM state.
         f.avx2   = false;
         f.avx512 = false;
-#  endif
+#endif
 #elif defined(VPHILOX_ARCH_ARM64)
         f.neon = true;  // NEON is mandatory on aarch64
 #endif

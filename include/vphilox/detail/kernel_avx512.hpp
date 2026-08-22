@@ -23,19 +23,19 @@
 #include "vphilox/detail/kernel_scalar.hpp"
 
 #if VPHILOX_HAS_AVX512
-#  include <immintrin.h>
+#include <immintrin.h>
 #endif
 
 namespace vphilox::detail {
 
 struct kernel_avx512 {
-    static constexpr const char* name = "avx512";
+    static constexpr const char* name             = "avx512";
     static constexpr std::size_t preferred_blocks = 8;
-    static constexpr bool implemented = false;
+    static constexpr bool implemented             = false;
 
     template <unsigned Rounds = default_rounds>
-    static void generate(const counter4& base, const key2& k,
-                         u32* out, std::size_t blocks) noexcept {
+    static void generate(const counter4& base, const key2& k, u32* out,
+                         std::size_t blocks) noexcept {
         // TODO(phase-2): replace with the interleaved AVX-512 kernel.
         kernel_scalar::generate<Rounds>(base, k, out, blocks);
     }

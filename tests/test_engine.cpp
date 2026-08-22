@@ -47,8 +47,8 @@ TEST(Engine, OutputMatchesTheRawKernel) {
 
     constexpr std::size_t blocks = 32;
     std::vector<vphilox::u32> expected(blocks * vphilox::block_words);
-    vphilox::detail::kernel_scalar::generate<vphilox::default_rounds>(
-        vphilox::counter4{}, k, expected.data(), blocks);
+    vphilox::detail::kernel_scalar::generate<vphilox::default_rounds>(vphilox::counter4{}, k,
+                                                                      expected.data(), blocks);
 
     for (std::size_t i = 0; i < expected.size(); ++i) {
         ASSERT_EQ(g(), expected[i]) << "word " << i;
@@ -106,7 +106,7 @@ TEST(Engine, WorksWithStandardDistributions) {
     }
 
     std::normal_distribution<double> norm(0.0, 1.0);
-    double sum = 0.0;
+    double sum       = 0.0;
     constexpr int kN = 100000;
     for (int i = 0; i < kN; ++i) sum += norm(g);
     EXPECT_NEAR(sum / kN, 0.0, 0.02);
@@ -149,8 +149,8 @@ TEST(Engine, ReportsItsBackend) {
     const auto b = engine::which_backend();
     EXPECT_STRNE(vphilox::backend_name(b), "unknown");
     // Informational: makes CI logs say which kernel actually ran.
-    std::cout << "[          ] vphilox backend: " << vphilox::backend_name(b)
-              << " (v" << vphilox::version_string << ")\n";
+    std::cout << "[          ] vphilox backend: " << vphilox::backend_name(b) << " (v"
+              << vphilox::version_string << ")\n";
 }
 
 TEST(Engine, BufferIsCacheAligned) {

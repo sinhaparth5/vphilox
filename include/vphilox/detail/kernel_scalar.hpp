@@ -22,8 +22,8 @@ namespace vphilox::detail {
 /// 32x32 -> 64 wide multiply, split into halves.
 constexpr void mulhilo32(u32 a, u32 b, u32& hi, u32& lo) noexcept {
     const u64 product = static_cast<u64>(a) * static_cast<u64>(b);
-    hi = static_cast<u32>(product >> 32);
-    lo = static_cast<u32>(product);
+    hi                = static_cast<u32>(product >> 32);
+    lo                = static_cast<u32>(product);
 }
 
 /// One Philox4x32 round: two wide multiplies, key XOR, word permutation.
@@ -71,12 +71,12 @@ template <unsigned Rounds = default_rounds>
 ///   - `out` need not be aligned; `preferred_blocks` is the SIMD-width
 ///     multiple that runs without a tail.
 struct kernel_scalar {
-    static constexpr const char* name = "scalar";
+    static constexpr const char* name             = "scalar";
     static constexpr std::size_t preferred_blocks = 1;
 
     template <unsigned Rounds = default_rounds>
-    static constexpr void generate(const counter4& base, const key2& k,
-                                   u32* out, std::size_t blocks) noexcept {
+    static constexpr void generate(const counter4& base, const key2& k, u32* out,
+                                   std::size_t blocks) noexcept {
         for (std::size_t i = 0; i < blocks; ++i) {
             const counter4 r = philox4x32<Rounds>(counter_advanced(base, i), k);
             for (std::size_t w = 0; w < block_words; ++w) {

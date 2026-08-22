@@ -34,10 +34,14 @@ enum class backend { scalar, avx2, avx512, neon };
 
 [[nodiscard]] constexpr const char* backend_name(backend b) noexcept {
     switch (b) {
-        case backend::scalar: return "scalar";
-        case backend::avx2:   return "avx2";
-        case backend::avx512: return "avx512";
-        case backend::neon:   return "neon";
+        case backend::scalar:
+            return "scalar";
+        case backend::avx2:
+            return "avx2";
+        case backend::avx512:
+            return "avx512";
+        case backend::neon:
+            return "neon";
     }
     return "unknown";
 }
@@ -47,8 +51,8 @@ namespace detail {
 using kernel_fn = void (*)(const counter4&, const key2&, u32*, std::size_t) noexcept;
 
 struct dispatch_entry {
-    backend   which  = backend::scalar;
-    kernel_fn fn     = nullptr;
+    backend which                = backend::scalar;
+    kernel_fn fn                 = nullptr;
     std::size_t preferred_blocks = 1;
 };
 
@@ -58,14 +62,17 @@ struct dispatch_entry {
 /// is ignored rather than fatal.
 inline backend backend_override(bool& has_override) noexcept {
     const char* env = std::getenv("VPHILOX_BACKEND");
-    has_override = false;
+    has_override    = false;
     if (env == nullptr) return backend::scalar;
 
-    struct { const char* name; backend b; } table[] = {
+    struct {
+        const char* name;
+        backend b;
+    } table[] = {
         {"scalar", backend::scalar},
-        {"avx2",   backend::avx2},
+        {"avx2", backend::avx2},
         {"avx512", backend::avx512},
-        {"neon",   backend::neon},
+        {"neon", backend::neon},
     };
     for (const auto& e : table) {
         if (std::strcmp(env, e.name) == 0) {
@@ -103,15 +110,19 @@ inline const dispatch_entry& resolve_dispatch() noexcept {
 
         auto available = [&cpu](backend b) {
             switch (b) {
-                case backend::avx512: return VPHILOX_HAS_AVX512 && kernel_avx512::implemented && cpu.avx512;
-                case backend::avx2:   return VPHILOX_HAS_AVX2   && kernel_avx2::implemented   && cpu.avx2;
-                case backend::neon:   return VPHILOX_HAS_NEON   && kernel_neon::implemented   && cpu.neon;
-                case backend::scalar: return true;
+                case backend::avx512:
+                    return VPHILOX_HAS_AVX512 && kernel_avx512::implemented && cpu.avx512;
+                case backend::avx2:
+                    return VPHILOX_HAS_AVX2 && kernel_avx2::implemented && cpu.avx2;
+                case backend::neon:
+                    return VPHILOX_HAS_NEON && kernel_neon::implemented && cpu.neon;
+                case backend::scalar:
+                    return true;
             }
             return false;
         };
 
-        bool has_override = false;
+        bool has_override    = false;
         const backend forced = backend_override(has_override);
         if (has_override && available(forced)) return make(forced);
 

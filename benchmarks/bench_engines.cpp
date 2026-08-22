@@ -3,11 +3,9 @@
 
 // Phase 1 baseline / Phase 4 comparison matrix.
 //
-// The number that matters is cycles-per-byte, not wall time -- it is the only
-// figure comparable across machines and the one the docs quote (0.42 cpb
-// target for AVX-512, ~4.5 cpb for scalar Philox, ~1.8 cpb for mt19937).
-// Google Benchmark's bytes_per_second plus the reported CPU frequency gets
-// you there; Phase 4 should add an rdtsc-based counter for a direct read.
+// Report cycles-per-byte directly alongside wall-clock throughput. On x86 the
+// fallback is a serialized RDTSC measurement. On Linux ARM, perf_event_open
+// reads the hardware CPU-cycle counter directly.
 //
 // TODO(phase-4): add xoshiro256++ and PCG64 to complete the matrix. Both are
 // small enough to vendor into benchmarks/third_party/ rather than take as
@@ -15,28 +13,137 @@
 
 #include <benchmark/benchmark.h>
 
+#include <cstdint>
 #include <random>
+#include <string>
 #include <vector>
 
+#if defined(__linux__) && !defined(__x86_64__) && !defined(_M_X64)
+#include <linux/perf_event.h>
+#include <sys/ioctl.h>
+#include <sys/syscall.h>
+#include <unistd.h>
+#endif
+
 #include "vphilox/vphilox.hpp"
+
+#if defined(__x86_64__) || defined(_M_X64)
+#if defined(_MSC_VER)
+#include <intrin.h>
+#else
+#include <x86intrin.h>
+#endif
+#define VPHILOX_BENCH_HAS_RDTSC 1
+#else
+#define VPHILOX_BENCH_HAS_RDTSC 0
+#endif
 
 namespace {
 
 constexpr std::size_t kWords = 1u << 16;  // 256 KiB per iteration: fits L2,
                                           // so this measures the generator
                                           // rather than memory bandwidth.
+constexpr std::size_t kBytesPerIteration = kWords * sizeof(vphilox::u32);
+
+class cycle_counter {
+public:
+#if defined(__linux__) && !VPHILOX_BENCH_HAS_RDTSC
+    cycle_counter() noexcept {
+        perf_event_attr attr{};
+        attr.type           = PERF_TYPE_HARDWARE;
+        attr.size           = static_cast<decltype(attr.size)>(sizeof(attr));
+        attr.config         = PERF_COUNT_HW_CPU_CYCLES;
+        attr.disabled       = 1;
+        attr.exclude_kernel = 1;
+        attr.exclude_hv     = 1;
+        fd_                 = static_cast<int>(syscall(SYS_perf_event_open, &attr, 0, -1, -1, 0));
+    }
+
+    ~cycle_counter() {
+        if (fd_ >= 0) close(fd_);
+    }
+
+    cycle_counter(const cycle_counter&)            = delete;
+    cycle_counter& operator=(const cycle_counter&) = delete;
+#endif
+
+    void start() noexcept {
+#if VPHILOX_BENCH_HAS_RDTSC
+        _mm_lfence();
+        start_ = __rdtsc();
+        _mm_lfence();
+#elif defined(__linux__)
+        if (fd_ >= 0) {
+            ioctl(fd_, PERF_EVENT_IOC_RESET, 0);
+            ioctl(fd_, PERF_EVENT_IOC_ENABLE, 0);
+        }
+#endif
+    }
+
+    void stop() noexcept {
+#if VPHILOX_BENCH_HAS_RDTSC
+        _mm_lfence();
+        const std::uint64_t end = __rdtsc();
+        _mm_lfence();
+        total_ += end - start_;
+#elif defined(__linux__)
+        if (fd_ >= 0) {
+            ioctl(fd_, PERF_EVENT_IOC_DISABLE, 0);
+            std::uint64_t measured{};
+            if (read(fd_, &measured, sizeof(measured)) == static_cast<ssize_t>(sizeof(measured))) {
+                total_ += measured;
+            }
+        }
+#endif
+    }
+
+    [[nodiscard]] double total() const noexcept { return static_cast<double>(total_); }
+
+    [[nodiscard]] const char* source() const noexcept {
+#if VPHILOX_BENCH_HAS_RDTSC
+        return "rdtsc";
+#elif defined(__linux__)
+        return fd_ >= 0 ? "perf_event" : "";
+#else
+        return "";
+#endif
+    }
+
+private:
+    std::uint64_t start_{};
+    std::uint64_t total_{};
+#if defined(__linux__) && !VPHILOX_BENCH_HAS_RDTSC
+    int fd_{-1};
+#endif
+};
+
+void report_metrics(benchmark::State& state, const cycle_counter& rdtsc, std::string label = {}) {
+    const auto bytes = static_cast<std::int64_t>(state.iterations() * kBytesPerIteration);
+    state.SetBytesProcessed(bytes);
+
+    const double cycles = rdtsc.total();
+
+    if (cycles > 0.0 && bytes > 0) {
+        state.counters["cycles_per_byte"] = cycles / static_cast<double>(bytes);
+        if (!label.empty()) label += ", ";
+        label += std::string{"cycle_source="} + rdtsc.source();
+    }
+    if (!label.empty()) state.SetLabel(label);
+}
 
 void BM_vphilox(benchmark::State& state) {
     vphilox::engine g{0xDEADBEEFull};
     std::vector<vphilox::u32> out(kWords);
+    cycle_counter cycles;
 
     for (auto _ : state) {
+        cycles.start();
         for (std::size_t i = 0; i < kWords; ++i) out[i] = g();
         benchmark::DoNotOptimize(out.data());
         benchmark::ClobberMemory();
+        cycles.stop();
     }
-    state.SetBytesProcessed(static_cast<std::int64_t>(state.iterations() * kWords * sizeof(vphilox::u32)));
-    state.SetLabel(vphilox::backend_name(vphilox::engine::which_backend()));
+    report_metrics(state, cycles, vphilox::backend_name(vphilox::engine::which_backend()));
 }
 BENCHMARK(BM_vphilox);
 
@@ -48,14 +155,17 @@ void BM_vphilox_bulk(benchmark::State& state) {
     vphilox::counter4 ctr{};
     std::vector<vphilox::u32> out(kWords);
     constexpr std::size_t blocks = kWords / vphilox::block_words;
+    cycle_counter cycles;
 
     for (auto _ : state) {
+        cycles.start();
         vphilox::detail::resolve_dispatch<vphilox::default_rounds>().fn(ctr, k, out.data(), blocks);
         vphilox::counter_add(ctr, blocks);
         benchmark::DoNotOptimize(out.data());
         benchmark::ClobberMemory();
+        cycles.stop();
     }
-    state.SetBytesProcessed(static_cast<std::int64_t>(state.iterations() * kWords * sizeof(vphilox::u32)));
+    report_metrics(state, cycles);
 }
 BENCHMARK(BM_vphilox_bulk);
 
@@ -63,13 +173,16 @@ BENCHMARK(BM_vphilox_bulk);
 void BM_mt19937(benchmark::State& state) {
     std::mt19937 g{0xDEADBEEFu};
     std::vector<std::uint32_t> out(kWords);
+    cycle_counter cycles;
 
     for (auto _ : state) {
+        cycles.start();
         for (std::size_t i = 0; i < kWords; ++i) out[i] = g();
         benchmark::DoNotOptimize(out.data());
         benchmark::ClobberMemory();
+        cycles.stop();
     }
-    state.SetBytesProcessed(static_cast<std::int64_t>(state.iterations() * kWords * sizeof(std::uint32_t)));
+    report_metrics(state, cycles);
 }
 BENCHMARK(BM_mt19937);
 
@@ -81,14 +194,18 @@ void BM_philox_scalar(benchmark::State& state) {
     vphilox::counter4 ctr{};
     std::vector<vphilox::u32> out(kWords);
     constexpr std::size_t blocks = kWords / vphilox::block_words;
+    cycle_counter cycles;
 
     for (auto _ : state) {
-        vphilox::detail::kernel_scalar::generate<vphilox::default_rounds>(ctr, k, out.data(), blocks);
+        cycles.start();
+        vphilox::detail::kernel_scalar::generate<vphilox::default_rounds>(ctr, k, out.data(),
+                                                                          blocks);
         vphilox::counter_add(ctr, blocks);
         benchmark::DoNotOptimize(out.data());
         benchmark::ClobberMemory();
+        cycles.stop();
     }
-    state.SetBytesProcessed(static_cast<std::int64_t>(state.iterations() * kWords * sizeof(vphilox::u32)));
+    report_metrics(state, cycles);
 }
 BENCHMARK(BM_philox_scalar);
 

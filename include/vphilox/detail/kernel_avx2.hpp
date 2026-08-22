@@ -34,7 +34,7 @@
 #include "vphilox/detail/kernel_scalar.hpp"
 
 #if VPHILOX_HAS_AVX2
-#  include <immintrin.h>
+#include <immintrin.h>
 #endif
 
 namespace vphilox::detail {
@@ -50,8 +50,8 @@ struct kernel_avx2 {
     static constexpr bool implemented = false;
 
     template <unsigned Rounds = default_rounds>
-    static void generate(const counter4& base, const key2& k,
-                         u32* out, std::size_t blocks) noexcept {
+    static void generate(const counter4& base, const key2& k, u32* out,
+                         std::size_t blocks) noexcept {
         // TODO(phase-2): replace with the interleaved AVX2 kernel.
         kernel_scalar::generate<Rounds>(base, k, out, blocks);
     }
