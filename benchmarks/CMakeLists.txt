@@ -32,6 +32,10 @@ set(VPHILOX_BENCH_SOURCES
     bench_scaling.cpp
 )
 
+if(VPHILOX_ARCH_X86 AND VPHILOX_ENABLE_AVX2)
+    list(APPEND VPHILOX_BENCH_SOURCES bench_lane_layout.cpp)
+endif()
+
 foreach(src IN LISTS VPHILOX_BENCH_SOURCES)
     cmake_path(GET src STEM name)
     add_executable(${name} ${src})
@@ -44,6 +48,10 @@ foreach(src IN LISTS VPHILOX_BENCH_SOURCES)
         target_compile_options(${name} PRIVATE -O3)
     endif()
 endforeach()
+
+if(TARGET bench_lane_layout)
+    target_compile_options(bench_lane_layout PRIVATE ${VPHILOX_FLAGS_AVX2})
+endif()
 
 # Optional OpenMP for the scaling benchmark.
 find_package(OpenMP QUIET)
