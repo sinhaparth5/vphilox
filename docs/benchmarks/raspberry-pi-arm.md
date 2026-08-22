@@ -9,11 +9,11 @@ stable power supply are required. Do not overclock the board.
 
 ## Prepare the repository
 
-Install the build tools and libpfm:
+Install the build tools:
 
 ```bash
 sudo apt update
-sudo apt install -y git cmake ninja-build g++ libpfm4-dev
+sudo apt install -y git cmake ninja-build g++
 ```
 
 Clone the repository. If the benchmark work has not reached the default branch
@@ -76,10 +76,11 @@ mkdir -p results
 
 ## Build and measure
 
-Enable libpfm so Google Benchmark can read the ARM hardware cycle counter:
+Configure the optimized benchmark build. `bench_engines` reads the Linux
+hardware cycle counter directly through `perf_event_open`:
 
 ```bash
-cmake --preset bench -DBENCHMARK_ENABLE_LIBPFM=ON
+cmake --preset bench
 cmake --build --preset bench
 ```
 
@@ -91,7 +92,6 @@ benchmark_cpu=$(( $(nproc) - 1 ))
 
 taskset --cpu-list "$benchmark_cpu" \
   ./build/bench/benchmarks/bench_engines \
-  --benchmark_perf_counters=CYCLES \
   --benchmark_min_time=1s \
   --benchmark_repetitions=7 \
   --benchmark_enable_random_interleaving=true \
@@ -102,9 +102,10 @@ taskset --cpu-list "$benchmark_cpu" \
   --benchmark_out_format=json
 ```
 
-The output should contain both `bytes_per_second` and `cycles_per_byte`. If the
-performance counter cannot be opened, record the error and check
-`/proc/sys/kernel/perf_event_paranoid` before changing system security settings.
+The output should contain both `bytes_per_second` and `cycles_per_byte`, with
+`cycle_source=perf_event` in the label. If the performance counter cannot be
+opened, check `/proc/sys/kernel/perf_event_paranoid` before changing system
+security settings.
 
 ## Check the run and restore the Pi
 

@@ -43,18 +43,18 @@ tests, and the benchmark baseline.
 - [x] **Known-answer tests against the Random123 `kat_vectors`** — all-zeros, all-ones, and
       digits-of-pi inputs all match bit for bit (`tests/test_reference_vectors.cpp`)
 - [x] Counter arithmetic tests including the seek-equals-step property
-- [~] Baseline micro-benchmarking
+- [x] Baseline micro-benchmarking
   - [x] `benchmarks/bench_engines.cpp` comparing vphilox / bulk kernel / `std::mt19937` / scalar Philox
   - [x] First run recorded in [`docs/benchmarks/baseline-2026-08-21.md`](docs/benchmarks/baseline-2026-08-21.md)
-  - [ ] **The ~10× scalar-Philox slowdown did not reproduce** — on Coffee Lake / GCC 15 scalar
-        Philox runs at 0.96× of `std::mt19937`, not 0.1×. Re-measure on AVX-512 and ARM parts
-        before the paper commits to that framing; if it holds up nowhere, cite it as reported
-        context rather than as a result. See the baseline doc for the analysis. The current
-        host has neither AVX-512 nor ARM, so this remains open.
-  - [x] Add a cycles-per-byte counter (serialized `RDTSC`, or Google Benchmark's `CYCLES`
-        performance counter when available); keep GB/s as the secondary metric
-  - [ ] Re-run on a quiet, frequency-pinned machine; the current numbers and verification
-        rerun are from WSL2, which exposes no frequency controls
+  - [x] **The ~10× scalar-Philox slowdown did not reproduce** — on Coffee Lake / GCC 15 scalar
+        Philox runs at 0.96× of `std::mt19937`; on Raspberry Pi 5 / GCC 12 it runs at 0.61×,
+        and on an Ice Lake AVX-512 host / GCC 13 it runs at 0.61×, not 0.1×. Treat the
+        approximately 10× slowdown as reported context rather than a project result. See the
+        baseline documents for the analysis.
+  - [x] Add a cycles-per-byte counter (serialized `RDTSC` on x86 or Linux
+        `perf_event_open` hardware cycles on ARM); keep GB/s as the secondary metric
+  - [x] Re-run on native, frequency-pinned hardware; the Raspberry Pi 5 run used the
+        performance governor, affinity to CPU 3, and reported sub-1% cycles/byte CV
 
 **Deliverable:** a passing scalar baseline that reproduces Salmon et al.'s
 published vectors and quantifies the CPU penalty vphilox exists to remove.
