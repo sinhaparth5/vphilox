@@ -66,10 +66,11 @@ published vectors and quantifies the CPU penalty vphilox exists to remove.
 **Goal:** kill the scalar multiply bottleneck by interleaving N independent
 Philox counters across SIMD lanes.
 
-- [ ] **Settle the lane layout** — this decision blocks all three kernels
-  - [ ] Benchmark 4 counters/register (one per 64-bit lane, half the register idle on non-multiply ops)
-  - [ ] Benchmark 8 counters/register (full width, two `_mm256_mul_epu32` per multiply + even/odd shuffles)
-  - [ ] Commit to the winner and set `preferred_blocks` on each kernel to match
+- [x] **Settle the lane layout** — 8 counters/register wins; see
+      `docs/benchmarks/simd-lane-layout.md`
+  - [x] Benchmark 4 counters/register (one per 64-bit lane, half the register idle on non-multiply ops)
+  - [x] Benchmark 8 counters/register (full width, two `_mm256_mul_epu32` per multiply + even/odd shuffles)
+  - [x] Commit to the winner and set `preferred_blocks` on each kernel to match
 - [ ] `detail/kernel_avx2.hpp` — real implementation replacing the scalar fallthrough
   - [ ] SoA load: one `__m256i` per counter word
   - [ ] Wide multiply via `_mm256_mul_epu32`

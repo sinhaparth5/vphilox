@@ -11,11 +11,9 @@
 //     carrying counter j's word. Compiling against _mm256_mul_epu32, which
 //     multiplies the low 32 bits of each of the four 64-bit lanes, gives 4
 //     wide multiplies per instruction.
-//   - OPEN DECISION: 4 counters/register (one 64-bit lane each, half the
-//     register idle on the non-multiply ops) vs 8 counters/register (full
-//     width, but two _mm256_mul_epu32 per multiply plus even/odd shuffles).
-//     Benchmark both before committing; `preferred_blocks` below must then
-//     match whichever wins.
+//   - Eight counters/register won the issue #12 layout benchmark. It uses the
+//     full width, with two _mm256_mul_epu32 calls per multiply and even/odd
+//     packing. See docs/benchmarks/simd-lane-layout.md.
 //   - Round steps map to: _mm256_mul_epu32 (wide multiply),
 //     _mm256_srli_epi64 (hi extraction), _mm256_xor_si256 (key XOR),
 //     _mm256_shuffle_epi32 / _mm256_blend_epi32 (word permutation),
@@ -42,8 +40,7 @@ namespace vphilox::detail {
 struct kernel_avx2 {
     static constexpr const char* name = "avx2";
 
-    // TODO(phase-2): set to the interleaving width actually chosen above.
-    static constexpr std::size_t preferred_blocks = 4;
+    static constexpr std::size_t preferred_blocks = 8;
 
     /// True once the intrinsic path exists. Dispatch checks this alongside the
     /// runtime CPU probe, so a stubbed kernel is never selected.
