@@ -7,6 +7,14 @@ Any entry that would change it would be a new algorithm, not a release.
 
 ## [Unreleased]
 
+### Changed
+- x86 CPU detection now uses a raw CPUID + `XGETBV` probe on every compiler
+  instead of `__builtin_cpu_supports`. MSVC previously had no detection at all
+  and reported no features, so MSVC builds ran scalar even on AVX2 hardware;
+  they now resolve the same backend as GCC and Clang. `tests/test_cpu_features.cpp`
+  checks the probe against `__builtin_cpu_supports` wherever that builtin
+  exists, so the path MSVC depends on is exercised on every Linux and macOS run.
+
 ## [2026.08.0] — 2026-08-21
 
 Initial scaffold. Phase 0 complete, Phase 1 substantially complete.

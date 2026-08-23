@@ -109,7 +109,10 @@ Philox counters across SIMD lanes.
 - [x] `detail/dispatch.hpp` — resolves to the fastest kernel that is compiled in **and** implemented **and** CPU-supported
 - [x] `VPHILOX_BACKEND` env override for pinning a backend in tests and benchmarks
 - [ ] SIMD float conversion — `_mm256_or_si256` + `_mm256_sub_ps` and the AVX-512/NEON equivalents, keeping conversion inside vector registers
-- [ ] MSVC CPU detection (`__cpuidex` leaf 7 + `XGETBV` OS-state check) — currently stubbed to `false`
+- [x] MSVC CPU detection (`__cpuidex` leaf 7 + `XGETBV` OS-state check) — no longer stubbed to `false`.
+      The CPUID probe is now the single x86 path on every compiler, so Linux and macOS runs
+      exercise the same code MSVC depends on; `tests/test_cpu_features.cpp` checks it against
+      `__builtin_cpu_supports` wherever that builtin exists
 - [ ] **Close the buffer overhead gap** — measured at ~22% (954 MiB/s buffered vs 1.231 GiB/s bulk).
       Phase 3's zero-cost-abstraction claim does not hold yet; profile the per-call bounds check
 - [ ] Bulk generation API (`generate_n` / span-filling) so callers can bypass the buffer entirely
