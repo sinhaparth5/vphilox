@@ -44,7 +44,8 @@ exit_status: 0
 vphilox produces 1 TB in about four minutes on this hardware, so the battery
 is the slow half by a wide margin.
 
-Eleven checkpoints, all clean. Full log: `results/practrand/raw32-1TB-avx2.log`.
+Twelve checkpoints, eleven of them reporting no anomalies at all. Full log:
+`results/practrand/raw32-1TB-avx2.log`.
 
 ### The one flagged result
 
@@ -52,16 +53,21 @@ Across the entire terabyte, exactly one test was flagged, at the 4 GB
 checkpoint:
 
 ```
-[Low1/32]BCFN(2+1,13-3,T)   R= -7.8   p =1-2.1e-4   unusual
+[Low1/32]BCFN(2+1,13-3,T)   R=  -7.8  p =1-2.1e-4   unusual
+...and 216 test result(s) without anomalies
 ```
 
-`unusual` is PractRand's mildest severity, well below `suspicious` and
-`FAIL`. A p-value in the extreme 0.02% tail is expected to turn up
-occasionally when several hundred tests run at each of eleven checkpoints —
-over ~2,700 test results, seeing none would itself be surprising. It did not
-recur at 8, 16, 32, 64, 128, 256, 512 GB or 1 TB, which is the signature of a
-spurious tail value rather than a defect: real structure strengthens with
-length, it does not vanish.
+`unusual` is PractRand's mildest severity, well below `suspicious` and `FAIL`.
+The run produced 2,936 test results in total, so a single value landing in a
+0.02% tail is around what one should expect to see rather than a surprise.
+
+The stronger evidence is that it did not recur — not at 8, 16, 32, 64, 128,
+256, 512 GB, nor at 1 TB. That matters more than the count, because PractRand's
+checkpoints are not independent draws: each one re-runs the same tests over the
+accumulated stream. Genuine structure therefore *strengthens* as more data
+arrives and keeps flagging at every subsequent checkpoint. A defect that shows
+up once at 4 GB and never again at 256x the data is a fluctuation, not a
+finding.
 
 ## Backend equivalence (#42)
 
