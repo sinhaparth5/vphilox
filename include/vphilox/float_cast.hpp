@@ -11,10 +11,12 @@
 // the result is a uniform value in [1.0, 2.0). Subtract 1.0 to land in
 // [0.0, 1.0). Two instructions (vpor + vsubps) on the SIMD path.
 //
-// The cost is resolution, not correctness: a float has 24 bits of mantissa, so
-// only 24 of the 32 random bits survive. Values are uniform on a 2^-24 grid.
-// Same story for doubles at 2^-53. If you need the full 32 bits of entropy,
-// take the integers.
+// The cost is resolution, not correctness: the injection fills the 23 stored
+// mantissa bits, so 23 of the 32 random bits survive and values are uniform on
+// a 2^-23 grid. (A float carries 24 significand bits, but the 24th is the
+// implicit leading 1, which is pinned by the fixed exponent and holds no
+// entropy.) Doubles are the same story at 52 bits and a 2^-52 grid. If you
+// need the full 32 bits of entropy, take the integers.
 
 #ifndef VPHILOX_FLOAT_CAST_HPP
 #define VPHILOX_FLOAT_CAST_HPP
