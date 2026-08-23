@@ -30,6 +30,7 @@ set(VPHILOX_TEST_SOURCES
     test_reference_vectors.cpp # Phase 1: known-answer tests vs Random123
     test_counter.cpp          # Phase 1: 128-bit counter arithmetic
     test_kernel_parity.cpp    # Phase 2: SIMD kernels == scalar, bit for bit
+    test_bulk_generate.cpp    # Phase 3: bulk path == operator(), word for word
     test_cpu_features.cpp     # Phase 3: CPUID/XGETBV probe, shared with MSVC
     test_float_cast.cpp       # Phase 3: mantissa injection range/uniformity
     test_engine.cpp           # Phase 3: C++20 concept, buffer, discard

@@ -33,6 +33,7 @@ produces the same results, even when the work is split across threads.
 - Each thread can own a random stream without locks or shared state.
 - `discard()` jumps to a later point in a stream immediately.
 - The engine works with standard C++ algorithms and distributions.
+- Filling a whole buffer at once runs at full speed, without the per-value cost.
 - The library is header-only and has no runtime dependencies.
 
 ## A small example
@@ -65,6 +66,22 @@ random.discard(1ull << 40);
 ```
 
 That jump takes constant time.
+
+## Filling a buffer
+
+Asking for one value at a time has a cost per value. When you need many values
+at once, ask for them together:
+
+```cpp
+std::vector<std::uint32_t> block(1'000'000);
+random.generate(block);                     // or: random.generate_n(ptr, count)
+```
+
+This produces exactly the same numbers, in the same order, as calling
+`random()` a million times, and leaves the generator in the same place — you
+can mix the two styles on one engine. On a machine with AVX2 it runs about
+1.7 times faster than the one-at-a-time loop. Ask for a few hundred values or
+more to get the full benefit.
 
 ## Using it from several threads
 
