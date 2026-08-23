@@ -1,0 +1,144 @@
+# vphilox PractRand run
+date_utc:      2026-08-23T10:29:30Z
+host:          parthsinha
+kernel:        Linux 7.0.0-30-generic x86_64
+cpu:           11th Gen Intel(R) Core(TM) i5-11300H @ 3.10GHz
+cpu_flags_simd: avx2,avx512f,avx512dq
+git_sha:       69d9c5a91074643ac333e723ddccfff7a3c0fff4
+git_dirty:     3 file(s)
+vphilox:       vphilox 2026.08.0 | backend=avx2 | seed=0 | format=raw32
+requested_backend: <auto>
+resolved_backend:  avx2
+format:        float32
+seed:          0
+length:        256MB
+command:       /home/parthsinha/Documents/vphilox/build/bench/tools/vphilox_stream --seed 0 --format float32 | RNG_test stdin32 -tlmax 256MB -tf 1 -multithreaded
+#
+vphilox 2026.08.0 | backend=avx2 | seed=0 | format=float32
+RNG_test using PractRand version 0.95
+RNG = RNG_stdin32, seed = unknown
+test set = core, folding = standard (32 bit)
+
+rng=RNG_stdin32, seed=unknown
+length= 256 megabytes (2^28 bytes), time= 1.0 seconds
+  Test Name                         Raw       Processed     Evaluation
+  BCFN(2+0,13-2,T)                  R>+99999  p = 0           FAIL !!!!!!!!  
+  BCFN(2+1,13-2,T)                  R>+99999  p = 0           FAIL !!!!!!!!  
+  BCFN(2+2,13-3,T)                  R>+99999  p = 0           FAIL !!!!!!!!  
+  BCFN(2+3,13-3,T)                  R>+99999  p = 0           FAIL !!!!!!!!  
+  BCFN(2+4,13-3,T)                  R>+99999  p = 0           FAIL !!!!!!!!  
+  BCFN(2+5,13-4,T)                  R>+99999  p = 0           FAIL !!!!!!!!  
+  BCFN(2+6,13-5,T)                  R>+99999  p = 0           FAIL !!!!!!!!  
+  BCFN(2+7,13-5,T)                  R>+99999  p = 0           FAIL !!!!!!!!  
+  BCFN(2+8,13-6,T)                  R>+99999  p = 0           FAIL !!!!!!!!  
+  BCFN(2+9,13-6,T)                  R>+99999  p = 0           FAIL !!!!!!!!  
+  BCFN(2+10,13-7,T)                 R=+68128  p = 0           FAIL !!!!!!!!  
+  BCFN(2+11,13-8,T)                 R=+40590  p = 0           FAIL !!!!!!!!  
+  BCFN(2+12,13-8,T)                 R=+20312  p =  8e-5156    FAIL !!!!!!!!  
+  BCFN(2+13,13-9,T)                 R=+11682  p =  5e-2626    FAIL !!!!!!!!  
+  BCFN(2+14,13-9,T)                 R= +5834  p =  4e-1312    FAIL !!!!!!!!  
+  DC6-9x1Bytes-1                    R>+99999  p = 0           FAIL !!!!!!!!  
+  Gap-16:A                          R>+99999  p = 0           FAIL !!!!!!!!  
+  Gap-16:B                          R>+99999  p = 0           FAIL !!!!!!!!  
+  FPF-14+6/16:(0,14-0)              R>+99999  p = 0           FAIL !!!!!!!!  
+  FPF-14+6/16:(1,14-0)              R>+99999  p = 0           FAIL !!!!!!!!  
+  FPF-14+6/16:(2,14-0)              R>+99999  p = 0           FAIL !!!!!!!!  
+  FPF-14+6/16:(3,14-0)              R>+99999  p = 0           FAIL !!!!!!!!  
+  FPF-14+6/16:(4,14-1)              R>+99999  p = 0           FAIL !!!!!!!!  
+  FPF-14+6/16:(5,14-2)              R>+99999  p = 0           FAIL !!!!!!!!  
+  FPF-14+6/16:(6,14-2)              R=+49453  p = 0           FAIL !!!!!!!!  
+  FPF-14+6/16:(7,14-3)              R=+19209  p = 0           FAIL !!!!!!!!  
+  FPF-14+6/16:(8,14-4)              R=+54702  p = 0           FAIL !!!!!!!!  
+  FPF-14+6/16:(9,14-5)              R=+11743  p =  2e-9735    FAIL !!!!!!!!  
+  FPF-14+6/16:(10,14-5)             R=+146.9  p =  1.1e-121   FAIL !!!!!     
+  FPF-14+6/16:all                   R>+99999  p = 0           FAIL !!!!!!!!  
+  FPF-14+6/16:cross                 R>+99999  p = 0           FAIL !!!!!!!!  
+  BRank(12):128(4)                  R=+811.4  p~=  2.3e-432   FAIL !!!!!!!   
+  BRank(12):256(4)                  R= +1855  p~=  1.1e-987   FAIL !!!!!!!   
+  BRank(12):384(1)                  R= +1466  p~=  2.5e-442   FAIL !!!!!!!   
+  BRank(12):512(2)                  R= +2697  p~=  5.6e-813   FAIL !!!!!!!   
+  BRank(12):768(1)                  R= +2973  p~=  6.1e-896   FAIL !!!!!!!   
+  BRank(12):1K(2)                   R= +5620  p~=  8e-1693    FAIL !!!!!!!!  
+  BRank(12):1536(1)                 R= +6030  p~=  3e-1816    FAIL !!!!!!!!  
+  BRank(12):2K(1)                   R= +8075  p~=  8e-2432    FAIL !!!!!!!!  
+  mod3n(5):(0,9-6)                  R>+99999  p = 0           FAIL !!!!!!!!  
+  mod3n(5):(1,9-6)                  R= +10.3  p =  2.2e-4   unusual          
+  TMFn(2+0):wl                      R=+42485  p~=  0          FAIL !!!!!!!!  
+  TMFn(2+1):wl                      R=+21189  p~=  0          FAIL !!!!!!!!  
+  TMFn(2+2):wl                      R=+10570  p~=  0          FAIL !!!!!!!!  
+  TMFn(2+3):wl                      R= +5277  p~=  0          FAIL !!!!!!!!  
+  [Low8/32]BCFN(2+0,13-3,T)         R>+99999  p = 0           FAIL !!!!!!!!  
+  [Low8/32]BCFN(2+1,13-3,T)         R>+99999  p = 0           FAIL !!!!!!!!  
+  [Low8/32]BCFN(2+2,13-4,T)         R>+99999  p = 0           FAIL !!!!!!!!  
+  [Low8/32]BCFN(2+3,13-4,T)         R>+99999  p = 0           FAIL !!!!!!!!  
+  [Low8/32]BCFN(2+4,13-5,T)         R>+99999  p = 0           FAIL !!!!!!!!  
+  [Low8/32]BCFN(2+5,13-5,T)         R>+99999  p = 0           FAIL !!!!!!!!  
+  [Low8/32]BCFN(2+6,13-6,T)         R>+99999  p = 0           FAIL !!!!!!!!  
+  [Low8/32]BCFN(2+7,13-6,T)         R>+99999  p = 0           FAIL !!!!!!!!  
+  [Low8/32]BCFN(2+8,13-7,T)         R=+69534  p = 0           FAIL !!!!!!!!  
+  [Low8/32]BCFN(2+9,13-8,T)         R=+41141  p = 0           FAIL !!!!!!!!  
+  [Low8/32]BCFN(2+10,13-8,T)        R=+20506  p =  3e-5205    FAIL !!!!!!!!  
+  [Low8/32]BCFN(2+11,13-9,T)        R=+11761  p =  1e-2643    FAIL !!!!!!!!  
+  [Low8/32]BCFN(2+12,13-9,T)        R= +5862  p =  2e-1318    FAIL !!!!!!!!  
+  [Low8/32]DC6-9x1Bytes-1           R>+99999  p = 0           FAIL !!!!!!!!  
+  [Low8/32]Gap-16:A                 R>+99999  p = 0           FAIL !!!!!!!!  
+  [Low8/32]Gap-16:B                 R>+99999  p = 0           FAIL !!!!!!!!  
+  [Low8/32]FPF-14+6/16:(1,14-0)     R>+99999  p = 0           FAIL !!!!!!!!  
+  [Low8/32]FPF-14+6/16:(2,14-1)     R>+99999  p = 0           FAIL !!!!!!!!  
+  [Low8/32]FPF-14+6/16:(3,14-2)     R>+99999  p = 0           FAIL !!!!!!!!  
+  [Low8/32]FPF-14+6/16:(4,14-2)     R>+99999  p = 0           FAIL !!!!!!!!  
+  [Low8/32]FPF-14+6/16:(5,14-3)     R>+99999  p = 0           FAIL !!!!!!!!  
+  [Low8/32]FPF-14+6/16:(6,14-4)     R>+99999  p = 0           FAIL !!!!!!!!  
+  [Low8/32]FPF-14+6/16:(7,14-5)     R>+99999  p = 0           FAIL !!!!!!!!  
+  [Low8/32]FPF-14+6/16:(9,14-6)     R=+30376  p = 0           FAIL !!!!!!!!  
+  [Low8/32]FPF-14+6/16:(10,14-7)    R=+43191  p = 0           FAIL !!!!!!!!  
+  [Low8/32]FPF-14+6/16:(11,14-8)    R=+45895  p = 0           FAIL !!!!!!!!  
+  [Low8/32]FPF-14+6/16:(12,14-8)    R=+32268  p = 0           FAIL !!!!!!!!  
+  [Low8/32]FPF-14+6/16:(13,14-9)    R=+28724  p = 0           FAIL !!!!!!!!  
+  [Low8/32]FPF-14+6/16:(14,14-10)   R=+24530  p = 0           FAIL !!!!!!!!  
+  [Low8/32]FPF-14+6/16:(15,14-11)   R=+21352  p =  3e-9307    FAIL !!!!!!!!  
+  [Low8/32]FPF-14+6/16:all          R>+99999  p = 0           FAIL !!!!!!!!  
+  [Low8/32]FPF-14+6/16:cross        R>+99999  p = 0           FAIL !!!!!!!!  
+  [Low8/32]BRank(12):128(4)         R=+477.7  p~=  6.7e-255   FAIL !!!!!!    
+  [Low8/32]BRank(12):256(2)         R=+824.9  p~=  2.3e-249   FAIL !!!!!!    
+  [Low8/32]BRank(12):384(1)         R=+927.7  p~=  2.6e-280   FAIL !!!!!!    
+  [Low8/32]BRank(12):512(2)         R= +1799  p~=  1.2e-542   FAIL !!!!!!!   
+  [Low8/32]BRank(12):768(1)         R= +1961  p~=  2.3e-591   FAIL !!!!!!!   
+  [Low8/32]BRank(12):1K(1)          R= +2650  p~=  9.8e-799   FAIL !!!!!!!   
+  [Low8/32]mod3n(5):(0,9-6)         R= +1771  p =  1.9e-605   FAIL !!!!!!!   
+  [Low8/32]TMFn(2+0):wl             R=+12509  p~=  0          FAIL !!!!!!!!  
+  [Low8/32]TMFn(2+1):wl             R= +6236  p~=  0          FAIL !!!!!!!!  
+  [Low1/32]BCFN(2+0,13-5,T)         R>+99999  p = 0           FAIL !!!!!!!!  
+  [Low1/32]BCFN(2+1,13-5,T)         R>+99999  p = 0           FAIL !!!!!!!!  
+  [Low1/32]BCFN(2+2,13-6,T)         R>+99999  p = 0           FAIL !!!!!!!!  
+  [Low1/32]BCFN(2+3,13-6,T)         R>+99999  p = 0           FAIL !!!!!!!!  
+  [Low1/32]BCFN(2+4,13-6,T)         R>+99999  p = 0           FAIL !!!!!!!!  
+  [Low1/32]BCFN(2+5,13-7,T)         R=+71158  p = 0           FAIL !!!!!!!!  
+  [Low1/32]BCFN(2+6,13-8,T)         R=+41820  p = 0           FAIL !!!!!!!!  
+  [Low1/32]BCFN(2+7,13-8,T)         R=+20745  p =  7e-5266    FAIL !!!!!!!!  
+  [Low1/32]BCFN(2+8,13-9,T)         R=+11858  p =  1e-2665    FAIL !!!!!!!!  
+  [Low1/32]BCFN(2+9,13-9,T)         R= +5896  p =  5e-1326    FAIL !!!!!!!!  
+  [Low1/32]DC6-9x1Bytes-1           R>+99999  p = 0           FAIL !!!!!!!!  
+  [Low1/32]Gap-16:A                 R>+99999  p = 0           FAIL !!!!!!!!  
+  [Low1/32]Gap-16:B                 R>+99999  p = 0           FAIL !!!!!!!!  
+  [Low1/32]FPF-14+6/16:cross        R>+99999  p = 0           FAIL !!!!!!!!  
+  [Low1/32]BRank(12):128(2)         R= +3748  p~=  3e-1129    FAIL !!!!!!!!  
+  [Low1/32]BRank(12):256(2)         R= +7644  p~=  3e-2302    FAIL !!!!!!!!  
+  [Low1/32]BRank(12):384(1)         R= +8161  p~=  1e-2457    FAIL !!!!!!!!  
+  [Low1/32]BRank(12):512(1)         R=+10916  p~=  3e-3287    FAIL !!!!!!!!  
+  [Low1/32]mod3n(5):(0,9-6)         R>+99999  p = 0           FAIL !!!!!!!!  
+  [Low1/32]mod3n(5):(1,9-6)         R>+99999  p = 0           FAIL !!!!!!!!  
+  [Low1/32]mod3n(5):(2,9-6)         R=+94882  p = 0           FAIL !!!!!!!!  
+  [Low1/32]mod3n(5):(3,9-6)         R=+47392  p = 0           FAIL !!!!!!!!  
+  [Low1/32]mod3n(5):(4,9-6)         R=+23647  p =  1e-8075    FAIL !!!!!!!!  
+  [Low1/32]mod3n(5):(5,9-6)         R=+11774  p =  1e-4021    FAIL !!!!!!!!  
+  [Low1/32]mod3n(5):(6,9-6)         R= +5838  p =  2e-1994    FAIL !!!!!!!!  
+  [Low1/32]mod3n(5):(7,9-6)         R= +2870  p =  7.3e-981   FAIL !!!!!!!   
+  [Low1/32]mod3n(5):(8,9-6)         R= +1391  p =  7.4e-476   FAIL !!!!!!!   
+  [Low1/32]mod3n(5):(9,9-6)         R=+656.8  p =  4.0e-225   FAIL !!!!!!    
+  [Low1/32]mod3n(5):(10,9-6)        R=+294.8  p =  1.6e-101   FAIL !!!!!     
+  ...and 35 test result(s) without anomalies
+
+#
+exit_status:   0
+wall_seconds:  2

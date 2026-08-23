@@ -1,0 +1,16 @@
+vphilox 2026.08.0 | backend=avx2 | seed=0 | format=raw32
+RNG_test using PractRand version 0.95
+RNG = RNG_stdin32, seed = unknown
+test set = core, folding = standard (32 bit)
+
+rng=RNG_stdin32, seed=unknown
+length= 512 megabytes (2^29 bytes), time= 3.4 seconds
+  no anomalies in 180 test result(s)
+
+rng=RNG_stdin32, seed=unknown
+length= 1 gigabyte (2^30 bytes), time= 7.6 seconds
+  no anomalies in 194 test result(s)
+
+Command terminated by signal 13
+
+wall_seconds=8.54 max_rss_kb=4996
