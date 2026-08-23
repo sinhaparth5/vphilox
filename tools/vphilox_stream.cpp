@@ -23,6 +23,8 @@
 #if defined(_WIN32)
 #include <fcntl.h>
 #include <io.h>
+#else
+#include <csignal>
 #endif
 
 namespace {
@@ -145,6 +147,12 @@ int main(int argc, char** argv) {
 
 #if defined(_WIN32)
     _setmode(_fileno(stdout), _O_BINARY);
+#else
+    // PractRand closes the pipe the moment it reaches -tlmax, and the default
+    // SIGPIPE disposition kills us before fwrite can return -- so the graceful
+    // exit below never ran, and a *finished* run reported 141 under
+    // `set -o pipefail`. Ignore the signal and let the short write report it.
+    std::signal(SIGPIPE, SIG_IGN);
 #endif
 
     // 1 MiB writes: large enough that write() overhead disappears, small
