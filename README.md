@@ -22,9 +22,10 @@ other programs that need a lot of random numbers. Give it the same seed and it
 produces the same results, even when the work is split across threads.
 
 > vphilox is still in early development. The scalar engine works and passes the
-> published Random123 test vectors. The AVX2, AVX-512, and NEON paths currently
-> fall back to scalar code, so the planned speedup is not here yet. Follow the
-> work in the [roadmap](ROADMAP.md).
+> published Random123 test vectors, and the AVX2 backend is now implemented --
+> 3.3x the scalar kernel, and 1.41x `std::mt19937` through the buffered engine
+> on a Tiger Lake laptop. The AVX-512 and NEON paths still fall back to scalar.
+> Follow the work in the [roadmap](ROADMAP.md).
 
 ## What it gives you
 

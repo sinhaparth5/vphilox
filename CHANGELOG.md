@@ -7,6 +7,23 @@ Any entry that would change it would be a new algorithm, not a release.
 
 ## [Unreleased]
 
+### Added
+- AVX2 backend (`detail/kernel_avx2.hpp`): eight interleaved counters per
+  `__m256i`, split even/odd `_mm256_mul_epu32` wide multiplies, in-register
+  counter carry expansion, and an unpack/permute transpose back to block order.
+  Dispatch selects it automatically on AVX2 hardware. Measured at 3.30x the
+  scalar kernel and 1.41x `std::mt19937` through the buffered engine; see
+  `docs/benchmarks/avx2-2026-08-23.md`.
+- Chunking-independence check in `tests/test_kernel_parity.cpp`: a run split at
+  every offset must equal the unsplit run, which also exercises unaligned
+  destination pointers.
+
+### Notes
+- The bit stream is unchanged. The AVX2 kernel is bit-for-bit identical to the
+  scalar reference; the parity matrix and the Random123 vectors both hold.
+- The refill buffer is now the dominant overhead on AVX2 — 41.9% of bulk
+  throughput, up from 10.4% on scalar.
+
 ## [2026.08.0] — 2026-08-21
 
 Initial scaffold. Phase 0 complete, Phase 1 substantially complete.
