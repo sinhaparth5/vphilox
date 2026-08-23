@@ -71,14 +71,16 @@ Philox counters across SIMD lanes.
   - [x] Benchmark 4 counters/register (one per 64-bit lane, half the register idle on non-multiply ops)
   - [x] Benchmark 8 counters/register (full width, two `_mm256_mul_epu32` per multiply + even/odd shuffles)
   - [x] Commit to the winner and set `preferred_blocks` on each kernel to match
-- [ ] `detail/kernel_avx2.hpp` — real implementation replacing the scalar fallthrough
-  - [ ] SoA load: one `__m256i` per counter word
-  - [ ] Wide multiply via `_mm256_mul_epu32`
-  - [ ] `_mm256_srli_epi64` (hi extraction), `_mm256_xor_si256` (key XOR)
-  - [ ] Word permutation via `_mm256_shuffle_epi32` / `_mm256_blend_epi32`
-  - [ ] Weyl key bump via `_mm256_add_epi32`
-  - [ ] Store path back to AoS block order
-  - [ ] Tail handling for block counts that are not a multiple of the SIMD width
+- [x] `detail/kernel_avx2.hpp` — real implementation replacing the scalar fallthrough;
+      3.30x the scalar kernel, see [`docs/benchmarks/avx2-2026-08-23.md`](docs/benchmarks/avx2-2026-08-23.md)
+  - [x] SoA load: one `__m256i` per counter word, with the lane carry chain done in-register
+  - [x] Wide multiply via `_mm256_mul_epu32`, split across even and odd 32-bit lanes
+  - [x] `_mm256_srli_epi64` (hi extraction), `_mm256_xor_si256` (key XOR)
+  - [x] Word permutation via `_mm256_blend_epi32` to repack the split products
+  - [x] Weyl key bump via `_mm256_add_epi32`, keys held broadcast across rounds
+  - [x] Store path back to AoS block order (unpack/permute transpose, unaligned stores)
+  - [x] Tail handling for block counts that are not a multiple of the SIMD width, with
+        chunking independence asserted directly in `tests/test_kernel_parity.cpp`
 - [ ] `detail/kernel_avx512.hpp` — `__m512i`, 8 counters per register
   - [ ] `_mm512_mul_epu32`; `_mm512_permutexvar_epi32` for the permutation
   - [ ] Gate on `avx512f` **and** `avx512dq`
@@ -86,12 +88,21 @@ Philox counters across SIMD lanes.
 - [ ] `detail/kernel_neon.hpp` — `vmull_u32` wide multiply, `vshrn_n_u64` hi extraction
   - [ ] `vtrn`/`vzip`/`vext` for the word permutation
   - [ ] Verify on real aarch64 hardware, not just cross-compilation
-- [ ] Attach per-kernel ISA flags to the kernel TUs only (`VPHILOX_FLAGS_AVX2`/`_AVX512` are staged in CMake), or use `[[gnu::target]]` — never `-march=native` on the whole build
-- [ ] Flip `implemented = true` on each kernel as it lands; dispatch picks it up automatically
+- [~] Attach per-kernel ISA flags to the kernel TUs only (`VPHILOX_FLAGS_AVX2`/`_AVX512` are staged in CMake), or use `[[gnu::target]]` — never `-march=native` on the whole build
+  - [x] AVX2 uses `[[gnu::target("avx2")]]` via `VPHILOX_TARGET`, which is what a header-only
+        kernel needs; the build stays free of ISA flags and still starts on a non-AVX2 CPU
+  - [ ] Same treatment for AVX-512 and NEON when those kernels land
+- [~] Flip `implemented = true` on each kernel as it lands; dispatch picks it up automatically
+  - [x] AVX2 — dispatch resolves to it, `Engine.ReportsItsBackend` reports `avx2`
+  - [ ] AVX-512, NEON
 - [x] Parity test harness (`tests/test_kernel_parity.cpp`) — generic over kernels, currently skipping; goes live the moment `implemented` flips
-- [ ] All parity tests green: bit-for-bit equality with the scalar kernel across every counter, key, and block count
+- [~] All parity tests green: bit-for-bit equality with the scalar kernel across every counter, key, and block count
+  - [x] AVX2 green, including partial-vector tails and split-at-every-offset chunking
+  - [ ] AVX-512, NEON — still skipping until those kernels are implemented
 
 **Deliverable:** AVX2/AVX-512/NEON kernels beating `std::mt19937` single-threaded.
+AVX2 clears it: the buffered engine runs at 1.41x `std::mt19937`, the raw kernel at
+2.42x. AVX-512 and NEON are still outstanding.
 
 ---
 

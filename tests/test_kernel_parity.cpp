@@ -62,6 +62,33 @@ void expect_matches_scalar() {
     }
 }
 
+/// The kernel contract says output must not depend on how the caller chunks
+/// the request. Parity against scalar implies it, but only at the chunk
+/// boundaries the matrix above happens to use. This asserts it directly:
+/// one long run must equal the same run split at every offset, including the
+/// splits that leave a vector iteration half-filled and the ones that hand the
+/// second call a destination pointer no vector store can assume is aligned.
+template <typename Kernel>
+void expect_chunking_independent() {
+    constexpr counter4 base{{0xFFFFFFFEu, 0u, 0u, 0u}};  // carries mid-run
+    constexpr key2 key{{0xa4093822u, 0x299f31d0u}};
+    constexpr std::size_t total = 40;
+
+    std::vector<u32> whole(total * block_words);
+    Kernel::template generate<default_rounds>(base, key, whole.data(), total);
+
+    for (std::size_t split = 0; split <= total; ++split) {
+        SCOPED_TRACE(testing::Message() << Kernel::name << " split=" << split);
+
+        std::vector<u32> pieced(total * block_words, 0xDEADBEEFu);
+        Kernel::template generate<default_rounds>(base, key, pieced.data(), split);
+        Kernel::template generate<default_rounds>(
+            counter_advanced(base, split), key, pieced.data() + split * block_words, total - split);
+
+        EXPECT_EQ(whole, pieced);
+    }
+}
+
 }  // namespace
 
 TEST(KernelParity, Avx2) {
@@ -73,6 +100,7 @@ TEST(KernelParity, Avx2) {
         GTEST_SKIP() << "CPU does not support AVX2";
     } else {
         expect_matches_scalar<detail::kernel_avx2>();
+        expect_chunking_independent<detail::kernel_avx2>();
     }
 }
 
@@ -85,6 +113,7 @@ TEST(KernelParity, Avx512) {
         GTEST_SKIP() << "CPU does not support AVX-512";
     } else {
         expect_matches_scalar<detail::kernel_avx512>();
+        expect_chunking_independent<detail::kernel_avx512>();
     }
 }
 
@@ -95,6 +124,7 @@ TEST(KernelParity, Neon) {
         GTEST_SKIP() << "NEON kernel not implemented yet (Phase 2)";
     } else {
         expect_matches_scalar<detail::kernel_neon>();
+        expect_chunking_independent<detail::kernel_neon>();
     }
 }
 
@@ -102,6 +132,7 @@ TEST(KernelParity, ScalarMatchesItself) {
     // Sanity check on the harness itself, so a green suite full of skips is
     // still testing something.
     expect_matches_scalar<detail::kernel_scalar>();
+    expect_chunking_independent<detail::kernel_scalar>();
 }
 
 TEST(Dispatch, ResolvesToAnAvailableBackend) {
