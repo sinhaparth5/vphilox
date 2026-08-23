@@ -18,11 +18,21 @@ Any entry that would change it would be a new algorithm, not a release.
   every offset must equal the unsplit run, which also exercises unaligned
   destination pointers.
 
+### Changed
+- x86 CPU detection now uses a raw CPUID + `XGETBV` probe on every compiler
+  instead of `__builtin_cpu_supports`. MSVC previously had no detection at all
+  and reported no features, so MSVC builds ran scalar even on AVX2 hardware;
+  they now resolve the same backend as GCC and Clang. `tests/test_cpu_features.cpp`
+  checks the probe against `__builtin_cpu_supports` wherever that builtin
+  exists, so the path MSVC depends on is exercised on every Linux and macOS run.
+
 ### Notes
 - The bit stream is unchanged. The AVX2 kernel is bit-for-bit identical to the
   scalar reference; the parity matrix and the Random123 vectors both hold.
 - The refill buffer is now the dominant overhead on AVX2 — 41.9% of bulk
   throughput, up from 10.4% on scalar.
+- MSVC builds now select AVX2 too: with detection fixed and the kernel landed,
+  the Windows parity matrix runs the AVX2 path for real rather than skipping it.
 
 ## [2026.08.0] — 2026-08-21
 
