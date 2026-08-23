@@ -156,13 +156,25 @@ AVX2 clears it: the buffered engine runs at 1.41x `std::mt19937`, the raw kernel
 **Goal:** evidence, not claims.
 
 - [x] `tools/vphilox_stream.cpp` — raw32/float32 output on stdout with `--seed`, `--bytes`, `--backend`
-- [ ] **PractRand**
-  - [ ] Smoke run: `./vphilox_stream | RNG_test stdin32 -tlmax 1GB`
-  - [ ] Full run to 1 TB with `-tf 1 -multithreaded`
-  - [ ] Repeat per backend (`--backend scalar|avx2|avx512`) — SIMD interleaving must not perturb statistics
-  - [ ] Test the float32 stream separately; mantissa injection discards low bits and deserves its own run
-  - [ ] Archive the pass logs in `docs/statistical/`
+- [x] **PractRand** — see `docs/statistical-validation.md`
+  - [x] Smoke run: `./vphilox_stream | RNG_test stdin32 -tlmax 1GB` — no anomalies in 194 results
+  - [x] Full run to 1 TB with `-tf 1 -multithreaded` — no anomalies in 304 results, 11 clean
+        checkpoints. One `unusual` at 4 GB (p≈0.9998) that never recurred.
+  - [x] Repeat per backend — settled by proving the streams are *byte-identical* over the same
+        1 TB (`cmp`, both hashing to `cffff568…`) rather than by four batteries over the same
+        bytes. Stronger and a quarter the cost. AVX-512 still open: dispatch correctly refuses
+        the stub, so `--backend avx512` resolves to avx2 until #24 lands.
+  - [x] float32 stream — the literal test is not meaningful and was replaced. Raw IEEE-754 bits
+        are non-uniform *by construction* (clear sign, skewed exponent, zero-filled low mantissa
+        after renormalisation), so every correct float generator fails it; ours fails 114 tests.
+        Replaced by an exhaustive round-trip over all 2^23 outputs plus chi-square and KS
+        uniformity tests. The failing log is archived with the explanation.
+  - [x] Archive the pass logs — in `results/practrand/`, each with a provenance header
 - [ ] **TestU01 BigCrush** — full battery, zero failures
+  - [x] Harness: `tools/vphilox_testu01`, driving `vphilox::engine` directly rather than a byte
+        stream, so the refill buffer and dispatch are under test too
+  - [x] SmallCrush — 15/15
+  - [ ] BigCrush — running
 - [ ] **Throughput matrix**
   - [ ] `std::mt19937`, scalar Philox4x32, xoshiro256++, PCG64, vphilox (each backend)
   - [ ] Vendor xoshiro256++ and PCG64 into `benchmarks/third_party/` rather than taking dependencies
