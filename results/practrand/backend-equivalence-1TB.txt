@@ -1,0 +1,14 @@
+# Backend stream equivalence over the same 1 TB PractRand consumes
+date_utc: 2026-08-23T11:25:07Z
+host:     parthsinha
+cpu:      11th Gen Intel(R) Core(TM) i5-11300H @ 3.10GHz
+git_sha:  47470bc68b03cfb52583ad0f4d3ba877d37b5d2c
+method:   cmp <(stream --backend scalar --bytes 1T) <(stream --backend avx2 --bytes 1T)
+          with SHA-256 tee'd off each side in the same pass
+#
+scalar_sha256: cffff5685841693f25f174d079059746ac3d41a8206d4eb284f9c517568cef85
+avx2_sha256:   cffff5685841693f25f174d079059746ac3d41a8206d4eb284f9c517568cef85
+bytes:         1099511627776
+wall_seconds:  8115
+#
+VERDICT: IDENTICAL over all 1099511627776 bytes
