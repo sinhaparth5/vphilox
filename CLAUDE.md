@@ -3,8 +3,8 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 vphilox is a header-only C++20 implementation of the Philox4x32-10 counter-based
-PRNG, being built toward SIMD-accelerated kernels. `AGENTS.md` holds the same
-house rules in shorter form; `CONTRIBUTING.md` has the full contributor detail.
+PRNG, being built toward SIMD-accelerated kernels. `CONTRIBUTING.md` has the
+full contributor detail.
 
 ## Build, test, benchmark
 
