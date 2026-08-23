@@ -124,10 +124,27 @@ AVX2 clears it: the buffered engine runs at 1.41x `std::mt19937`, the raw kernel
       The CPUID probe is now the single x86 path on every compiler, so Linux and macOS runs
       exercise the same code MSVC depends on; `tests/test_cpu_features.cpp` checks it against
       `__builtin_cpu_supports` wherever that builtin exists
-- [ ] **Close the buffer overhead gap** — now 41.9% on AVX2 (2.352 GiB/s buffered vs 4.047 GiB/s bulk),
-      up from 10.4% on scalar: the faster the kernel, the more the refill dominates.
-      Phase 3's zero-cost-abstraction claim does not hold yet; profile the per-call bounds check
-- [ ] Bulk generation API (`generate_n` / span-filling) so callers can bypass the buffer entirely
+- [x] **Close the buffer overhead gap** — profiled and closed for bulk callers; see
+      [`docs/benchmarks/buffer-overhead-2026-08-23.md`](docs/benchmarks/buffer-overhead-2026-08-23.md)
+  - [x] The per-call bounds check was **not** the cost. The generated loop is already
+        nine instructions with the cursor in a register, and pointer cursors, 32-bit
+        cursors, `noinline`+`cold` refills, and refills from 8 up to 128 blocks all
+        measured neutral or worse
+  - [x] The real cost is a second pass over every byte: the kernel writes 128 bytes with
+        vector stores and `operator()` hands them back four at a time. Draining a buffer
+        that never refills already costs 1.09 cycles/byte against a kernel that produces
+        the same data at 1.06 — which is why the gap grew from ~10% on scalar to ~42% on AVX2
+  - [x] `generate_n` removes the pass rather than tuning it: 100.0% of the raw kernel,
+        1.72x the buffered engine, 2.40x `std::mt19937`
+  - [ ] Still open by construction for `std::shuffle` and the standard distributions,
+        which consume one word at a time and cannot be given a bulk path
+- [x] Bulk generation API — `engine::generate_n(u32*, n)` and `engine::generate(std::span<u32>)`,
+      producing exactly what the same number of `operator()` calls would, so the two can be
+      mixed on one engine
+  - [x] Goes direct to the kernel only when the request is at least `preferred_blocks` wide;
+        a narrower one would run entirely in the kernel's scalar tail and come out ~3x slower
+        than the buffer it was avoiding
+  - [x] `tools/vphilox_stream` converted to it — 1.80x on AVX2, byte-identical output
 - [ ] `SeedSeq` constructor for drop-in compatibility with existing `std::mt19937` call sites
 
 **Deliverable:** a header-only C++20 library that drops straight into standard algorithms.

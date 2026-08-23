@@ -166,7 +166,10 @@ int main(int argc, char** argv) {
 
         const void* data = nullptr;
         if (format == "raw32") {
-            for (std::size_t i = 0; i < words; ++i) chunk[i] = g();
+            // The bulk path: 256K words straight into the chunk, no per-word
+            // drain. A 1 TB PractRand run is exactly the workload it exists
+            // for. Byte-identical to calling operator() `words` times.
+            g.generate_n(chunk.data(), words);
             data = chunk.data();
         } else {
             for (std::size_t i = 0; i < words; ++i) fchunk[i] = g.next_float();
