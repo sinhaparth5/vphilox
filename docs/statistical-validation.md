@@ -22,7 +22,7 @@ scripts/statistical/run_practrand.sh --length 1TB --backend avx2
 | #42 | Backend equivalence over 1 TB | **pass** — byte-identical |
 | #43 | Float conversion | **pass** — see [The float32 stream](#the-float32-stream) |
 | #45 | TestU01 SmallCrush | **pass** — 15/15 |
-| #45 | TestU01 BigCrush | pending |
+| #45 | TestU01 BigCrush | **pass** — all 160 statistics |
 
 ## PractRand to 1 TB (#41)
 
@@ -159,8 +159,37 @@ is the better test anyway: the battery drives `vphilox::engine` directly, so
 what gets exercised is the engine a caller would really use — refill buffer and
 runtime dispatch included — rather than a byte stream downstream of it.
 
-SmallCrush passes 15/15 on both the laptop and the GCP Xeon. BigCrush is
-running; results will be appended here.
+SmallCrush passes 15/15 on both the laptop and the GCP Xeon.
+
+### BigCrush (#45)
+
+Run on the same GCP `n2-standard-8`, AVX2 backend, seed 0:
+
+```
+========= Summary results of BigCrush =========
+
+ Version:          TestU01 1.2.3
+ Generator:        vphilox 2026.08.0 philox4x32-10 backend=avx2 seed=0
+ Number of statistics:  160
+ Total CPU time:   02:31:25.82
+
+ All tests were passed
+```
+
+Full log: `results/testu01/bigcrush-avx2.log`.
+
+One value in the run carries TestU01's `*****` suspect marker, and it is worth
+naming rather than hiding behind the summary line. `sknuth_MaxOft`'s chi-square
+sub-statistic came in at p = 0.9993, just past the [0.001, 0.9990] band TestU01
+marks. It is not among the 160 statistics the battery scores, which is why the
+verdict is still a clean pass — but the more useful point is that one such
+value is exactly what should happen. BigCrush computed 254 p-values here;
+0.51 are expected to fall outside that band by chance, and the probability of
+seeing at least one is 40%. A run with none would be the anomaly.
+
+The two batteries agree, which is the result worth having: PractRand found
+nothing across 1 TB and 304 test results, and BigCrush found nothing across 160
+statistics driving the engine directly.
 
 TestU01 is fetched, never vendored: it ships under its own academic-use
 licence, not MIT/Apache. Three upstream problems are worked around in

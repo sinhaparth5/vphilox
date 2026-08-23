@@ -55,8 +55,8 @@ Any entry that would change it would be a new algorithm, not a release.
 
 ### Notes
 - Statistical validation to 1 TB: PractRand's core battery reports no anomalies
-  in 304 test results across eleven checkpoints, and TestU01 SmallCrush passes
-  15/15. Exactly one result was flagged in the whole terabyte — an `unusual`
+  in 304 test results across eleven checkpoints, and TestU01 passes both
+  SmallCrush (15/15) and BigCrush (all 160 statistics). Exactly one result was flagged in the whole terabyte — an `unusual`
   (PractRand's mildest severity) at the 4 GB checkpoint that never recurred at
   any larger length. Backends were shown equivalent by direct byte comparison
   over the same 1 TB rather than by repeating the battery per backend, which
