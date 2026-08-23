@@ -1,0 +1,27 @@
+vphilox bulk generation / buffer overhead run — 2026-08-23
+
+Command:
+  taskset -c 3 build/bench/benchmarks/bench_engines \
+    --benchmark_repetitions=15 --benchmark_min_time=2s \
+    --benchmark_report_aggregates_only=true --benchmark_format=json
+
+Third consecutive run; the first was discarded as cold (every row was
+~27% slower before the core reached a steady clock).
+
+== CPU ==
+Architecture:                            x86_64
+CPU(s):                                  8
+Model name:                              11th Gen Intel(R) Core(TM) i5-11300H @ 3.10GHz
+Thread(s) per core:                      2
+Core(s) per socket:                      4
+CPU(s) scaling MHz:                      79%
+CPU max MHz:                             4400.0000
+CPU min MHz:                             400.0000
+
+== Governor ==
+cpu3 scaling_governor: powersave
+
+== Kernel / compiler ==
+Linux 7.0.0-30-generic x86_64 GNU/Linux
+g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+cmake version 4.2.3

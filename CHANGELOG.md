@@ -8,6 +8,13 @@ Any entry that would change it would be a new algorithm, not a release.
 ## [Unreleased]
 
 ### Added
+- Bulk generation API on the engine: `generate_n(u32*, count)` and
+  `generate(std::span<u32>)`. Both produce exactly what the same number of
+  `operator()` calls would and leave the engine where those calls would, so
+  bulk and single-word access mix freely on one engine. Generating straight
+  into the caller's buffer reaches 100.0% of the raw kernel — 1.72x the
+  buffered engine and 2.40x `std::mt19937`. See
+  `docs/benchmarks/buffer-overhead-2026-08-23.md`.
 - AVX2 backend (`detail/kernel_avx2.hpp`): eight interleaved counters per
   `__m256i`, split even/odd `_mm256_mul_epu32` wide multiplies, in-register
   counter carry expansion, and an unpack/permute transpose back to block order.
@@ -19,6 +26,8 @@ Any entry that would change it would be a new algorithm, not a release.
   destination pointers.
 
 ### Changed
+- `tools/vphilox_stream` fills its output chunk through the bulk path instead
+  of word by word: 1.80x on AVX2, with byte-identical output on every backend.
 - x86 CPU detection now uses a raw CPUID + `XGETBV` probe on every compiler
   instead of `__builtin_cpu_supports`. MSVC previously had no detection at all
   and reported no features, so MSVC builds ran scalar even on AVX2 hardware;
@@ -27,10 +36,18 @@ Any entry that would change it would be a new algorithm, not a release.
   exists, so the path MSVC depends on is exercised on every Linux and macOS run.
 
 ### Notes
+- The engine buffer overhead was profiled for issue #36 and the original
+  hypothesis did not hold: the per-call bounds check is not the cost. The
+  compiled `operator()` loop is already nine instructions with the cursor held
+  in a register, and cursor-representation changes and larger refills all
+  measured neutral or worse. The cost is a second pass over every byte — the
+  kernel stores 128 bytes vectorised, then `operator()` hands them back four at
+  a time. That is why the gap grew from ~10% on the scalar kernel to ~42% on
+  AVX2, and why the fix is a path that skips the pass rather than a faster
+  check. Callers stuck on `std::shuffle` and the standard distributions still
+  pay it.
 - The bit stream is unchanged. The AVX2 kernel is bit-for-bit identical to the
   scalar reference; the parity matrix and the Random123 vectors both hold.
-- The refill buffer is now the dominant overhead on AVX2 — 41.9% of bulk
-  throughput, up from 10.4% on scalar.
 - MSVC builds now select AVX2 too: with detection fixed and the kernel landed,
   the Windows parity matrix runs the AVX2 path for real rather than skipping it.
 

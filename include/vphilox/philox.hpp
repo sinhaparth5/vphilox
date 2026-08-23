@@ -11,9 +11,12 @@
 #ifndef VPHILOX_PHILOX_HPP
 #define VPHILOX_PHILOX_HPP
 
+#include <algorithm>
 #include <concepts>
+#include <cstring>
 #include <limits>
 #include <random>
+#include <span>
 
 #include "vphilox/constants.hpp"
 #include "vphilox/counter.hpp"
@@ -65,6 +68,56 @@ public:
         }
         return buffer_[cursor_++];
     }
+
+    /// Fill `count` words at `dst`, bypassing the refill buffer for the wide
+    /// middle of the request.
+    ///
+    /// Produces exactly what `count` successive `operator()` calls would
+    /// produce and leaves the engine in exactly the state they would leave it,
+    /// so bulk and single-word access can be mixed freely on one engine.
+    ///
+    /// This exists because the buffer is not free: draining it word by word is
+    /// a second pass over every byte, and once the kernel is vectorised that
+    /// pass costs about as much as generating the data did. Writing straight
+    /// into the caller's memory is the only way to skip it. See
+    /// `docs/benchmarks/buffer-overhead-2026-08-23.md`.
+    void generate_n(result_type* dst, std::size_t count) noexcept {
+        const auto& entry = detail::resolve_dispatch<Rounds>();
+
+        while (true) {
+            // Whatever is already buffered belongs to the caller first --
+            // jumping straight to the kernel would reorder the stream.
+            const std::size_t buffered = std::min(count, refill_words - cursor_);
+            if (buffered != 0) {
+                std::memcpy(dst, buffer_ + cursor_, buffered * sizeof(result_type));
+                cursor_ += buffered;
+                dst += buffered;
+                count -= buffered;
+            }
+            if (count == 0) return;
+
+            // The buffer is empty at this point. Only go direct when the
+            // request is wide enough to fill the backend's tail-free width:
+            // a narrower one would spend the whole call in the kernel's scalar
+            // tail and come out slower than the buffer it was avoiding.
+            const std::size_t blocks = count / block_words;
+            if (blocks >= entry.preferred_blocks) {
+                entry.fn(next_, key_, dst, blocks);
+                counter_add(next_, blocks);
+                const std::size_t words = blocks * block_words;
+                dst += words;
+                count -= words;
+                if (count == 0) return;
+            }
+
+            // Either the request was too narrow to go direct, or a sub-block
+            // remainder is left. Both are served from a fresh buffer.
+            refill();
+        }
+    }
+
+    /// Span form of `generate_n`.
+    void generate(std::span<result_type> dst) noexcept { generate_n(dst.data(), dst.size()); }
 
     /// Uniform float in [0, 1) via mantissa injection.
     [[nodiscard]] float next_float() noexcept { return to_float01((*this)()); }
