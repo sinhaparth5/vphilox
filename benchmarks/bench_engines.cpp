@@ -13,6 +13,7 @@
 
 #include <benchmark/benchmark.h>
 
+#include <algorithm>
 #include <cstdint>
 #include <random>
 #include <string>
@@ -168,6 +169,30 @@ void BM_vphilox_bulk(benchmark::State& state) {
     report_metrics(state, cycles);
 }
 BENCHMARK(BM_vphilox_bulk);
+
+/// The bulk API (issue #37). Generates straight into the caller's buffer, so
+/// the drain pass that BM_vphilox pays for disappears. The argument is the
+/// chunk size in words: small chunks are the interesting case, because that is
+/// where a naive implementation would hand the kernel a block count below its
+/// SIMD width and end up in the scalar tail path.
+void BM_vphilox_generate_n(benchmark::State& state) {
+    const auto chunk = static_cast<std::size_t>(state.range(0));
+    vphilox::engine g{0xDEADBEEFull};
+    std::vector<vphilox::u32> out(kWords);
+    cycle_counter cycles;
+
+    for (auto _ : state) {
+        cycles.start();
+        for (std::size_t i = 0; i < kWords; i += chunk) {
+            g.generate_n(out.data() + i, std::min(chunk, kWords - i));
+        }
+        benchmark::DoNotOptimize(out.data());
+        benchmark::ClobberMemory();
+        cycles.stop();
+    }
+    report_metrics(state, cycles, vphilox::backend_name(vphilox::engine::which_backend()));
+}
+BENCHMARK(BM_vphilox_generate_n)->Arg(8)->Arg(32)->Arg(256)->Arg(1024)->Arg(kWords);
 
 /// The baseline vphilox has to beat.
 void BM_mt19937(benchmark::State& state) {
