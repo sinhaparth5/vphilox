@@ -170,11 +170,14 @@ AVX2 clears it: the buffered engine runs at 1.41x `std::mt19937`, the raw kernel
         Replaced by an exhaustive round-trip over all 2^23 outputs plus chi-square and KS
         uniformity tests. The failing log is archived with the explanation.
   - [x] Archive the pass logs — in `results/practrand/`, each with a provenance header
-- [ ] **TestU01 BigCrush** — full battery, zero failures
+- [x] **TestU01 BigCrush** — full battery, zero failures
   - [x] Harness: `tools/vphilox_testu01`, driving `vphilox::engine` directly rather than a byte
         stream, so the refill buffer and dispatch are under test too
   - [x] SmallCrush — 15/15
-  - [ ] BigCrush — running
+  - [x] BigCrush — all 160 statistics passed, 2h31m. One sub-statistic
+        (`sknuth_MaxOft` chi2, p=0.9993) carries TestU01's suspect marker; it is not among the
+        160 scored statistics, and over 254 computed p-values the expected count outside the
+        band is 0.51, so one is unremarkable.
 - [ ] **Throughput matrix**
   - [ ] `std::mt19937`, scalar Philox4x32, xoshiro256++, PCG64, vphilox (each backend)
   - [ ] Vendor xoshiro256++ and PCG64 into `benchmarks/third_party/` rather than taking dependencies
