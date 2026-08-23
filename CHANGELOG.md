@@ -21,6 +21,15 @@ Any entry that would change it would be a new algorithm, not a release.
   Dispatch selects it automatically on AVX2 hardware. Measured at 3.30x the
   scalar kernel and 1.41x `std::mt19937` through the buffered engine; see
   `docs/benchmarks/avx2-2026-08-23.md`.
+- TestU01 harness (`tools/vphilox_testu01`) and build scripts for PractRand and
+  TestU01 under `scripts/statistical/`. The harness drives `vphilox::engine`
+  through TestU01's callback interface, so the refill buffer and runtime
+  dispatch are under test rather than just a byte stream. The target is
+  optional and absent when TestU01 is not installed.
+- Float conversion tests for lost entropy and uniformity: an exhaustive
+  round-trip over all 2^23 representable outputs, plus chi-square and
+  Kolmogorov-Smirnov checks. Mutation testing confirms the round-trip catches a
+  stuck low mantissa bit that no distributional test can see.
 - Chunking-independence check in `tests/test_kernel_parity.cpp`: a run split at
   every offset must equal the unsplit run, which also exercises unaligned
   destination pointers.
@@ -28,6 +37,15 @@ Any entry that would change it would be a new algorithm, not a release.
 ### Changed
 - `tools/vphilox_stream` fills its output chunk through the bulk path instead
   of word by word: 1.80x on AVX2, with byte-identical output on every backend.
+- `tools/vphilox_stream` now ignores `SIGPIPE`. PractRand closes the pipe the
+  moment it reaches `-tlmax`, and the default disposition killed the process
+  before `fwrite` could return, so the graceful-exit path was unreachable and a
+  *completed* 1 TB run reported exit 141 — which any runner using
+  `set -o pipefail` reads as a failure.
+- Corrected an off-by-one in the `float_cast.hpp` documentation, which claimed
+  24 of 32 bits survive on a 2^-24 grid (and 2^-53 for double). The code keeps
+  23 and 52; the 24th significand bit is the implicit leading 1, pinned by the
+  fixed exponent, and carries no entropy.
 - x86 CPU detection now uses a raw CPUID + `XGETBV` probe on every compiler
   instead of `__builtin_cpu_supports`. MSVC previously had no detection at all
   and reported no features, so MSVC builds ran scalar even on AVX2 hardware;
@@ -36,6 +54,20 @@ Any entry that would change it would be a new algorithm, not a release.
   exists, so the path MSVC depends on is exercised on every Linux and macOS run.
 
 ### Notes
+- Statistical validation to 1 TB: PractRand's core battery reports no anomalies
+  in 304 test results across eleven checkpoints, and TestU01 SmallCrush passes
+  15/15. Exactly one result was flagged in the whole terabyte — an `unusual`
+  (PractRand's mildest severity) at the 4 GB checkpoint that never recurred at
+  any larger length. Backends were shown equivalent by direct byte comparison
+  over the same 1 TB rather than by repeating the battery per backend, which
+  measures the same bytes four times. Write-up in
+  `docs/statistical-validation.md`.
+- Running the float32 stream through PractRand is not a meaningful test and was
+  replaced rather than performed. Mantissa injection subtracts 1.0 from a value
+  in [1,2), and that renormalisation leaves the sign bit clear, the exponent
+  field geometrically skewed, and low mantissa bits frequently zero — so the
+  bytes are non-uniform by construction and every correct float generator fails
+  a bit-level battery on them. The failing log is archived with the explanation.
 - The engine buffer overhead was profiled for issue #36 and the original
   hypothesis did not hold: the per-call bounds check is not the cost. The
   compiled `operator()` loop is already nine instructions with the cursor held
