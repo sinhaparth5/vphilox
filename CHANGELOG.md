@@ -8,6 +8,18 @@ Any entry that would change it would be a new algorithm, not a release.
 ## [Unreleased]
 
 ### Added
+- Bulk float generation: `generate_n(float*, count)` and
+  `generate(std::span<float>)`, equivalent to the same number of
+  `next_float()` calls in both output and resulting engine state. Roughly 2x
+  the word-at-a-time path; see `docs/benchmarks/float-conversion-2026-08-24.md`
+  for why the exact figure is not recorded yet.
+- `detail/float_bulk.hpp`: the u32 -> float conversion loop compiled twice,
+  once at the consumer's baseline ISA and once under `VPHILOX_TARGET("avx2")`,
+  selected by the same CPU probe and `VPHILOX_BACKEND` override as the
+  kernels. No intrinsics: the compiler already emits
+  `vpsrld` / `vpor` / `vaddps` for the plain loop, so the target attribute is
+  the only part that was missing. Conversion is elementwise, so all widths are
+  bit-identical and the choice never affects the stream.
 - Seeding from a `std::seed_seq`: `basic_engine(Sseq&)` and `seed(Sseq&)`,
   alongside a matching `seed(u64)`, so `std::mt19937 rng(seq)` call sites port
   by changing the type and nothing else. Only the key is drawn -- two words,

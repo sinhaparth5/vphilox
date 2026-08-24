@@ -11,6 +11,7 @@
 #include <benchmark/benchmark.h>
 
 #include <random>
+#include <span>
 #include <vector>
 
 #include "vphilox/vphilox.hpp"
@@ -69,6 +70,39 @@ void BM_double_mantissa_injection(benchmark::State& state) {
     state.SetItemsProcessed(static_cast<std::int64_t>(state.iterations() * kCount));
 }
 BENCHMARK(BM_double_mantissa_injection);
+
+// ---------------------------------------------------------------------------
+// Issue #34: the bulk float path against the word-at-a-time one, with the raw
+// integer bulk path as the ceiling. The gap between the last two is what the
+// conversion pass costs -- the part that only fusing conversion into the
+// kernels themselves could remove.
+// ---------------------------------------------------------------------------
+
+void BM_float_bulk(benchmark::State& state) {
+    vphilox::engine g{1};
+    std::vector<float> out(kCount);
+    for (auto _ : state) {
+        g.generate(std::span<float>{out});
+        benchmark::DoNotOptimize(out.data());
+        benchmark::ClobberMemory();
+    }
+    state.SetItemsProcessed(static_cast<std::int64_t>(state.iterations() * kCount));
+    state.SetBytesProcessed(static_cast<std::int64_t>(state.iterations() * kCount * 4));
+}
+BENCHMARK(BM_float_bulk);
+
+void BM_u32_bulk_ceiling(benchmark::State& state) {
+    vphilox::engine g{1};
+    std::vector<vphilox::u32> out(kCount);
+    for (auto _ : state) {
+        g.generate(std::span<vphilox::u32>{out});
+        benchmark::DoNotOptimize(out.data());
+        benchmark::ClobberMemory();
+    }
+    state.SetItemsProcessed(static_cast<std::int64_t>(state.iterations() * kCount));
+    state.SetBytesProcessed(static_cast<std::int64_t>(state.iterations() * kCount * 4));
+}
+BENCHMARK(BM_u32_bulk_ceiling);
 
 }  // namespace
 
