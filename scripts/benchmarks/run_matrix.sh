@@ -48,12 +48,29 @@ ENVFILE="$OUTDIR/$tag-environment.txt"
 
 # ---------------------------------------------------------------- build
 
-if [[ ! -x "$BENCH" ]]; then
-    echo "==> building the bench preset"
-    cmake --preset bench >/dev/null
-    cmake --build --preset bench --target bench_engines >/dev/null
-fi
+# Always build, never "build only if missing". This script stamps a git SHA
+# into the environment file next to the numbers, so running a binary that is
+# older than the checkout turns that provenance into a false claim -- which is
+# exactly what a leftover build/ directory from an earlier baseline causes. An
+# incremental no-op build costs about a second; a mislabelled result costs a
+# retracted write-up.
+echo "==> building the bench preset"
+cmake --preset bench >/dev/null
+cmake --build --preset bench --target bench_engines >/dev/null
 [[ -x "$BENCH" ]] || { echo "no bench_engines at $BENCH" >&2; exit 1; }
+
+# Belt and braces: confirm the rows we intend to measure are present, so a
+# checkout older than the matrix fails here rather than silently reporting a
+# subset of the table.
+listing="$("$BENCH" --benchmark_list_tests=true)"
+for required in BM_xoshiro256pp BM_pcg64; do
+    if ! grep -q "^$required" <<<"$listing"; then
+        echo "ERROR: $BENCH does not contain $required." >&2
+        echo "  This build predates the throughput matrix. From $REPO:" >&2
+        echo "    git fetch origin && git checkout master && git pull" >&2
+        exit 1
+    fi
+done
 
 mkdir -p "$OUTDIR"
 
