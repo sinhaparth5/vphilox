@@ -25,25 +25,27 @@
 // producing twice the output. A rise is the knee, and it is visible without
 // having to compare rows by eye.
 //
-// Two things to know before reading a run of this:
+// Workers live in a persistent pool rather than being spawned per iteration.
+// With 256 KiB per worker a spawn-and-join costs a large fraction of the fill
+// itself, which landed in `bytes_per_second` but not in `cycles_per_byte`
+// (the counters wrap only the fill) and made the two columns tell different
+// stories -- GB/s appeared to *improve* with a larger working set purely
+// because the fixed spawn cost amortised better. With the pool, both columns
+// measure the same work.
 //
-// Workers are spawned and joined every iteration, and the cycle counters wrap
-// only the fill, so `cycles_per_byte` excludes thread creation while
-// `bytes_per_second` includes it. At 256 KiB per worker the spawn is a large
-// fraction of the iteration, which is why the GB/s column can *rise* with the
-// working set. Compare thread counts on cycles/byte; treat GB/s here as
-// indicative only. A persistent pool would fix this and is worth doing before
-// any of these numbers are published.
-//
-// On x86 the counter is RDTSC, which counts reference cycles rather than core
-// cycles. Adding threads moves the turbo ceiling, so on a machine without a
-// pinned clock some of the movement in cycles/byte is the frequency changing
-// underneath rather than contention. Run this under the performance governor.
+// One caveat remains. On x86 the counter is RDTSC, which counts reference
+// cycles rather than core cycles. Adding threads moves the turbo ceiling, so
+// on a machine without a pinned clock part of any movement in cycles/byte is
+// the frequency changing underneath the measurement rather than contention.
+// Run this under the performance governor.
 
 #include <benchmark/benchmark.h>
 
+#include <condition_variable>
 #include <cstdint>
+#include <functional>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
@@ -60,13 +62,82 @@ namespace {
 
 using vphilox_bench::cycle_counter;
 
-/// One counter per worker, each on its own cache line. The write happens once
-/// per worker per iteration rather than in the fill loop, but padding it costs
-/// nothing and keeps the accounting clear of the false sharing this benchmark
-/// exists to rule out.
-struct alignas(64) padded_cycles {
-    std::uint64_t value{};
+/// A fixed set of workers that outlive the benchmark loop.
+///
+/// std::barrier would express this in a third of the lines, but libc++ gates
+/// <barrier> behind a macOS availability macro and CI builds the benchmarks on
+/// macOS arm64, so this uses the primitives that are unconditionally
+/// available. The handshake costs two lock acquisitions per iteration, against
+/// a fill of at least 256 KiB -- immaterial, and constant across thread counts,
+/// which is the property that matters for a scaling curve.
+class worker_pool {
+public:
+    explicit worker_pool(std::size_t threads) : threads_(threads) {
+        workers_.reserve(threads);
+        for (std::size_t t = 0; t < threads; ++t) workers_.emplace_back([this, t] { loop(t); });
+    }
+
+    ~worker_pool() {
+        {
+            const std::lock_guard lock(mutex_);
+            stop_ = true;
+            ++generation_;
+        }
+        start_.notify_all();
+        for (auto& w : workers_) w.join();
+    }
+
+    worker_pool(const worker_pool&)            = delete;
+    worker_pool& operator=(const worker_pool&) = delete;
+
+    /// Run `job(t)` on every worker and block until all of them finish.
+    void run(const std::function<void(std::size_t)>& job) {
+        {
+            const std::lock_guard lock(mutex_);
+            job_       = &job;
+            remaining_ = threads_;
+            ++generation_;
+        }
+        start_.notify_all();
+
+        std::unique_lock lock(mutex_);
+        done_.wait(lock, [this] { return remaining_ == 0; });
+    }
+
+private:
+    void loop(std::size_t t) {
+        std::uint64_t seen = 0;
+        for (;;) {
+            std::unique_lock lock(mutex_);
+            start_.wait(lock, [this, &seen] { return generation_ != seen; });
+            seen = generation_;
+            if (stop_) return;
+
+            const auto* job = job_;
+            lock.unlock();
+
+            (*job)(t);
+
+            lock.lock();
+            const bool last = (--remaining_ == 0);
+            lock.unlock();
+            if (last) done_.notify_one();
+        }
+    }
+
+    std::size_t threads_;
+    std::vector<std::thread> workers_;
+
+    std::mutex mutex_;
+    std::condition_variable start_;
+    std::condition_variable done_;
+    const std::function<void(std::size_t)>* job_{nullptr};
+    std::uint64_t generation_{0};
+    std::size_t remaining_{0};
+    bool stop_{false};
 };
+
+;
 
 enum class fill_mode { per_call, bulk };
 
@@ -85,39 +156,36 @@ void run_scaling(benchmark::State& state) {
         buffers.push_back(std::make_unique<std::vector<vphilox::u32>>(words));
     }
 
-    std::vector<padded_cycles> thread_cycles(threads);
-    const char* cycle_source = "";
+    // One counter per worker, opened on the worker itself: perf_event_open
+    // attaches to the calling thread, so a counter built here would measure
+    // the main thread and report nothing. Each accumulates across iterations.
+    std::vector<std::unique_ptr<cycle_counter>> counters(threads);
+
+    worker_pool pool(threads);
+
+    const std::function<void(std::size_t)> job = [&](std::size_t t) {
+        if (!counters[t]) counters[t] = std::make_unique<cycle_counter>();
+        auto& cycles = *counters[t];
+
+        const auto start = vphilox::counter_advanced(
+            vphilox::counter4{}, static_cast<vphilox::u64>(t) * (words / vphilox::block_words));
+
+        vphilox::engine g{key, start};
+        auto& buf = *buffers[t];
+
+        cycles.start();
+        if constexpr (Mode == fill_mode::bulk) {
+            g.generate_n(buf.data(), words);
+        } else {
+            for (std::size_t i = 0; i < words; ++i) buf[i] = g();
+        }
+        cycles.stop();
+
+        benchmark::DoNotOptimize(buf.data());
+    };
 
     for (auto _ : state) {
-        std::vector<std::thread> workers;
-        workers.reserve(threads);
-
-        for (std::size_t t = 0; t < threads; ++t) {
-            workers.emplace_back([&, t] {
-                const auto start = vphilox::counter_advanced(
-                    vphilox::counter4{},
-                    static_cast<vphilox::u64>(t) * (words / vphilox::block_words));
-
-                vphilox::engine g{key, start};
-                auto& buf = *buffers[t];
-
-                // perf_event_open attaches to the calling thread, so the
-                // counter has to be constructed here rather than shared.
-                cycle_counter cycles;
-                cycles.start();
-                if constexpr (Mode == fill_mode::bulk) {
-                    g.generate_n(buf.data(), words);
-                } else {
-                    for (std::size_t i = 0; i < words; ++i) buf[i] = g();
-                }
-                cycles.stop();
-
-                benchmark::DoNotOptimize(buf.data());
-                thread_cycles[t].value += cycles.raw();
-                if (t == 0) cycle_source = cycles.source();
-            });
-        }
-        for (auto& w : workers) w.join();
+        pool.run(job);
         benchmark::ClobberMemory();
     }
 
@@ -126,7 +194,9 @@ void run_scaling(benchmark::State& state) {
     state.SetBytesProcessed(bytes);
 
     std::uint64_t total_cycles = 0;
-    for (const auto& c : thread_cycles) total_cycles += c.value;
+    for (const auto& c : counters) {
+        if (c) total_cycles += c->raw();
+    }
 
     std::string label = vphilox::backend_name(vphilox::engine::which_backend());
     if (total_cycles > 0 && bytes > 0) {
@@ -134,7 +204,7 @@ void run_scaling(benchmark::State& state) {
         // the thread axis means linear scaling.
         state.counters["cycles_per_byte"] =
             static_cast<double>(total_cycles) / static_cast<double>(bytes);
-        label += std::string{", cycle_source="} + cycle_source;
+        label += std::string{", cycle_source="} + counters.front()->source();
     }
     state.counters["kib_per_thread"] = static_cast<double>(words * sizeof(vphilox::u32)) / 1024.0;
     state.SetLabel(label);

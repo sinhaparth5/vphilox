@@ -226,8 +226,19 @@ AVX2 clears it: the buffered engine runs at 1.41x `std::mt19937`, the raw kernel
           kernel — the x86 bulk-path result from #37 holding on a second architecture
     - [ ] **x86-64 AVX2** — the laptop run that validated the harness sits at 4-10% CV, so
           this column still needs a pinned host
-- [ ] **Scaling** — `benchmarks/bench_scaling.cpp` at 1/2/4/8/16/32 threads
-  - [ ] Confirm linear scaling; investigate any knee (memory bandwidth vs false sharing)
+- [~] **Scaling** — `benchmarks/bench_scaling.cpp` at 1/2/4/8/16/32 threads
+  - [x] Harness rebuilt to be interpretable: aggregate cycles/byte (flat = linear scaling),
+        a `generate_n` arm beside the buffered one, the working set as a second axis so an
+        L2-resident curve and a DRAM-resident one can be told apart, and a persistent worker
+        pool so thread creation is no longer inside `bytes_per_second`
+  - [~] Confirm linear scaling; investigate any knee (memory bandwidth vs false sharing)
+    - [x] Laptop reading (Coffee Lake 4C/8T, unpinned, indicative): the bulk arm holds
+          0.797 → 0.820 cycles/byte from 1 to 4 threads — flat to the physical core count —
+          then 1.24x at 8, which is SMT sharing execution units rather than contention. The
+          buffered arm degrades from 2 threads (1.25x), so the bulk path is the one that
+          scales. A 4 MiB working set is bandwidth-bound throughout, 6.66x by 32 threads
+    - [ ] Re-run on a frequency-pinned host; RDTSC counts reference cycles, so the clock
+          moves under thread count on an unpinned machine
   - [ ] OpenMP variant alongside the `std::thread` one
   - [ ] Instruction-cache miss rates via libpfm
 - [ ] **Cross-platform bit parity** — same key and counter produce identical output on x86-64, aarch64, and (if reachable) a cuRAND/GPU reference. This is the reproducibility claim; it needs a test, not an assertion.
