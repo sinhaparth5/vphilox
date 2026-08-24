@@ -1,7 +1,23 @@
 # vphilox Roadmap
 
-Execution plan for **vphilox**, a header-only C++20 SIMD-vectorized Philox4x32-10
-generator. Derived from `docs/VPhilox Development Phases.md` and
+Execution plan for **vphilox**, a header-only C++20 Philox4x32-10 generator whose
+state can be written on one platform and read on another, and which is fast
+enough that portability costs nothing.
+
+Those are two goals, in that order. The generator is counter-based, so its state
+is a key and a position rather than a bag of internal machinery — which is what
+makes a checkpoint survive a change of compiler, standard library or CPU, gives
+`discard()` in constant time, and hands each thread its own substream with no
+coordination. `std::mt19937` gives none of those: its serialized state is not
+portable between standard libraries at all.
+
+SIMD is the means, not the end. It exists so that nobody has to trade throughput
+for those properties — the objection that sank the original attempt was
+"the performance here is 1/10 of mt", and answering it is why the kernels are
+here. Speed against generators that offer none of the above (xoshiro256++ in
+particular) is a comparison worth *reporting* honestly, not a target to chase.
+
+Derived from `docs/VPhilox Development Phases.md` and
 `docs/Vector Philox Development Strategy.md`.
 
 **Status:** Phase 0 complete, Phase 1 substantially complete. Current version
@@ -333,11 +349,34 @@ and whose state can be written on one platform and read on another.
 
 ## Phase 5 — Paper & release
 
-- [ ] **Paper** (LaTeX, ACM template) — *vPhilox: SIMD-Accelerated Counter-Based Pseudo-Random Number Generation for Parallel CPU Systems*
-  - [ ] Scalar wide-multiply bottleneck analysis
-  - [ ] AVX2/AVX-512 lane interleaving theory
+- [ ] **Paper** (LaTeX, ACM template) — working title *Portable, Seekable Random Streams for
+      Parallel CPU Simulation*, retitled from *vPhilox: SIMD-Accelerated Counter-Based
+      Pseudo-Random Number Generation for Parallel CPU Systems*.
+
+      The original title names the method, not the contribution, and it invites exactly the
+      comparison the measurements lose: xoshiro256++ is faster on three of the four parts
+      tested. Speed is the *objection this work removes*, not the result it reports. Lead with
+      what no competing generator offers — a checkpoint that survives a change of standard
+      library, O(1) seek, and results independent of thread count — and use the throughput
+      figures to show those properties are free.
+  - [ ] **The portability failure** — the motivating problem, and currently missing from the
+        outline entirely. `std::mt19937`'s serialized state is not portable: format flags
+        differ (libstdc++ has `operator<<` force `dec`; the MSVC STL does not) and so does the
+        layout (624 words raw plus a position, against 624 rotated with none). A checkpoint
+        written on Linux fails on Windows and loads *silently wrong* on macOS. Counter-based
+        state — a key and a position — cannot fail this way
+  - [ ] **Reproducibility under parallelism** — identical output regardless of thread count and
+        scheduling, with the measured scaling behind it (3.95x on 4 cores, 98.8% efficiency,
+        aggregate cycles/byte flat to 0.063% from 1 to 32 threads)
+  - [ ] Scalar wide-multiply bottleneck analysis — and the finding that the reported ~10x
+        penalty against `std::mt19937` did **not** reproduce on any of five CPUs measured
+        (0.61-0.87x, not 0.10x)
+  - [ ] AVX2/AVX-512/NEON lane interleaving theory, including why AVX-512 shows no
+        downclocking penalty here: Philox's inner loop is entirely light-tier integer work
   - [ ] IEEE-754 mantissa injection math
-  - [ ] Benchmark figures from Phase 4
+  - [ ] Benchmark figures from Phase 4, reported honestly — including the two results that cut
+        against us, that xoshiro256++ leads on three of four parts and that NEON leaves vphilox
+        behind `std::mt19937` on ARM
 - [ ] arXiv preprint (cs.PF / cs.MS)
 - [ ] Zenodo DOI for the repository
 - [ ] Tag and publish `sinhaparth5/vphilox`

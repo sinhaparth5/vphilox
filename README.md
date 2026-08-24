@@ -14,12 +14,17 @@
 </p>
 
 <p align="center">
-  Fast, repeatable random numbers for C++ programs that do work in parallel.
+  Random numbers you can save, move between machines, and get back exactly.
 </p>
 
 vphilox is a small C++20 library for simulations, tests, games, data tools, and
 other programs that need a lot of random numbers. Give it the same seed and it
-produces the same results, even when the work is split across threads.
+produces the same results — on another compiler, another operating system,
+another CPU, and whether the work runs on one thread or sixty-four. You can
+write a generator's position to a file and pick it up somewhere else, jump to
+any point in a stream in constant time, and hand every worker its own stream
+without locks. It is also quick: on a machine with AVX-512 it generates numbers
+several times faster than `std::mt19937`.
 
 > vphilox is still in early development, but all four backends are now real and
 > verified on hardware: scalar, AVX2, AVX-512 and NEON. Against `std::mt19937`
