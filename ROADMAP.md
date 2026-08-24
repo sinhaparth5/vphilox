@@ -206,11 +206,18 @@ AVX2 clears it: the buffered engine runs at 1.41x `std::mt19937`, the raw kernel
           matrix or for one generator per thread) — pinned to the vendored C by a
           side-by-side test rather than trusted
   - [x] Report GB/s **and** cycles/byte — every row reports both through `report_metrics`
-  - [ ] Run the matrix on frequency-pinned hardware and write it up. The laptop run that
-        validated the harness sits at 4-10% CV against this project's sub-1% bar, so it is a
-        smoke test rather than a result. It does put xoshiro256++ at roughly 2x the AVX2
-        kernel with PCG64 level with it, which is the comparison the write-up has to address
-        rather than omit
+  - [~] Run the matrix on frequency-pinned hardware and write it up, via
+        `scripts/benchmarks/run_matrix.sh`, which pins the governor, records provenance, and
+        refuses a run that lost the cycle counter or came in above 1% CV
+    - [x] **AArch64 — Raspberry Pi 5**, every row inside the sub-1% CV bar; see
+          [`docs/benchmarks/throughput-matrix-pi-2026-08-24.md`](docs/benchmarks/throughput-matrix-pi-2026-08-24.md).
+          vphilox runs the scalar kernel there until #28 lands and so places last:
+          xoshiro256++ is 5.84x it, PCG64 1.97x, `std::mt19937` 1.67x. The four rows shared
+          with the August baseline reproduce within 2% (the two pure-kernel rows within
+          0.1%), and the refill buffer costs 25.2% with `generate_n` recovering 100.0% of the
+          kernel — the x86 bulk-path result from #37 holding on a second architecture
+    - [ ] **x86-64 AVX2** — the laptop run that validated the harness sits at 4-10% CV, so
+          this column still needs a pinned host
 - [ ] **Scaling** — `benchmarks/bench_scaling.cpp` at 1/2/4/8/16/32 threads
   - [ ] Confirm linear scaling; investigate any knee (memory bandwidth vs false sharing)
   - [ ] OpenMP variant alongside the `std::thread` one
