@@ -34,6 +34,7 @@ set(VPHILOX_TEST_SOURCES
     test_cpu_features.cpp     # Phase 3: CPUID/XGETBV probe, shared with MSVC
     test_float_cast.cpp       # Phase 3: mantissa injection range/uniformity
     test_engine.cpp           # Phase 3: C++20 concept, buffer, discard
+    test_seeding.cpp          # Phase 3: seed_seq / u64 seeding and overload rank
 )
 
 foreach(src IN LISTS VPHILOX_TEST_SOURCES)

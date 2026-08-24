@@ -8,6 +8,12 @@ Any entry that would change it would be a new algorithm, not a release.
 ## [Unreleased]
 
 ### Added
+- Seeding from a `std::seed_seq`: `basic_engine(Sseq&)` and `seed(Sseq&)`,
+  alongside a matching `seed(u64)`, so `std::mt19937 rng(seq)` call sites port
+  by changing the type and nothing else. Only the key is drawn -- two words,
+  the whole of it -- and the counter always starts at zero. The constructor is
+  constrained to actual seed sequences so the engine does not advertise
+  constructibility from arbitrary lvalues.
 - Bulk generation API on the engine: `generate_n(u32*, count)` and
   `generate(std::span<u32>)`. Both produce exactly what the same number of
   `operator()` calls would and leave the engine where those calls would, so

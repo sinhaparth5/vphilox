@@ -145,7 +145,11 @@ AVX2 clears it: the buffered engine runs at 1.41x `std::mt19937`, the raw kernel
         a narrower one would run entirely in the kernel's scalar tail and come out ~3x slower
         than the buffer it was avoiding
   - [x] `tools/vphilox_stream` converted to it — 1.80x on AVX2, byte-identical output
-- [ ] `SeedSeq` constructor for drop-in compatibility with existing `std::mt19937` call sites
+- [x] `SeedSeq` constructor for drop-in compatibility with existing `std::mt19937` call sites
+  - [x] `basic_engine(Sseq&)` plus `seed(Sseq&)` and `seed(u64)`; key only, counter starts at 0
+  - [x] Constrained to real seed sequences — unconstrained, the template accepts any non-const
+        lvalue and `std::is_constructible_v<engine, Widget&>` answers true, with the mismatch
+        surfacing only inside the constructor body (`tests/test_seeding.cpp`)
 
 **Deliverable:** a header-only C++20 library that drops straight into standard algorithms.
 
