@@ -3,8 +3,33 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 vphilox is a header-only C++20 implementation of the Philox4x32-10 counter-based
-PRNG, being built toward SIMD-accelerated kernels. `CONTRIBUTING.md` has the
-full contributor detail.
+PRNG with SIMD kernels. `CONTRIBUTING.md` has the full contributor detail.
+
+## Why this exists
+
+Read this before optimising anything.
+
+The library came out of a bug in XGBoost. Its checkpoints stored a
+`std::mt19937` state, and that state is not portable: the format flags differ
+between standard libraries (libstdc++ has `operator<<` force `dec` and ignore a
+caller's `std::hex`, the MSVC STL does not) and so does the layout (624 words
+raw plus a position, against 624 rotated with none). A checkpoint written on
+Linux fails on Windows and loads *silently wrong* on macOS. Counter-based state
+— a key and a position — cannot fail that way.
+
+The fix was rejected upstream with "the performance here is 1/10 of mt. This is
+due to no specialisation for wide multiplies." **The SIMD work exists to answer
+that sentence, not to win a throughput contest.** Two measured results settle
+it: the ~10x penalty did not reproduce on any of five CPUs (0.61-0.87x, not
+0.10x), and specialising the wide multiplies puts the raw kernel at 2.6-4.6x
+`std::mt19937` and 4.1-5.3x unspecialised Philox.
+
+The practical consequence: **do not optimise toward xoshiro256++.** It is faster
+here on three of the four parts benchmarked, it is a latency-bound scalar chain
+that a wider kernel does not catch, and it offers none of the properties this
+library is for — portable state, O(1) seek, identical output regardless of
+thread count. Report the comparison honestly; do not chase it. Speed only has to
+be good enough that nobody can raise the original objection.
 
 ## Build, test, benchmark
 
@@ -34,10 +59,38 @@ build/tests/test_engine --gtest_filter='Engine.Discard*'  # run the binary direc
 
 Pin a backend at runtime without rebuilding: `VPHILOX_BACKEND=scalar|avx2|avx512|neon`.
 
-Benchmarks want a quiet, frequency-pinned machine and report **cycles per byte**
-first, GB/s second (`bench_engines.cpp` reads RDTSC on x86 and
-`perf_event_open` on Linux ARM). Results are written up under
-`docs/benchmarks/`, raw JSON in `docs/benchmarks/raw/` and `results/`.
+Benchmarks report **cycles per byte** first, GB/s second (`bench_engines.cpp`
+reads RDTSC on x86 and `perf_event_open` on Linux ARM). Results are written up
+under `docs/benchmarks/`, raw JSON in `docs/benchmarks/raw/` and `results/`.
+
+Do not run benchmarks by hand. `scripts/benchmarks/run_matrix.sh` pins the
+governor and restores it on exit, records provenance next to the numbers, and
+refuses runs that are not worth writing up:
+
+```bash
+scripts/benchmarks/run_matrix.sh --tag <machine> --cpu <isolated-cpu>
+scripts/benchmarks/run_matrix.sh --tag <machine> --bench scaling   # unpinned; needs every core
+```
+
+It writes `results/<tag>-{matrix,scaling}.json` plus a matching
+`-environment.txt`, and exits non-zero if the cycle counter did not report or
+any row exceeds **1% cycles/byte CV**, which is this project's bar.
+
+Four measurement rules, each learned by getting them wrong:
+
+- **Always rebuild before measuring.** A leftover `build/` will happily run a
+  months-old binary and print a plausible table. The script builds
+  unconditionally and checks the expected rows exist.
+- **RDTSC counts reference cycles, not core cycles.** Figures compare *within*
+  one machine, never across two with different nominal frequencies. On an
+  unpinned machine, a moving turbo ceiling lands directly in the column.
+- **A cloud VM is fine for correctness, not for throughput** — steal time is
+  invisible. The exception is a dedicated-vCPU instance that still comes in
+  under the CV bar, which should be labelled as cloud in the write-up.
+- **Report results that cut against the library.** xoshiro256++ leads on three
+  of four parts and NEON leaves vphilox behind `std::mt19937` on ARM; both are
+  in `docs/benchmarks/` and the roadmap because omitting them would be the
+  problem, not the numbers.
 
 `VPHILOX_FETCH_DEPS=OFF` forces an offline build using only installed
 GoogleTest/Benchmark.
@@ -79,7 +132,10 @@ The layering, bottom up:
 - `constants.hpp` — Philox multipliers/Weyl increments and the `counter4` /
   `key2` value types.
 - `counter.hpp` — 128-bit little-endian counter arithmetic. This is what makes
-  `discard()` O(1): seeking N blocks is `counter += N`.
+  `discard()` O(1): seeking N blocks is `counter += N`. `counter_sub` /
+  `counter_retreated` are the inverse, needed by serialization because the
+  engine's counter runs ahead of the caller-visible position by whatever is
+  still buffered.
 - `detail/kernel_scalar.hpp` — the reference implementation and ground truth,
   fully `constexpr`.
 - `detail/kernel_avx2.hpp` — eight interleaved counters per `__m256i`,
@@ -103,6 +159,16 @@ The layering, bottom up:
   produce and leave the engine in the same state.
 - `float_cast.hpp` — division-free `u32/u64 -> float/double` by IEEE-754
   mantissa injection.
+- `serialize.hpp` — portable text form for `engine_state`, the reason the
+  library exists. **Deliberately not included by `vphilox.hpp`**: it needs
+  `<istream>`, `<ostream>` and `<string>`, and most callers never serialize.
+  `engine_state` (in `philox.hpp`) records a *position* — key, the block holding
+  the next output, and the word within it — never the engine's internals.
+  Writing `next_`/`cursor_` would bake `refill_blocks` into the format, and that
+  changed from 8 to 16 when the AVX-512 kernel landed. Note `counter()` is the
+  next refill's counter, so `basic_engine(g.key(), g.counter())` skips whatever
+  is buffered; `state()`/`set_state()` are the exact round trip, and a test
+  asserts the naive route skips.
 
 ### The kernel contract
 
@@ -151,6 +217,15 @@ the shared parity matrix in `test_kernel_parity.cpp` (which sweeps carrying
 counters, edge keys, and block counts straddling every plausible SIMD width)
 rather than getting bespoke architecture-only expectations — tails are where
 kernels break.
+
+`test_cross_platform_parity.cpp` is the one to understand before changing
+anything that touches output. It folds an 8191-block stream into an FNV-1a
+digest checked against a constant in the file, covering what the KAT vectors
+miss: SIMD tails, the refill buffer, chunked `generate_n`, the counter carry
+chain, and float conversion. It is what proved the `refill_blocks` 8 → 16 change
+left the stream untouched. If it fails, the generated stream changed — that is a
+wrong change, not a stale expectation, and the constants are not to be updated
+to make it pass.
 
 ## Conventions
 
