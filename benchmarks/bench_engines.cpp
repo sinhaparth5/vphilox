@@ -7,9 +7,11 @@
 // fallback is a serialized RDTSC measurement. On Linux ARM, perf_event_open
 // reads the hardware CPU-cycle counter directly.
 //
-// TODO(phase-4): add xoshiro256++ and PCG64 to complete the matrix. Both are
-// small enough to vendor into benchmarks/third_party/ rather than take as
-// dependencies.
+// Every row generates the same number of *bytes*, not the same number of
+// calls. xoshiro256++ and PCG64 return 64 bits per call and the rest return
+// 32, so a per-call loop would hand the 64-bit generators twice the output
+// for the same iteration count and flatter their cycles/byte by 2x. Equal
+// bytes is what makes the column comparable at all.
 
 #include <benchmark/benchmark.h>
 
@@ -28,6 +30,9 @@
 
 #include "vphilox/vphilox.hpp"
 
+#include "third_party/pcg-cpp/pcg_random.hpp"
+#include "third_party/xoshiro256plusplus.hpp"
+
 #if defined(__x86_64__) || defined(_M_X64)
 #if defined(_MSC_VER)
 #include <intrin.h>
@@ -45,6 +50,12 @@ constexpr std::size_t kWords = 1u << 16;  // 256 KiB per iteration: fits L2,
                                           // so this measures the generator
                                           // rather than memory bandwidth.
 constexpr std::size_t kBytesPerIteration = kWords * sizeof(vphilox::u32);
+
+// The 64-bit generators fill the same 256 KiB in half as many calls.
+static_assert(kWords % 2 == 0, "kWords must halve exactly for the 64-bit rows");
+constexpr std::size_t kWords64 = kWords / 2;
+static_assert(kWords64 * sizeof(std::uint64_t) == kBytesPerIteration,
+              "every row in the matrix must generate the same number of bytes");
 
 class cycle_counter {
 public:
@@ -233,6 +244,48 @@ void BM_philox_scalar(benchmark::State& state) {
     report_metrics(state, cycles);
 }
 BENCHMARK(BM_philox_scalar);
+
+/// xoshiro256++ 1.0 -- the speed benchmark people cite when they argue a
+/// counter-based generator cannot compete. It is not counter-based: no
+/// O(1) seek, no reproducible stream from an arbitrary (key, counter), and
+/// no way to hand thread N its own substream without jump(). Losing to it on
+/// cycles/byte would be unsurprising; the point of the row is to quantify
+/// what those properties actually cost.
+void BM_xoshiro256pp(benchmark::State& state) {
+    vphilox_bench::xoshiro256plusplus g{0xDEADBEEFull};
+    std::vector<std::uint64_t> out(kWords64);
+    cycle_counter cycles;
+
+    for (auto _ : state) {
+        cycles.start();
+        for (std::size_t i = 0; i < kWords64; ++i) out[i] = g();
+        benchmark::DoNotOptimize(out.data());
+        benchmark::ClobberMemory();
+        cycles.stop();
+    }
+    report_metrics(state, cycles);
+}
+BENCHMARK(BM_xoshiro256pp);
+
+/// PCG64 (setseq_xsl_rr_128_64). The closest thing in the matrix to vphilox's
+/// own design goals -- statistically strong, seekable, multiple streams -- so
+/// this is the row that measures the SIMD win rather than a difference in
+/// what the generator promises.
+void BM_pcg64(benchmark::State& state) {
+    pcg64 g{0xDEADBEEFull};
+    std::vector<std::uint64_t> out(kWords64);
+    cycle_counter cycles;
+
+    for (auto _ : state) {
+        cycles.start();
+        for (std::size_t i = 0; i < kWords64; ++i) out[i] = g();
+        benchmark::DoNotOptimize(out.data());
+        benchmark::ClobberMemory();
+        cycles.stop();
+    }
+    report_metrics(state, cycles);
+}
+BENCHMARK(BM_pcg64);
 
 }  // namespace
 
