@@ -89,12 +89,22 @@ Philox counters across SIMD lanes.
         `permutexvar` — the SoA-to-AoS step is a 128-bit lane gather, not an element permute
   - [x] Gate on `avx512f` **and** `avx512dq`, matching the existing `detect_cpu()` probe. Only
         F instructions are used; DQ is carried because the probe requires it
-  - [~] Measure downclocking — do not let dispatch prefer AVX-512 until it demonstrably beats
-        AVX2 on the same part
-    - [x] Sapphire Rapids: 1.80x AVX2, 90% of the ideal 2x, no downclocking visible. Dispatch
-          preferring it is correct **on this part**
-    - [ ] Skylake-SP / Cascade Lake, where the frequency penalty was the original concern —
-          untested, and the reason this item is not closed
+  - [x] Measure downclocking — dispatch preferring AVX-512 is correct on both generations
+        tested; see
+        [`docs/benchmarks/avx512-downclocking-2026-08-24.md`](docs/benchmarks/avx512-downclocking-2026-08-24.md)
+    - [x] Sapphire Rapids: 1.80x AVX2, 90% of the ideal 2x, no downclocking visible
+    - [x] **Skylake-SP: 1.83x AVX2** — the part the concern was written about, and the penalty
+          does not appear. Intel's frequency licences are tiered by instruction kind, not just
+          width, and Philox's inner loop is entirely light-tier integer work (`vpmuludq`,
+          `vpaddd`, `vpxord`, shuffles) with no floating point at all. Counter-based generators
+          sidestep the AVX-512 downclocking trap by construction
+    - [ ] Cascade Lake — untested, sits between the two parts measured, and very unlikely to
+          differ given the light-tier argument. Not blocking
+  - [x] Unexpected: **the ranking against xoshiro256++ flips between parts.** vphilox is
+        fastest in the matrix on Skylake-SP (1.12x ahead) and second on Sapphire Rapids (1.27x
+        behind). xoshiro is a latency-bound dependency chain that gains from a newer core;
+        the vphilox kernel is throughput-bound across sixteen lanes and gains from width. The
+        defensible claim is that they are within ~15% either way on AVX-512 parts
   - [x] `refill_blocks` 8 → 16 to match the kernel width. At 8 every engine refill would have
         fallen entirely into the AVX-512 scalar tail. Verified stream-identical by the
         cross-platform digest, which is what that test is for
