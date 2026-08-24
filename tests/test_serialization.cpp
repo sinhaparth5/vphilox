@@ -10,6 +10,7 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdint>
 #include <locale>
 #include <sstream>
 #include <string>
@@ -181,6 +182,50 @@ TEST(Serialization, SurvivesADeepPosition) {
     ASSERT_FALSE(ss.fail());
 
     for (int k = 0; k < 16; ++k) ASSERT_EQ(a(), b());
+}
+
+/// The portability claim, as a fixture rather than an argument.
+///
+/// The state text below was written on x86-64 and is checked into the
+/// repository. Any machine that loads it must produce the same outputs --
+/// which is precisely what a std::mt19937 checkpoint cannot promise, and the
+/// reason this library exists. CI runs this on Linux, macOS arm64 and Windows
+/// MSVC, so the claim is re-proved on three platforms and two instruction sets
+/// on every commit rather than asserted in a README.
+///
+/// The position is deliberately awkward: past 2^33 outputs, mid-block (word 3
+/// of 4), with a key using both words. A restore that rounded to a block
+/// boundary or dropped the high counter word would fail here and pass on a
+/// tidier fixture.
+TEST(Serialization, StateWrittenOnAnotherMachineRestoresIdentically) {
+    constexpr const char* kStateFromX86     = "vphilox1 608135816 2242054355 2147483649 0 0 0 3";
+    constexpr std::uint64_t kExpectedDigest = 0xC85E29A172610C9Eull;
+
+    engine_state st{};
+    ASSERT_TRUE(vphilox::from_string(kStateFromX86, st));
+
+    engine g{};
+    g.set_state(st);
+
+    std::uint64_t h = 0xcbf29ce484222325ull;
+    for (int i = 0; i < 4096; ++i) {
+        const vphilox::u32 v = g();
+        for (int b = 0; b < 4; ++b) {
+            h ^= static_cast<unsigned char>((v >> (8 * b)) & 0xFFu);
+            h *= 0x100000001b3ull;
+        }
+    }
+    EXPECT_EQ(h, kExpectedDigest)
+        << "a state written on one machine no longer restores to the same stream here";
+}
+
+/// And the text this machine writes for that position is byte-identical, so
+/// the format round-trips in both directions rather than merely being
+/// readable.
+TEST(Serialization, ThisMachineWritesTheSameTextForThatPosition) {
+    engine g{vphilox::key2{{0x243F6A88u, 0x85A308D3u}}, vphilox::counter4{}};
+    g.discard((vphilox::u64{1} << 33) + 7);
+    EXPECT_EQ(vphilox::to_string(g.state()), "vphilox1 608135816 2242054355 2147483649 0 0 0 3");
 }
 
 }  // namespace

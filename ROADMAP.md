@@ -244,9 +244,24 @@ target where the deliverable is not met, and the unroll noted above is what woul
         `<ostream>` and `<string>` and most callers never serialize
   - [x] `counter_sub` / `counter_retreated` — the arithmetic recovering a caller-visible
         position needs, since the engine runs ahead of it by whatever is buffered
-  - [ ] Check the stream against C++26's `std::philox_engine` ([rand.eng.philox]). If they
-        agree bit for bit, `engine` can alias the standard type once libraries ship one, and a
-        parity test can compile in on `__cpp_lib_philox_engine`
+  - [x] **Agrees with C++26's `std::philox_engine`** ([rand.eng.philox]).
+        `vphilox::engine{20111115}` — the standard's `default_seed` — produces **1955073260**
+        at the 10000th invocation, which is what `[rand.predef]` requires of a
+        default-constructed `std::philox4x32`. That pins the whole engine layer: the
+        seed-to-key mapping, the counter start, and the order the four words of a block come
+        out in. `tests/test_std_philox_parity.cpp` holds it on any toolchain, and compiles in
+        a direct whole-stream comparison against `std::philox4x32` wherever
+        `__cpp_lib_philox_engine` is defined (not yet in libstdc++ 15).
+        This settles what the library is *for*: vphilox is an implementation of the standard
+        engine with SIMD kernels, not a competitor to it, and `engine` can become an alias
+        once libraries ship the type
+  - [x] **Cross-machine restore proved by fixture, not by argument.** A state string written
+        on x86-64 is checked into `tests/test_serialization.cpp` with a digest of the 4096
+        outputs that must follow. Any machine loading it has to produce the same stream, so
+        CI re-proves the portability claim on Linux, macOS arm64 and Windows MSVC on every
+        commit. The position is deliberately awkward — past 2^33 outputs, mid-block, key using
+        both words — so a restore that rounded to a block boundary or dropped the high counter
+        word would fail there and pass on a tidier one
 
 **Deliverable:** a header-only C++20 library that drops straight into standard algorithms,
 and whose state can be written on one platform and read on another.
