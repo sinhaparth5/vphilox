@@ -14,6 +14,16 @@ Any entry that would change it would be a new algorithm, not a release.
   the whole of it -- and the counter always starts at zero. The constructor is
   constrained to actual seed sequences so the engine does not advertise
   constructibility from arbitrary lvalues.
+- Vendored benchmark baselines under `benchmarks/third_party/`: xoshiro256++
+  with splitmix64 (public domain, Blackman and Vigna) and pcg-cpp
+  (Apache-2.0 OR MIT, O'Neill), both byte-for-byte upstream with SHA-256s
+  recorded in `benchmarks/third_party/README.md`. Nothing there enters the
+  library or the install target. xoshiro gets a thin instantiable wrapper
+  because upstream keeps its state in file-scope statics, which the matrix and
+  the scaling benchmark cannot share; `tests/test_third_party_generators.cpp`
+  runs that wrapper against the vendored C side by side and requires
+  bit-for-bit agreement, so a transliteration slip cannot quietly bias the
+  comparison.
 - Bulk generation API on the engine: `generate_n(u32*, count)` and
   `generate(std::span<u32>)`. Both produce exactly what the same number of
   `operator()` calls would and leave the engine where those calls would, so
