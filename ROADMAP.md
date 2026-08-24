@@ -194,15 +194,23 @@ AVX2 clears it: the buffered engine runs at 1.41x `std::mt19937`, the raw kernel
         (`sknuth_MaxOft` chi2, p=0.9993) carries TestU01's suspect marker; it is not among the
         160 scored statistics, and over 254 computed p-values the expected count outside the
         band is 0.51, so one is unremarkable.
-- [ ] **Throughput matrix**
-  - [ ] `std::mt19937`, scalar Philox4x32, xoshiro256++, PCG64, vphilox (each backend)
+- [~] **Throughput matrix**
+  - [x] `std::mt19937`, scalar Philox4x32, xoshiro256++, PCG64, vphilox (each backend, pinned
+        with `VPHILOX_BACKEND`) — all wired into `bench_engines.cpp`. Every row generates the
+        same 256 KiB rather than the same number of calls, so the 64-bit generators are not
+        handed twice the output for the same loop count
   - [x] Vendor xoshiro256++ and PCG64 into `benchmarks/third_party/` rather than taking dependencies
     - [x] Byte-for-byte upstream with SHA-256s recorded; vendored files are exempt from
           clang-format and the SPDX convention, since reformatting them would void the hashes
     - [x] xoshiro needs a wrapper (upstream state is file-scope statics, unusable for the
           matrix or for one generator per thread) — pinned to the vendored C by a
           side-by-side test rather than trusted
-  - [ ] Report GB/s **and** cycles/byte
+  - [x] Report GB/s **and** cycles/byte — every row reports both through `report_metrics`
+  - [ ] Run the matrix on frequency-pinned hardware and write it up. The laptop run that
+        validated the harness sits at 4-10% CV against this project's sub-1% bar, so it is a
+        smoke test rather than a result. It does put xoshiro256++ at roughly 2x the AVX2
+        kernel with PCG64 level with it, which is the comparison the write-up has to address
+        rather than omit
 - [ ] **Scaling** — `benchmarks/bench_scaling.cpp` at 1/2/4/8/16/32 threads
   - [ ] Confirm linear scaling; investigate any knee (memory bandwidth vs false sharing)
   - [ ] OpenMP variant alongside the `std::thread` one
