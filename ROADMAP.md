@@ -241,7 +241,18 @@ AVX2 clears it: the buffered engine runs at 1.41x `std::mt19937`, the raw kernel
           moves under thread count on an unpinned machine
   - [ ] OpenMP variant alongside the `std::thread` one
   - [ ] Instruction-cache miss rates via libpfm
-- [ ] **Cross-platform bit parity** — same key and counter produce identical output on x86-64, aarch64, and (if reachable) a cuRAND/GPU reference. This is the reproducibility claim; it needs a test, not an assertion.
+- [~] **Cross-platform bit parity** — same key and counter produce identical output on x86-64,
+      aarch64, and (if reachable) a cuRAND/GPU reference. This is the reproducibility claim;
+      it needs a test, not an assertion.
+  - [x] `tests/test_cross_platform_parity.cpp` folds an 8191-block stream into an FNV-1a
+        digest checked against a constant in the file, covering the paths the KAT vectors
+        miss: SIMD tails, the refill buffer, chunked `generate_n`, the counter carry chain,
+        and float conversion. Verified identical under `VPHILOX_BACKEND=scalar|avx2` and
+        under `VPHILOX_FORCE_SCALAR`, and the constant itself was checked against an
+        independent FNV implementation rather than recorded from the code it tests
+  - [ ] Confirm the same digest on real aarch64 — the test ships, it just has not been run
+        on the Pi yet
+  - [ ] cuRAND/GPU reference, if reachable
 - [ ] Publish plots and raw CSVs under `docs/benchmarks/`
 
 **Deliverable:** a complete benchmark dataset and statistical pass logs.
