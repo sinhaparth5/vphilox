@@ -81,10 +81,23 @@ Philox counters across SIMD lanes.
   - [x] Store path back to AoS block order (unpack/permute transpose, unaligned stores)
   - [x] Tail handling for block counts that are not a multiple of the SIMD width, with
         chunking independence asserted directly in `tests/test_kernel_parity.cpp`
-- [ ] `detail/kernel_avx512.hpp` — `__m512i`, 8 counters per register
-  - [ ] `_mm512_mul_epu32`; `_mm512_permutexvar_epi32` for the permutation
-  - [ ] Gate on `avx512f` **and** `avx512dq`
-  - [ ] Measure downclocking — do not let dispatch prefer AVX-512 until it demonstrably beats AVX2 on the same part
+- [x] `detail/kernel_avx512.hpp` — `__m512i`, **16** counters per register (not the 8 the stub
+      advertised: 512/32 is sixteen 32-bit lanes, and issue #12's argument for full lane width
+      does not change with a wider register). 4.11x scalar, 1.80x AVX2 — see
+      [`docs/benchmarks/avx512-sapphire-rapids-2026-08-24.md`](docs/benchmarks/avx512-sapphire-rapids-2026-08-24.md)
+  - [x] `_mm512_mul_epu32`, with `_mm512_shuffle_i32x4` for the store transpose rather than
+        `permutexvar` — the SoA-to-AoS step is a 128-bit lane gather, not an element permute
+  - [x] Gate on `avx512f` **and** `avx512dq`, matching the existing `detect_cpu()` probe. Only
+        F instructions are used; DQ is carried because the probe requires it
+  - [~] Measure downclocking — do not let dispatch prefer AVX-512 until it demonstrably beats
+        AVX2 on the same part
+    - [x] Sapphire Rapids: 1.80x AVX2, 90% of the ideal 2x, no downclocking visible. Dispatch
+          preferring it is correct **on this part**
+    - [ ] Skylake-SP / Cascade Lake, where the frequency penalty was the original concern —
+          untested, and the reason this item is not closed
+  - [x] `refill_blocks` 8 → 16 to match the kernel width. At 8 every engine refill would have
+        fallen entirely into the AVX-512 scalar tail. Verified stream-identical by the
+        cross-platform digest, which is what that test is for
 - [ ] `detail/kernel_neon.hpp` — `vmull_u32` wide multiply, `vshrn_n_u64` hi extraction
   **Parked 2026-08-24**, pending access to the aarch64 development machine. Not blocked on
   anything in the repo: the pre-NEON baseline it has to improve on is pinned at 3.194
@@ -99,14 +112,18 @@ Philox counters across SIMD lanes.
 - [~] Attach per-kernel ISA flags to the kernel TUs only (`VPHILOX_FLAGS_AVX2`/`_AVX512` are staged in CMake), or use `[[gnu::target]]` — never `-march=native` on the whole build
   - [x] AVX2 uses `[[gnu::target("avx2")]]` via `VPHILOX_TARGET`, which is what a header-only
         kernel needs; the build stays free of ISA flags and still starts on a non-AVX2 CPU
-  - [ ] Same treatment for AVX-512 and NEON when those kernels land
+  - [x] AVX-512 uses `VPHILOX_TARGET("avx512f,avx512dq")` the same way
+  - [ ] Same treatment for NEON when that kernel lands
 - [~] Flip `implemented = true` on each kernel as it lands; dispatch picks it up automatically
   - [x] AVX2 — dispatch resolves to it, `Engine.ReportsItsBackend` reports `avx2`
-  - [ ] AVX-512, NEON
+  - [x] AVX-512 — verified on a Sapphire Rapids host, `Engine.ReportsItsBackend` reports `avx512`
+  - [ ] NEON
 - [x] Parity test harness (`tests/test_kernel_parity.cpp`) — generic over kernels, currently skipping; goes live the moment `implemented` flips
 - [~] All parity tests green: bit-for-bit equality with the scalar kernel across every counter, key, and block count
   - [x] AVX2 green, including partial-vector tails and split-at-every-offset chunking
-  - [ ] AVX-512, NEON — still skipping until those kernels are implemented
+  - [x] AVX-512 green on Sapphire Rapids, first run, including tails and chunking. The
+        cross-platform digest also matches under `VPHILOX_BACKEND=scalar|avx2|avx512`
+  - [ ] NEON — still skipping until that kernel is implemented
 
 **Deliverable:** AVX2/AVX-512/NEON kernels beating `std::mt19937` single-threaded.
 AVX2 clears it: the buffered engine runs at 1.41x `std::mt19937`, the raw kernel at

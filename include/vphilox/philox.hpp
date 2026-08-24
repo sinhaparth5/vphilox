@@ -26,10 +26,18 @@
 
 namespace vphilox {
 
-/// Blocks produced per refill. 8 blocks = 32 words = 128 bytes, which is one
+/// Blocks produced per refill. 16 blocks = 64 words = 256 bytes, which is one
 /// AVX-512 iteration and two AVX2 iterations, so no backend ever has to split
 /// a refill.
-inline constexpr std::size_t refill_blocks = 8;
+///
+/// This was 8 while AVX-512 was a stub advertising an eight-block width. The
+/// real kernel interleaves sixteen counters -- the full 32-bit lane width of a
+/// __m512i, on the same reasoning issue #12 used for AVX2 -- and at 8 every
+/// engine refill would have fallen entirely into that kernel's scalar tail.
+/// Refill sizes from 8 to 128 blocks measured neutral or worse for the
+/// buffered path (docs/benchmarks/buffer-overhead-2026-08-23.md), so widening
+/// costs nothing but 128 bytes per engine.
+inline constexpr std::size_t refill_blocks = 16;
 inline constexpr std::size_t refill_words  = refill_blocks * block_words;
 
 /// Words converted per pass in the bulk float path. 256 words is 1 KiB of
