@@ -86,6 +86,14 @@ Philox counters across SIMD lanes.
   - [ ] Gate on `avx512f` **and** `avx512dq`
   - [ ] Measure downclocking — do not let dispatch prefer AVX-512 until it demonstrably beats AVX2 on the same part
 - [ ] `detail/kernel_neon.hpp` — `vmull_u32` wide multiply, `vshrn_n_u64` hi extraction
+  **Parked 2026-08-24**, pending access to the aarch64 development machine. Not blocked on
+  anything in the repo: the pre-NEON baseline it has to improve on is pinned at 3.194
+  cycles/byte in
+  [`docs/benchmarks/throughput-matrix-pi-2026-08-24.md`](docs/benchmarks/throughput-matrix-pi-2026-08-24.md),
+  and the Pi 5 can verify a finished kernel even though it is not the box to write one on.
+  Go in expecting NEON to land near PCG64 and to stay 2.3-2.9x behind xoshiro256++ — half of
+  AVX2's 3.30x on half the vector width. That is worth doing for the ARM users, but it is
+  not a route to winning the throughput matrix.
   - [ ] `vtrn`/`vzip`/`vext` for the word permutation
   - [ ] Verify on real aarch64 hardware, not just cross-compilation
 - [~] Attach per-kernel ISA flags to the kernel TUs only (`VPHILOX_FLAGS_AVX2`/`_AVX512` are staged in CMake), or use `[[gnu::target]]` — never `-march=native` on the whole build
