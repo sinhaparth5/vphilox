@@ -6,11 +6,17 @@
 
 #include <gtest/gtest.h>
 
+#include <random>
+
 #include "vphilox/counter.hpp"
 
 using vphilox::counter4;
 using vphilox::counter_add;
 using vphilox::counter_advanced;
+using vphilox::counter_retreated;
+using vphilox::counter_sub;
+using vphilox::u32;
+using vphilox::u64;
 
 TEST(Counter, AddsWithoutCarry) {
     counter4 c{{1, 2, 3, 4}};
@@ -54,4 +60,44 @@ TEST(Counter, AddIsAssociative) {
 TEST(Counter, AddZeroIsIdentity) {
     const counter4 c{{5, 6, 7, 8}};
     EXPECT_EQ(counter_advanced(c, 0), c);
+}
+
+TEST(Counter, SubtractUndoesAdd) {
+    // The property serialization leans on: recovering a caller-visible
+    // position means stepping back exactly as far as the engine ran ahead.
+    std::mt19937_64 rng{1};
+    for (int i = 0; i < 20000; ++i) {
+        const counter4 start{{static_cast<u32>(rng()), static_cast<u32>(rng()),
+                              static_cast<u32>(rng()), static_cast<u32>(rng())}};
+        const u64 delta = rng();
+
+        counter4 c = start;
+        counter_add(c, delta);
+        counter_sub(c, delta);
+        ASSERT_EQ(c, start) << "delta " << delta;
+    }
+}
+
+TEST(Counter, SubtractBorrowsAcrossEveryWord) {
+    EXPECT_EQ(counter_retreated(counter4{{0, 1, 0, 0}}, 1), (counter4{{0xFFFFFFFFu, 0, 0, 0}}));
+    EXPECT_EQ(counter_retreated(counter4{{0, 0, 1, 0}}, 1),
+              (counter4{{0xFFFFFFFFu, 0xFFFFFFFFu, 0, 0}}));
+    EXPECT_EQ(counter_retreated(counter4{{0, 0, 0, 1}}, 1),
+              (counter4{{0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0}}));
+}
+
+TEST(Counter, SubtractWrapsAtZero) {
+    // Mirrors counter_add's silent wrap at 2^128 rather than saturating.
+    EXPECT_EQ(counter_retreated(counter4{}, 1),
+              (counter4{{0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu}}));
+}
+
+TEST(Counter, SubtractHandlesDeltaWiderThanOneWord) {
+    EXPECT_EQ(counter_retreated(counter4{}, 0x1'0000'0000ull),
+              (counter4{{0, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu}}));
+}
+
+TEST(Counter, SubtractZeroIsIdentity) {
+    const counter4 c{{5, 6, 7, 8}};
+    EXPECT_EQ(counter_retreated(c, 0), c);
 }

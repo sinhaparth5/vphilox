@@ -17,4 +17,9 @@
 #include "vphilox/philox.hpp"
 #include "vphilox/version.hpp"
 
+// Deliberately not included here: "vphilox/serialize.hpp", which gives an
+// engine a portable text form. It pulls in <istream>, <ostream> and <string>,
+// and most callers of a generator never serialize one. Include it directly
+// where you need it.
+
 #endif  // VPHILOX_VPHILOX_HPP

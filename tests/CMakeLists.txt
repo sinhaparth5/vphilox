@@ -37,6 +37,7 @@ set(VPHILOX_TEST_SOURCES
     test_seeding.cpp          # Phase 3: seed_seq / u64 seeding and overload rank
     test_third_party_generators.cpp  # Phase 4: benchmark baselines are the real algorithms
     test_cross_platform_parity.cpp   # Phase 4: the bit stream is identical on every target
+    test_serialization.cpp    # portable engine state: exact, locale-free, refuses junk
 )
 
 foreach(src IN LISTS VPHILOX_TEST_SOURCES)
