@@ -21,6 +21,7 @@
 #include "vphilox/constants.hpp"
 #include "vphilox/counter.hpp"
 #include "vphilox/detail/dispatch.hpp"
+#include "vphilox/detail/float_bulk.hpp"
 #include "vphilox/float_cast.hpp"
 
 namespace vphilox {
@@ -30,6 +31,12 @@ namespace vphilox {
 /// a refill.
 inline constexpr std::size_t refill_blocks = 8;
 inline constexpr std::size_t refill_words  = refill_blocks * block_words;
+
+/// Words converted per pass in the bulk float path. 256 words is 1 KiB of
+/// stack that stays resident in L1 across the generate/convert pair, and 64
+/// blocks -- comfortably past every backend's preferred_blocks, so the
+/// generating half always takes the direct path.
+inline constexpr std::size_t float_tile_words = 256;
 
 namespace detail {
 
@@ -148,6 +155,36 @@ public:
 
     /// Span form of `generate_n`.
     void generate(std::span<result_type> dst) noexcept { generate_n(dst.data(), dst.size()); }
+
+    /// Fill `count` floats in [0, 1), equivalent to `count` next_float()
+    /// calls in both output and resulting engine state.
+    ///
+    /// Generation and conversion are separate passes because nothing else is
+    /// available: the kernels write integers, so the bytes have to be read
+    /// back to be converted. The pass is kept off the caller's array and onto
+    /// a 1 KiB tile instead -- converting in place over `dst` would touch it
+    /// three times (write, read, write) where the tile touches it once, and
+    /// the tile itself never leaves L1.
+    ///
+    /// Fusing the conversion into the kernels would remove the pass outright,
+    /// and `bench_float` measures the prize: the gap between this and
+    /// `generate_n(u32*)`. It has not been measured on a machine that can
+    /// hold a clock -- see docs/benchmarks/float-conversion-2026-08-24.md.
+    void generate_n(float* dst, std::size_t count) noexcept {
+        const detail::float_convert_fn convert = detail::resolve_float_convert();
+
+        u32 tile[float_tile_words];
+        while (count != 0) {
+            const std::size_t n = std::min(count, float_tile_words);
+            generate_n(tile, n);
+            convert(tile, dst, n);
+            dst += n;
+            count -= n;
+        }
+    }
+
+    /// Span form of the bulk float path.
+    void generate(std::span<float> dst) noexcept { generate_n(dst.data(), dst.size()); }
 
     /// Uniform float in [0, 1) via mantissa injection.
     [[nodiscard]] float next_float() noexcept { return to_float01((*this)()); }
