@@ -42,6 +42,28 @@ first, GB/s second (`bench_engines.cpp` reads RDTSC on x86 and
 `VPHILOX_FETCH_DEPS=OFF` forces an offline build using only installed
 GoogleTest/Benchmark.
 
+## Statistical validation
+
+`tools/vphilox_stream` writes raw bytes on stdout for piping into PractRand or
+TestU01; `tools/vphilox_testu01` drives `vphilox::engine` through TestU01's
+callback interface so the refill buffer and runtime dispatch are under test,
+not just a byte stream. TestU01 ships under a non-permissive licence, so it is
+never vendored — the `vphilox_testu01` target simply does not exist unless the
+library is installed, and configure logs which case you are in.
+
+```bash
+scripts/statistical/build_practrand.sh    # PractRand pre0.95 -> ~/.local/src
+scripts/statistical/build_testu01.sh      # TestU01 -> ~/.local
+scripts/statistical/run_practrand.sh --length 1TB --backend avx2
+```
+
+These batteries take hours, which is why they are scripts rather than CTest
+cases. Every archived log under `results/practrand/` and `results/testu01/`
+carries a provenance header (git SHA, CPU, resolved backend, verbatim command);
+`docs/statistical-validation.md` is the write-up. `run_practrand.sh` runs under
+`set -o pipefail`, so `vphilox_stream` ignores `SIGPIPE` — PractRand closes the
+pipe at `-tlmax` and the default disposition made completed runs report 141.
+
 ## Architecture
 
 Everything is headers under `include/vphilox/`; there is no compiled library.
@@ -64,12 +86,20 @@ The layering, bottom up:
   `[[gnu::target("avx2")]]` rather than a TU flag because the kernel lives in a
   header. `detail/kernel_{avx512,neon}.hpp` are still Phase 2 stubs that
   forward to the scalar kernel.
-- `detail/cpu_features.hpp` — one-shot runtime CPU probe (MSVC path still stubbed).
+- `detail/cpu_features.hpp` — one-shot runtime CPU probe. The x86 path is a raw
+  `CPUID` + `XGETBV` probe written once for every compiler (`__cpuidex` on MSVC,
+  `__cpuid_count` elsewhere) rather than `__builtin_cpu_supports`, so the Linux
+  and macOS runs exercise the same detection logic MSVC depends on.
 - `detail/dispatch.hpp` — resolves one `kernel_fn` per `Rounds` instantiation on
   first use.
 - `philox.hpp` — `basic_engine<Rounds>` / `engine`, a
   `std::uniform_random_bit_generator` over a 32-word (128-byte) aligned refill
-  buffer sized so no backend ever splits a refill.
+  buffer sized so no backend ever splits a refill. `generate_n(u32*, count)` and
+  `generate(std::span<u32>)` are the bulk path: they run the kernel straight
+  into the caller's buffer, skipping the refill copy (100% of raw kernel
+  throughput, 1.72x the buffered engine). Bulk and `operator()` must stay
+  interchangeable — N bulk words produce exactly what N `operator()` calls
+  produce and leave the engine in the same state.
 - `float_cast.hpp` — division-free `u32/u64 -> float/double` by IEEE-754
   mantissa injection.
 
@@ -145,7 +175,10 @@ kernels break.
 
 Phase 1 (scalar reference, KATs, baseline benchmarks) is done. In Phase 2, AVX2
 has landed (3.3x scalar, 1.41x `std::mt19937` buffered — see
-`docs/benchmarks/avx2-2026-08-23.md`); AVX-512 and NEON are still stubs.
+`docs/benchmarks/avx2-2026-08-23.md`); AVX-512 and NEON are still stubs. Phase 4
+statistical validation is done and does not need re-running: PractRand clean to
+1 TB, byte-identical across backends over that terabyte, and TestU01 BigCrush
+passing all 160 statistics (`docs/statistical-validation.md`).
 `ROADMAP.md` tracks phases and `docs/` holds the theory, research, and recorded
 benchmark runs.
 

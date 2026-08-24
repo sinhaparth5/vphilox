@@ -31,6 +31,26 @@ namespace vphilox {
 inline constexpr std::size_t refill_blocks = 8;
 inline constexpr std::size_t refill_words  = refill_blocks * block_words;
 
+namespace detail {
+
+/// Stand-in for the standard's SeedSequence requirements.
+///
+/// Its real job is exclusion, and the failure it prevents is quieter than it
+/// looks. An unconstrained `basic_engine(Sseq&)` accepts *any* non-const
+/// lvalue, so `std::is_constructible_v<engine, Widget&>` answers true and the
+/// mismatch only surfaces as a hard error inside the constructor body -- past
+/// the point where a caller's SFINAE can see it, with diagnostics pointing
+/// into this header rather than at the call. Seeding itself would still come
+/// out right (the body's `seed(q)` falls through to `seed(u64)` for any
+/// integer lvalue), which is exactly what makes the gap easy to miss.
+template <class S>
+concept seed_sequence = requires(S& s, u32* first, u32* last) {
+    typename S::result_type;
+    s.generate(first, last);
+};
+
+}  // namespace detail
+
 /// Counter-based Philox engine.
 ///
 /// Not thread-safe as an object -- but it does not need to be. Give each
@@ -50,10 +70,20 @@ public:
     basic_engine() noexcept { reset(); }
 
     /// Seed from a 64-bit value. Splits across the two key words.
-    explicit basic_engine(u64 seed) noexcept {
-        key_.v[0] = static_cast<u32>(seed);
-        key_.v[1] = static_cast<u32>(seed >> 32);
-        reset();
+    explicit basic_engine(u64 s) noexcept { seed(s); }
+
+    /// Seed from a standard seed sequence, so `std::mt19937 rng(seq)` call
+    /// sites port across unchanged.
+    ///
+    /// The exclusion of `basic_engine` itself is not currently reachable --
+    /// the engine's own `generate` takes one argument, so it fails the
+    /// concept -- but a future two-iterator `generate` overload would turn
+    /// this into a copy constructor for non-const lvalues. Cheaper to pin
+    /// than to debug.
+    template <class Sseq>
+        requires detail::seed_sequence<Sseq> && (!std::same_as<Sseq, basic_engine>)
+    explicit basic_engine(Sseq& q) {
+        seed(q);
     }
 
     /// Full control: explicit key and starting counter.
@@ -148,6 +178,34 @@ public:
         counter_add(next_, blocks_to_skip);
         refill();
         cursor_ = word_offset;
+    }
+
+    /// Re-seed from a 64-bit value and restart the stream at counter 0.
+    void seed(u64 s) noexcept {
+        key_.v[0] = static_cast<u32>(s);
+        key_.v[1] = static_cast<u32>(s >> 32);
+        reset();
+    }
+
+    /// Re-seed from a seed sequence and restart the stream at counter 0.
+    ///
+    /// Only the key is drawn: two words, the whole of it. A Philox key
+    /// selects a stream rather than accumulating state, so there is nothing
+    /// wider to fill, and the counter deliberately starts at zero so the full
+    /// 2^128 stream stays ahead of every freshly seeded engine. Nor is any
+    /// key degenerate -- all-zeros included, unlike an LCG or a Mersenne
+    /// Twister -- so the words are used exactly as the sequence hands them
+    /// over.
+    ///
+    /// That mapping from sequence to key is part of the frozen bit stream:
+    /// a given seed sequence must keep producing the key it produces today.
+    template <detail::seed_sequence Sseq>
+    void seed(Sseq& q) {
+        u32 words[key_words]{};
+        q.generate(words, words + key_words);
+        key_.v[0] = words[0];
+        key_.v[1] = words[1];
+        reset();
     }
 
     /// Restart the stream at counter 0 with the current key.
