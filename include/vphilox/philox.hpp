@@ -40,6 +40,27 @@ namespace vphilox {
 inline constexpr std::size_t refill_blocks = 16;
 inline constexpr std::size_t refill_words  = refill_blocks * block_words;
 
+/// A snapshot of where an engine is in its stream.
+///
+/// Deliberately expressed as a position -- the block holding the next output
+/// and the word within it -- rather than as the engine's internals. The engine
+/// tracks the counter its *next refill* starts from, which runs ahead of the
+/// caller-visible position by however much is still buffered, and it holds a
+/// cursor into a buffer whose size is an implementation detail. Serializing
+/// those directly would bake `refill_blocks` into the format, so a state
+/// written before it changed from 8 to 16 would restore to the wrong place.
+///
+/// Every field is a plain integer. There is no floating point, no
+/// implementation-defined layout, and nothing whose textual form depends on
+/// the standard library in use -- which is the failure mode this exists to
+/// avoid, and the reason `std::mt19937`'s stream operator is not portable
+/// between libstdc++, libc++ and the MSVC STL.
+struct engine_state {
+    key2 key{};
+    counter4 counter{};  ///< block containing the next output
+    u32 offset{};        ///< word within that block, 0..block_words-1
+};
+
 /// Words converted per pass in the bulk float path. 256 words is 1 KiB of
 /// stack that stays resident in L1 across the generate/convert pair, and 64
 /// blocks -- comfortably past every backend's preferred_blocks, so the
@@ -257,6 +278,40 @@ public:
     void reset() noexcept {
         next_   = counter4{};
         cursor_ = refill_words;
+    }
+
+    /// Where the stream actually is, independent of buffering.
+    ///
+    /// `counter()` is not this: it is the counter the next refill starts from,
+    /// so reconstructing with `basic_engine(g.key(), g.counter())` silently
+    /// skips whatever was still buffered -- up to `refill_words` outputs.
+    /// Round-tripping through this and `set_state` skips nothing.
+    [[nodiscard]] engine_state state() const noexcept {
+        // The buffer holds blocks [next_ - refill_blocks, next_), and cursor_
+        // words of it are spent. cursor_ == refill_words (the "needs a refill"
+        // state) falls out of the same expression, landing exactly on next_.
+        const auto blocks_consumed = cursor_ / block_words;
+        return engine_state{key_, counter_retreated(next_, refill_blocks - blocks_consumed),
+                            static_cast<u32>(cursor_ % block_words)};
+    }
+
+    /// Restore a position previously returned by `state()`. The engine then
+    /// produces exactly what it would have produced from that point.
+    ///
+    /// `offset` is taken modulo `block_words`; a larger value could only come
+    /// from a corrupted state, and wrapping it is preferable to indexing off
+    /// the end of a block.
+    void set_state(const engine_state& st) noexcept {
+        key_              = st.key;
+        next_             = st.counter;
+        cursor_           = refill_words;  // force a refill starting at st.counter
+        const auto offset = static_cast<std::size_t>(st.offset % block_words);
+        if (offset != 0) {
+            // discard() lands the cursor inside a fresh refill; at offset 0
+            // the lazy "needs a refill" state above is already correct, and
+            // leaving it avoids generating a buffer the caller may never read.
+            discard(offset);
+        }
     }
 
     [[nodiscard]] key2 key() const noexcept { return key_; }
