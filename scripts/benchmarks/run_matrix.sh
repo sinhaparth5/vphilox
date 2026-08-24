@@ -62,13 +62,26 @@ mkdir -p "$OUTDIR"
 GOV_PATHS=(/sys/devices/system/cpu/cpu*/cpufreq/scaling_governor)
 saved_gov=""
 
+# sysfs governor nodes are root-owned, so the plain write is expected to fail
+# for a normal user. Test writability first rather than letting the redirection
+# fail into a fallback: bash applies `> "$g"` before `2>/dev/null`, so that
+# spelling prints a Permission denied line per CPU even when the sudo path
+# then succeeds, which reads like a broken run when it is not.
+write_governor() {
+    local val="$1" g
+    for g in "${GOV_PATHS[@]}"; do
+        if [[ -w "$g" ]]; then
+            echo "$val" > "$g" || true
+        else
+            echo "$val" | sudo tee "$g" >/dev/null 2>&1 || true
+        fi
+    done
+}
+
 restore_governor() {
     if [[ -n "$saved_gov" ]]; then
         echo "==> restoring governor to $saved_gov"
-        for g in "${GOV_PATHS[@]}"; do
-            [[ -w "$g" ]] && echo "$saved_gov" > "$g" 2>/dev/null || \
-                echo "$saved_gov" | sudo tee "$g" >/dev/null 2>&1 || true
-        done
+        write_governor "$saved_gov"
     fi
 }
 
@@ -76,13 +89,15 @@ if [[ -r "${GOV_PATHS[0]}" ]]; then
     saved_gov="$(cat "${GOV_PATHS[0]}")"
     trap restore_governor EXIT INT TERM
     echo "==> governor was $saved_gov; setting performance"
-    for g in "${GOV_PATHS[@]}"; do
-        echo performance > "$g" 2>/dev/null || \
-            echo performance | sudo tee "$g" >/dev/null 2>&1 || true
-    done
+    write_governor performance
     now_gov="$(cat "${GOV_PATHS[0]}")"
-    [[ "$now_gov" == "performance" ]] || \
-        echo "WARNING: governor is '$now_gov', not performance -- run with sudo for a pinned clock" >&2
+    if [[ "$now_gov" == "performance" ]]; then
+        echo "==> governor is performance"
+    else
+        echo "WARNING: governor is '$now_gov', not performance -- the clock is not pinned." >&2
+        echo "  Re-run after 'sudo -v', or the cycles/byte CV will not reach this" >&2
+        echo "  project's sub-1% bar." >&2
+    fi
 else
     echo "WARNING: no cpufreq governor visible; clock is not pinned" >&2
 fi
