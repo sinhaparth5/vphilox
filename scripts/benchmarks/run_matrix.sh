@@ -20,6 +20,7 @@ set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 OUTDIR="${OUTDIR:-$REPO/results}"
+INVOCATION="$0 $*"
 
 tag=""
 cpu=3
@@ -130,6 +131,12 @@ echo "==> capturing environment to $ENVFILE"
     echo "affinity-cpu: $cpu"
     echo "governor: $(cat "${GOV_PATHS[0]}" 2>/dev/null || echo unavailable)"
     echo "perf_event_paranoid: $(cat /proc/sys/kernel/perf_event_paranoid 2>/dev/null || echo n/a)"
+    # The write-ups quote a compiler version, and a benchmark number without one
+    # is not reproducible: the same source on the same part gives different
+    # results across GCC releases.
+    echo "compiler: $("${CXX:-c++}" --version 2>/dev/null | head -1 || echo unknown)"
+    echo "cmake: $(cmake --version 2>/dev/null | head -1 || echo unknown)"
+    echo "command: $INVOCATION"
     # Raspberry Pi thermal/throttle state; absent elsewhere.
     if command -v vcgencmd >/dev/null 2>&1; then
         echo "vcgencmd-temp: $(vcgencmd measure_temp)"
