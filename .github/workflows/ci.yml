@@ -117,7 +117,13 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check formatting
         run: |
-          find include tests benchmarks tools -name '*.hpp' -o -name '*.cpp' \
+          # Vendored code lives one level down inside third_party/ (issue #48)
+          # and is skipped: reformatting it would destroy the hashes in
+          # benchmarks/third_party/README.md, which are the only thing making
+          # its provenance checkable. Files directly in third_party/ are ours
+          # and stay checked.
+          find include tests benchmarks tools \
+            \( -name '*.hpp' -o -name '*.cpp' \) -not -path '*/third_party/*/*' \
             | xargs clang-format --dry-run --Werror
 
   # TODO(phase-4): a scheduled job running PractRand for a few hours on the
