@@ -9,7 +9,12 @@
 #
 # Usage:
 #   scripts/benchmarks/run_matrix.sh --tag pi-arm --cpu 3
+#   scripts/benchmarks/run_matrix.sh --tag pi-arm --bench scaling
 #   scripts/benchmarks/run_matrix.sh --tag icelake --cpu 2 --repetitions 9
+#
+# --bench engines (default) runs the throughput matrix pinned to one CPU.
+# --bench scaling runs the thread-scaling curve, which needs every core, so it
+# is not pinned to a single CPU.
 #
 # The governor is forced to `performance` for the duration and restored on
 # exit, including on Ctrl-C. Results below this project's sub-1% cycles/byte
@@ -23,6 +28,7 @@ OUTDIR="${OUTDIR:-$REPO/results}"
 INVOCATION="$0 $*"
 
 tag=""
+bench="engines"
 cpu=3
 repetitions=7
 min_time="1s"
@@ -30,6 +36,7 @@ filter='.*'
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
+        --bench)       bench="$2"; shift 2 ;;
         --tag)         tag="$2"; shift 2 ;;
         --cpu)         cpu="$2"; shift 2 ;;
         --repetitions) repetitions="$2"; shift 2 ;;
@@ -43,8 +50,26 @@ if [[ -z "$tag" ]]; then
     tag="$(uname -m)"
 fi
 
-BENCH="$REPO/build/bench/benchmarks/bench_engines"
-JSON="$OUTDIR/$tag-matrix.json"
+# Which benchmark, and the rows that prove the binary is current. bench_engines
+# gained xoshiro/PCG64 with the matrix; bench_scaling gained its bulk arm with
+# the pool -- in both cases a build predating that change still runs and still
+# produces a plausible-looking table, which is the failure this guards.
+case "$bench" in
+    engines)
+        target="bench_engines"
+        suffix="matrix"
+        required_rows=(BM_xoshiro256pp BM_pcg64)
+        ;;
+    scaling)
+        target="bench_scaling"
+        suffix="scaling"
+        required_rows=(BM_thread_scaling_bulk)
+        ;;
+    *) echo "unknown --bench: $bench (expected 'engines' or 'scaling')" >&2; exit 2 ;;
+esac
+
+BENCH="$REPO/build/bench/benchmarks/$target"
+JSON="$OUTDIR/$tag-$suffix.json"
 ENVFILE="$OUTDIR/$tag-environment.txt"
 
 # ---------------------------------------------------------------- build
@@ -57,17 +82,17 @@ ENVFILE="$OUTDIR/$tag-environment.txt"
 # retracted write-up.
 echo "==> building the bench preset"
 cmake --preset bench >/dev/null
-cmake --build --preset bench --target bench_engines >/dev/null
-[[ -x "$BENCH" ]] || { echo "no bench_engines at $BENCH" >&2; exit 1; }
+cmake --build --preset bench --target "$target" >/dev/null
+[[ -x "$BENCH" ]] || { echo "no $target at $BENCH" >&2; exit 1; }
 
 # Belt and braces: confirm the rows we intend to measure are present, so a
 # checkout older than the matrix fails here rather than silently reporting a
 # subset of the table.
 listing="$("$BENCH" --benchmark_list_tests=true)"
-for required in BM_xoshiro256pp BM_pcg64; do
+for required in "${required_rows[@]}"; do
     if ! grep -q "^$required" <<<"$listing"; then
         echo "ERROR: $BENCH does not contain $required." >&2
-        echo "  This build predates the throughput matrix. From $REPO:" >&2
+        echo "  This build predates the current benchmark. From $REPO:" >&2
         echo "    git fetch origin && git checkout master && git pull" >&2
         exit 1
     fi
@@ -128,7 +153,12 @@ echo "==> capturing environment to $ENVFILE"
     uname -a
     echo "git-sha: $(git -C "$REPO" rev-parse HEAD)"
     echo "git-dirty: $(git -C "$REPO" status --porcelain | wc -l) modified file(s)"
-    echo "affinity-cpu: $cpu"
+    if [[ "$bench" == "scaling" ]]; then
+        echo "affinity: unpinned (scaling needs every core)"
+    else
+        echo "affinity-cpu: $cpu"
+    fi
+    echo "nproc: $(nproc 2>/dev/null || echo unknown)"
     echo "governor: $(cat "${GOV_PATHS[0]}" 2>/dev/null || echo unavailable)"
     echo "perf_event_paranoid: $(cat /proc/sys/kernel/perf_event_paranoid 2>/dev/null || echo n/a)"
     # The write-ups quote a compiler version, and a benchmark number without one
@@ -154,8 +184,21 @@ fi
 
 # ---------------------------------------------------------------- run
 
-echo "==> running the matrix on CPU $cpu ($repetitions reps, $min_time each)"
-taskset --cpu-list "$cpu" "$BENCH" \
+if [[ "$bench" == "scaling" ]]; then
+    echo "==> running $target unpinned across $(nproc) CPUs ($repetitions reps, $min_time each)"
+else
+    echo "==> running $target on CPU $cpu ($repetitions reps, $min_time each)"
+fi
+# The matrix is pinned to one CPU to keep a single-threaded measurement quiet.
+# The scaling curve must NOT be -- pinning every worker to one core would
+# measure a 32-way context switch storm and report it as a scaling failure.
+if [[ "$bench" == "scaling" ]]; then
+    run_prefix=()
+else
+    run_prefix=(taskset --cpu-list "$cpu")
+fi
+
+"${run_prefix[@]}" "$BENCH" \
     --benchmark_filter="$filter" \
     --benchmark_repetitions="$repetitions" \
     --benchmark_min_time="$min_time" \
@@ -195,14 +238,14 @@ for b in rows:
         cv[name[:-3]] = b
 
 noisy = []
-print(f"{'benchmark':<34}{'cycles/byte':>13}{'GiB/s':>10}{'cv':>9}")
+print(f"{'benchmark':<42}{'cycles/byte':>13}{'GiB/s':>10}{'cv':>9}")
 for name, b in med.items():
     cpb = b.get("cycles_per_byte")
     gib = b.get("bytes_per_second", 0) / (1 << 30)
     c   = cv.get(name, {}).get("cycles_per_byte")
     cvs = f"{c*100:.2f}%" if c is not None else "n/a"
     cpbs = f"{cpb:.4f}" if cpb is not None else "n/a"
-    print(f"{name:<34}{cpbs:>13}{gib:>10.3f}{cvs:>9}")
+    print(f"{name.replace('/real_time', ''):<42}{cpbs:>13}{gib:>10.3f}{cvs:>9}")
     if c is not None and c > 0.01:
         noisy.append((name, c))
 
@@ -210,7 +253,7 @@ if noisy:
     print()
     print("WARNING: above this project's sub-1% cycles/byte CV bar:")
     for name, c in sorted(noisy, key=lambda x: -x[1]):
-        print(f"  {name}: {c*100:.2f}%")
+        print(f"  {name.replace('/real_time', '')}: {c*100:.2f}%")
     print("A run this noisy is a smoke test, not a result worth writing up.")
 PY
 
