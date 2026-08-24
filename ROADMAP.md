@@ -184,7 +184,12 @@ AVX2 clears it: the buffered engine runs at 1.41x `std::mt19937`, the raw kernel
         band is 0.51, so one is unremarkable.
 - [ ] **Throughput matrix**
   - [ ] `std::mt19937`, scalar Philox4x32, xoshiro256++, PCG64, vphilox (each backend)
-  - [ ] Vendor xoshiro256++ and PCG64 into `benchmarks/third_party/` rather than taking dependencies
+  - [x] Vendor xoshiro256++ and PCG64 into `benchmarks/third_party/` rather than taking dependencies
+    - [x] Byte-for-byte upstream with SHA-256s recorded; vendored files are exempt from
+          clang-format and the SPDX convention, since reformatting them would void the hashes
+    - [x] xoshiro needs a wrapper (upstream state is file-scope statics, unusable for the
+          matrix or for one generator per thread) — pinned to the vendored C by a
+          side-by-side test rather than trusted
   - [ ] Report GB/s **and** cycles/byte
 - [ ] **Scaling** — `benchmarks/bench_scaling.cpp` at 1/2/4/8/16/32 threads
   - [ ] Confirm linear scaling; investigate any knee (memory bandwidth vs false sharing)

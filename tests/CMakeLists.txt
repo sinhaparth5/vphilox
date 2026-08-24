@@ -35,6 +35,7 @@ set(VPHILOX_TEST_SOURCES
     test_float_cast.cpp       # Phase 3: mantissa injection range/uniformity
     test_engine.cpp           # Phase 3: C++20 concept, buffer, discard
     test_seeding.cpp          # Phase 3: seed_seq / u64 seeding and overload rank
+    test_third_party_generators.cpp  # Phase 4: benchmark baselines are the real algorithms
 )
 
 foreach(src IN LISTS VPHILOX_TEST_SOURCES)
@@ -47,3 +48,14 @@ foreach(src IN LISTS VPHILOX_TEST_SOURCES)
     endif()
     gtest_discover_tests(${name})
 endforeach()
+
+# The vendored benchmark generators (issue #48). third_party is SYSTEM so that
+# upstream's warnings are upstream's problem -- the debug preset builds with
+# -Werror and we do not reformat or patch vendored code. benchmarks/ itself is
+# a normal include so our own wrapper header stays under -Wall -Wextra.
+if(TARGET test_third_party_generators)
+    target_include_directories(test_third_party_generators
+        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../benchmarks)
+    target_include_directories(test_third_party_generators
+        SYSTEM PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../benchmarks/third_party)
+endif()
