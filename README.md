@@ -21,11 +21,13 @@ vphilox is a small C++20 library for simulations, tests, games, data tools, and
 other programs that need a lot of random numbers. Give it the same seed and it
 produces the same results, even when the work is split across threads.
 
-> vphilox is still in early development. The scalar engine works and passes the
-> published Random123 test vectors, and the AVX2 backend is now implemented --
-> 3.3x the scalar kernel, and 1.41x `std::mt19937` through the buffered engine
-> on a Tiger Lake laptop. The AVX-512 and NEON paths still fall back to scalar.
-> Follow the work in the [roadmap](ROADMAP.md).
+> vphilox is still in early development, but all four backends are now real and
+> verified on hardware: scalar, AVX2, AVX-512 and NEON. Against `std::mt19937`
+> on the raw kernel, AVX-512 measures 4.6x on Skylake-SP and 2.6x on Sapphire
+> Rapids, and AVX2 measures 2.4x on Coffee Lake. NEON is the exception at 0.89x
+> -- the one target where vphilox is still behind. Every backend produces the
+> same bytes, checked against the published Random123 vectors and pinned by a
+> digest test across five CPUs. Follow the work in the [roadmap](ROADMAP.md).
 
 ## What it gives you
 
@@ -34,6 +36,8 @@ produces the same results, even when the work is split across threads.
 - `discard()` jumps to a later point in a stream immediately.
 - The engine works with standard C++ algorithms and distributions.
 - Filling a whole buffer at once runs at full speed, without the per-value cost.
+- A generator's position can be saved as text and read back on another
+  operating system, compiler or CPU.
 - The library is header-only and has no runtime dependencies.
 
 ## A small example
@@ -100,6 +104,32 @@ one shared generator.
 
 For reproducible jobs, keep the worker-to-seed mapping stable between runs.
 
+## Saving and restoring a generator
+
+A long job that checkpoints needs to write its generator down and pick it up
+later — sometimes on a different machine. That is the one thing
+`std::mt19937` cannot do: each standard library writes its 624 internal numbers
+differently, so a checkpoint written on Linux fails to load on Windows, and on
+macOS it loads silently wrong.
+
+vphilox writes a position instead — a key and how far along the stream you are:
+
+```cpp
+#include <vphilox/serialize.hpp>
+
+std::ostringstream out;
+out << random;                  // "vphilox1 3735928559 0 100 0 0 0 0"
+
+vphilox::engine restored;
+std::istringstream in{out.str()};
+in >> restored;                 // continues exactly where `random` was
+```
+
+Seven plain integers. No floating point, no layout that depends on your
+standard library, and no digits that a locale can regroup. If the text is not
+recognised the read fails and the engine is left alone, rather than resuming
+somewhere unintended.
+
 ## How it works
 
 Most random-number engines keep changing an internal state. vphilox instead
@@ -107,10 +137,11 @@ treats a key and a counter like coordinates: the same pair always gives the
 same output. That makes it easy to split a large job into independent pieces or
 resume at a known position.
 
-Philox calculations are also independent of one another. vphilox is being
-built to process several of them together with the vector instructions already
-available on modern CPUs. The plain scalar path is the reference that every
-faster path must match bit for bit.
+Philox calculations are also independent of one another, so vphilox processes
+several at once with the vector instructions on modern CPUs: eight counters at
+a time under AVX2, sixteen under AVX-512, four under NEON. The plain scalar
+path is the reference that every faster path must match bit for bit, and a test
+checks that it does on every CPU the library runs on.
 
 ## Add vphilox to a project
 

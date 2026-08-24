@@ -108,36 +108,44 @@ Philox counters across SIMD lanes.
   - [x] `refill_blocks` 8 → 16 to match the kernel width. At 8 every engine refill would have
         fallen entirely into the AVX-512 scalar tail. Verified stream-identical by the
         cross-platform digest, which is what that test is for
-- [ ] `detail/kernel_neon.hpp` — `vmull_u32` wide multiply, `vshrn_n_u64` hi extraction
-  **Parked 2026-08-24**, pending access to the aarch64 development machine. Not blocked on
-  anything in the repo: the pre-NEON baseline it has to improve on is pinned at 3.194
-  cycles/byte in
-  [`docs/benchmarks/throughput-matrix-pi-2026-08-24.md`](docs/benchmarks/throughput-matrix-pi-2026-08-24.md),
-  and the Pi 5 can verify a finished kernel even though it is not the box to write one on.
-  Go in expecting NEON to land near PCG64 and to stay 2.3-2.9x behind xoshiro256++ — half of
-  AVX2's 3.30x on half the vector width. That is worth doing for the ARM users, but it is
-  not a route to winning the throughput matrix.
-  - [ ] `vtrn`/`vzip`/`vext` for the word permutation
-  - [ ] Verify on real aarch64 hardware, not just cross-compilation
-- [~] Attach per-kernel ISA flags to the kernel TUs only (`VPHILOX_FLAGS_AVX2`/`_AVX512` are staged in CMake), or use `[[gnu::target]]` — never `-march=native` on the whole build
+- [x] `detail/kernel_neon.hpp` — `vmull_u32` + `vmull_high_u32` wide multiply, `vshrn` hi
+      extraction. **Four** counters per register, not the two originally planned: the plan read
+      `vmull_u32`'s `uint32x2_t` argument as capping the layout, but A64's `vmull_high_u32`
+      reaches the upper half for one more instruction, so the whole register stays productive
+  - [x] Word permutation is `vst4q_u32`, not `vtrn`/`vzip`/`vext` — the de-interleaving store
+        *is* the SoA-to-AoS transpose, one instruction against AVX2's eight-step unpack and
+        AVX-512's two rounds of `shuffle_i32x4`. NEON is genuinely cleaner here than x86
+  - [x] Verified on real aarch64 hardware (Raspberry Pi 5, Cortex-A76), not cross-compilation
+  - [~] **1.46x scalar, which is below expectation and leaves vphilox last on ARM**: 2.204
+        cycles/byte against `std::mt19937` 1.956 and PCG64 1.625. The projection of 2.0-2.5x
+        was arithmetically wrong — half of AVX2's 3.30x is ~1.65x, and 1.46x is close to that
+    - [ ] Interleave two independent 4-lane groups (8 blocks/iteration). At 2.20 c/B each
+          round costs ~14 cycles for ~18 NEON ops, i.e. ~1.3 ops/cycle against Cortex-A76's
+          2/cycle peak, so it is latency-bound on the round dependency chain rather than
+          width-bound. A second chain to fill the stalls should reach ~1.6-1.8 c/B, which
+          would clear `std::mt19937` and land level with PCG64
+- [x] Attach per-kernel ISA flags to the kernel TUs only (`VPHILOX_FLAGS_AVX2`/`_AVX512` are staged in CMake), or use `[[gnu::target]]` — never `-march=native` on the whole build
   - [x] AVX2 uses `[[gnu::target("avx2")]]` via `VPHILOX_TARGET`, which is what a header-only
         kernel needs; the build stays free of ISA flags and still starts on a non-AVX2 CPU
   - [x] AVX-512 uses `VPHILOX_TARGET("avx512f,avx512dq")` the same way
-  - [ ] Same treatment for NEON when that kernel lands
-- [~] Flip `implemented = true` on each kernel as it lands; dispatch picks it up automatically
+  - [x] NEON needs neither: it is baseline on aarch64, so there is no target attribute and
+        no runtime probe, and `VPHILOX_ARCH_ARM64` never covers armv7
+- [x] Flip `implemented = true` on each kernel as it lands; dispatch picks it up automatically
   - [x] AVX2 — dispatch resolves to it, `Engine.ReportsItsBackend` reports `avx2`
   - [x] AVX-512 — verified on a Sapphire Rapids host, `Engine.ReportsItsBackend` reports `avx512`
-  - [ ] NEON
+  - [x] NEON — verified on a Raspberry Pi 5, `Engine.ReportsItsBackend` reports `neon`
 - [x] Parity test harness (`tests/test_kernel_parity.cpp`) — generic over kernels, currently skipping; goes live the moment `implemented` flips
-- [~] All parity tests green: bit-for-bit equality with the scalar kernel across every counter, key, and block count
+- [x] All parity tests green: bit-for-bit equality with the scalar kernel across every counter, key, and block count
   - [x] AVX2 green, including partial-vector tails and split-at-every-offset chunking
   - [x] AVX-512 green on Sapphire Rapids, first run, including tails and chunking. The
         cross-platform digest also matches under `VPHILOX_BACKEND=scalar|avx2|avx512`
-  - [ ] NEON — still skipping until that kernel is implemented
+  - [x] NEON green on Cortex-A76, first run, including tails and chunking
 
 **Deliverable:** AVX2/AVX-512/NEON kernels beating `std::mt19937` single-threaded.
-AVX2 clears it: the buffered engine runs at 1.41x `std::mt19937`, the raw kernel at
-2.42x. AVX-512 and NEON are still outstanding.
+All three exist and are verified on real hardware. Against `std::mt19937` on the raw
+kernel: AVX-512 **4.63x** (Skylake-SP) and **2.64x** (Sapphire Rapids), AVX2 **1.41x
+buffered / 2.42x raw** (Coffee Lake). NEON is the exception at **0.89x** — it is the one
+target where the deliverable is not met, and the unroll noted above is what would meet it.
 
 ---
 
@@ -198,7 +206,34 @@ AVX2 clears it: the buffered engine runs at 1.41x `std::mt19937`, the raw kernel
         lvalue and `std::is_constructible_v<engine, Widget&>` answers true, with the mismatch
         surfacing only inside the constructor body (`tests/test_seeding.cpp`)
 
-**Deliverable:** a header-only C++20 library that drops straight into standard algorithms.
+- [x] **Portable serialized state** — the problem the library was built around. `std::mt19937`
+      cannot be checkpointed across standard libraries: the format flags differ (libstdc++ has
+      `operator<<` force `dec` and ignore a caller's `std::hex`; the MSVC STL does not) and so
+      does the layout (libstdc++ writes 624 words in raw order plus a position, libc++ and MSVC
+      write them rotated with no position). A snapshot written on Linux fails to load on
+      Windows and loads *silently wrong* on macOS
+  - [x] `engine_state` records a **position** — key, the block holding the next output, and the
+        word within it — not the engine's internals. Writing `next_`/`cursor_` directly would
+        bake `refill_blocks` into the format, and that changed from 8 to 16 when the AVX-512
+        kernel landed; a state written before it would now restore to the wrong place
+  - [x] `state()` / `set_state()` round-trip exactly, at every cursor offset across several
+        refills and through the bulk path. Note `basic_engine(g.key(), g.counter())` does
+        **not**: `counter()` is the next refill's counter, so it skips whatever is buffered.
+        A test asserts that it skips, so the day `counter()` changes meaning something says so
+  - [x] `serialize.hpp` — text form that never touches the locale (digits written and parsed by
+        hand, never `num_put`/`num_get`), carries a version tag, and refuses what it does not
+        recognise: wrong tag, wrong field count, value past 2^32-1, offset outside a block,
+        doubled or missing separator, trailing bytes. A failed read sets `failbit` and leaves
+        the engine untouched. Not pulled in by `vphilox.hpp`, since it needs `<istream>`,
+        `<ostream>` and `<string>` and most callers never serialize
+  - [x] `counter_sub` / `counter_retreated` — the arithmetic recovering a caller-visible
+        position needs, since the engine runs ahead of it by whatever is buffered
+  - [ ] Check the stream against C++26's `std::philox_engine` ([rand.eng.philox]). If they
+        agree bit for bit, `engine` can alias the standard type once libraries ship one, and a
+        parity test can compile in on `__cpp_lib_philox_engine`
+
+**Deliverable:** a header-only C++20 library that drops straight into standard algorithms,
+and whose state can be written on one platform and read on another.
 
 ---
 

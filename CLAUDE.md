@@ -84,8 +84,9 @@ The layering, bottom up:
   fully `constexpr`.
 - `detail/kernel_avx2.hpp` — eight interleaved counters per `__m256i`,
   `[[gnu::target("avx2")]]` rather than a TU flag because the kernel lives in a
-  header. `detail/kernel_{avx512,neon}.hpp` are still Phase 2 stubs that
-  forward to the scalar kernel.
+  header. `detail/kernel_avx512.hpp` interleaves sixteen counters per `__m512i`
+  and `detail/kernel_neon.hpp` four per `uint32x4_t`; both are real
+  implementations, verified on Sapphire Rapids / Skylake-SP and Cortex-A76.
 - `detail/cpu_features.hpp` — one-shot runtime CPU probe. The x86 path is a raw
   `CPUID` + `XGETBV` probe written once for every compiler (`__cpuidex` on MSVC,
   `__cpuid_count` elsewhere) rather than `__builtin_cpu_supports`, so the Linux
@@ -93,7 +94,7 @@ The layering, bottom up:
 - `detail/dispatch.hpp` — resolves one `kernel_fn` per `Rounds` instantiation on
   first use.
 - `philox.hpp` — `basic_engine<Rounds>` / `engine`, a
-  `std::uniform_random_bit_generator` over a 32-word (128-byte) aligned refill
+  `std::uniform_random_bit_generator` over a 64-word (256-byte) aligned refill
   buffer sized so no backend ever splits a refill. `generate_n(u32*, count)` and
   `generate(std::span<u32>)` are the bulk path: they run the kernel straight
   into the caller's buffer, skipping the refill copy (100% of raw kernel
@@ -110,19 +111,22 @@ Every backend implements `generate(base, key, out, blocks)`, writing
 not depend on how the caller chunks the request — that independence is what
 makes parity testing meaningful and lets the engine refill in any size. Kernels
 handle their own tails and must not assume `out` is aligned.
-`preferred_blocks` advertises the tail-free width (scalar 1, AVX2 8, AVX-512 8,
-NEON 2 — settled in `docs/benchmarks/simd-lane-layout.md`).
+`preferred_blocks` advertises the tail-free width: scalar 1, AVX2 8, AVX-512 16,
+NEON 4 — one counter per 32-bit lane in every case, which is what
+`docs/benchmarks/simd-lane-layout.md` settled. The AVX-512 and NEON figures are
+16 and 4 rather than the 8 and 2 originally planned; both plans underestimated
+the reachable lane count.
 
 ### Dispatch and the `implemented` flag
 
 A kernel is selected only if it is compiled in (`VPHILOX_HAS_*`), has
-`implemented = true`, and the CPU supports it. The remaining stubs set
-`implemented = false`, which keeps them out of dispatch entirely so
-`active_backend()` never reports a backend that did not actually run. Landing a
-SIMD kernel means: implement `generate()`, flip `implemented` to `true`,
-confirm `preferred_blocks` matches the real interleaving width — dispatch and
-`tests/test_kernel_parity.cpp` pick it up with no further wiring. AVX2 is the
-worked example of all of this.
+`implemented = true`, and the CPU supports it. All four kernels now set
+`implemented = true`; the flag stays because it is what keeps a half-finished
+kernel out of dispatch, so `active_backend()` never reports a backend that did
+not actually run. Landing a new kernel means: implement `generate()`, flip
+`implemented` to `true`, confirm `preferred_blocks` matches the real
+interleaving width — dispatch, `tests/test_kernel_parity.cpp` and
+`tests/test_cross_platform_parity.cpp` pick it up with no further wiring.
 
 Never add ISA flags to the whole build. `VPHILOX_FLAGS_AVX2` /
 `VPHILOX_FLAGS_AVX512` are staged in the root `CMakeLists.txt` for attaching to
@@ -173,9 +177,16 @@ kernels break.
 
 ## Current state
 
-Phase 1 (scalar reference, KATs, baseline benchmarks) is done. In Phase 2, AVX2
-has landed (3.3x scalar, 1.41x `std::mt19937` buffered — see
-`docs/benchmarks/avx2-2026-08-23.md`); AVX-512 and NEON are still stubs. Phase 4
+Phase 1 (scalar reference, KATs, baseline benchmarks) is done. Phase 2 is
+substantially done: **all three SIMD kernels exist and are verified on real
+hardware.** AVX2 is 3.3x scalar (`docs/benchmarks/avx2-2026-08-23.md`),
+AVX-512 is 4.1x scalar and 1.80-1.83x AVX2 with no downclocking penalty on
+either Sapphire Rapids or Skylake-SP
+(`docs/benchmarks/avx512-downclocking-2026-08-24.md`), and NEON is 1.46x scalar
+on a Cortex-A76 — below the ~1.65x half-of-AVX2 expectation, and the one target
+where vphilox still loses to `std::mt19937`. The engine also has a portable
+serialized state (`include/vphilox/serialize.hpp`), which is the problem the
+library was built around. Phase 4
 statistical validation is done and does not need re-running: PractRand clean to
 1 TB, byte-identical across backends over that terabyte, and TestU01 BigCrush
 passing all 160 statistics (`docs/statistical-validation.md`).
@@ -185,6 +196,7 @@ benchmark runs.
 Two measured results worth not re-deriving: the ~10x
 scalar-Philox-vs-mt19937 slowdown from the literature did **not** reproduce on
 any machine measured here (`docs/benchmarks/baseline-2026-08-21.md`), and the
-refill buffer now costs ~42% of bulk throughput on AVX2 versus ~10% on scalar,
+refill buffer now costs ~109% of bulk throughput on AVX-512, ~42% on AVX2 and
+~10% on x86 scalar — the faster the kernel, the more the drain pass dominates —
 which is what makes issues #36 and #37 worth more than their original
 estimates.
