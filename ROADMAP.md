@@ -119,7 +119,19 @@ AVX2 clears it: the buffered engine runs at 1.41x `std::mt19937`, the raw kernel
 - [x] `detail/cpu_features.hpp` — raw CPUID + `XGETBV` probe, one shared x86 path, computed once
 - [x] `detail/dispatch.hpp` — resolves to the fastest kernel that is compiled in **and** implemented **and** CPU-supported
 - [x] `VPHILOX_BACKEND` env override for pinning a backend in tests and benchmarks
-- [ ] SIMD float conversion — `_mm256_or_si256` + `_mm256_sub_ps` and the AVX-512/NEON equivalents, keeping conversion inside vector registers
+- [~] SIMD float conversion — `_mm256_or_si256` + `_mm256_sub_ps` and the AVX-512/NEON equivalents, keeping conversion inside vector registers
+  - [x] **No intrinsics needed.** GCC already emits `vpsrld`/`vpor`/`vaddps` for the plain
+        `to_float01` loop; hand-writing them would be transcription and would freeze the width
+        at 8 where the loop widens on its own. See
+        [`docs/benchmarks/float-conversion-2026-08-24.md`](docs/benchmarks/float-conversion-2026-08-24.md)
+  - [x] The real gap was the ISA, not the instructions: header-only means the loop compiles
+        with the *consumer's* flags, so `detail/float_bulk.hpp` compiles it twice — baseline and
+        `VPHILOX_TARGET("avx2")` — and selects at runtime like the kernels do
+  - [x] Bulk float API to consume it: `generate_n(float*, n)` / `generate(std::span<float>)`,
+        equivalent to the same number of `next_float()` calls, ~2x that path
+  - [ ] AVX-512 / NEON variants — blocked on #24 and #28, not on hardware access
+  - [ ] Decide whether to fuse conversion into the kernels and remove the second pass.
+        Needs a frequency-pinned host: this laptop put the cost anywhere between 10% and 26%
 - [x] MSVC CPU detection (`__cpuidex` leaf 7 + `XGETBV` OS-state check) — no longer stubbed to `false`.
       The CPUID probe is now the single x86 path on every compiler, so Linux and macOS runs
       exercise the same code MSVC depends on; `tests/test_cpu_features.cpp` checks it against

@@ -123,10 +123,16 @@ TEST(BulkGenerate, HandlesZeroAndDoesNotTouchTheEngine) {
     const u32 first = g();
 
     engine same{5ull};
-    same.generate_n(nullptr, 0);
+    // Typed rather than a bare nullptr: generate_n is overloaded on u32* and
+    // float*, so an untyped null is ambiguous by construction.
+    same.generate_n(static_cast<u32*>(nullptr), 0);
     EXPECT_EQ(same(), first);
 
     same.generate(std::span<u32>{});
+    EXPECT_EQ(same(), g());
+
+    same.generate_n(static_cast<float*>(nullptr), 0);
+    same.generate(std::span<float>{});
     EXPECT_EQ(same(), g());
 }
 
@@ -184,4 +190,124 @@ TEST(BulkGenerate, RequestSpanningManyRefillsStaysInOrder) {
     std::vector<u32> got(n);
     g.generate(std::span<u32>{got});
     EXPECT_EQ(got, reference);
+}
+
+// ---------------------------------------------------------------------------
+// The float bulk path. Same contract, one conversion further on: `n` floats
+// must equal `n` next_float() calls and leave the engine where they would.
+// The seams that matter here are the 256-word conversion tile boundaries,
+// which do not line up with the 32-word refill boundaries.
+// ---------------------------------------------------------------------------
+
+namespace {
+
+/// The reference stream: `n` floats straight out of next_float().
+std::vector<float> floats_by_call(u64 seed, std::size_t n) {
+    engine g{seed};
+    std::vector<float> out(n);
+    for (auto& f : out) f = g.next_float();
+    return out;
+}
+
+}  // namespace
+
+TEST(BulkGenerateFloat, MatchesNextFloatAcrossTileBoundaries) {
+    // Either side of the 256-word tile and the 32-word refill, plus a size
+    // that is a multiple of neither.
+    constexpr std::size_t sizes[] = {0, 1, 31, 32, 33, 255, 256, 257, 512, 700, 4097};
+    for (std::size_t n : sizes) {
+        const auto reference = floats_by_call(0xF10Aull, n);
+
+        engine g{0xF10Aull};
+        std::vector<float> got(n);
+        g.generate_n(got.data(), n);
+
+        ASSERT_EQ(got.size(), reference.size());
+        for (std::size_t i = 0; i < n; ++i) {
+            // Bit-exact, not approximate: this is the same arithmetic twice.
+            EXPECT_EQ(got[i], reference[i]) << "n=" << n << " word " << i;
+        }
+    }
+}
+
+TEST(BulkGenerateFloat, LeavesTheEngineWhereNextFloatWould) {
+    constexpr std::size_t n = 1000;
+
+    engine bulk{7ull};
+    std::vector<float> sink(n);
+    bulk.generate_n(sink.data(), n);
+
+    engine stepped{7ull};
+    for (std::size_t i = 0; i < n; ++i) static_cast<void>(stepped.next_float());
+
+    // Not counter(): that is the kernel's next counter, and the two engines
+    // legitimately disagree on it. The bulk path consumed 250 blocks and left
+    // nothing buffered; the stepped one consumed 256 and is holding 24 words
+    // in hand. What has to match is the stream from here on -- long enough to
+    // cross several refills, so a stale buffer would show up.
+    for (int i = 0; i < 300; ++i) EXPECT_EQ(bulk(), stepped()) << "word " << i;
+}
+
+TEST(BulkGenerateFloat, MixesWithSingleValueCalls) {
+    engine mixed{99ull};
+    engine reference{99ull};
+
+    std::vector<float> chunk(300);
+    for (int i = 0; i < 5; ++i) static_cast<void>(mixed.next_float());
+    mixed.generate(std::span<float>{chunk});
+    for (int i = 0; i < 5; ++i) static_cast<void>(mixed.next_float());
+
+    for (int i = 0; i < 5; ++i) static_cast<void>(reference.next_float());
+    for (auto& f : chunk) EXPECT_EQ(f, reference.next_float());
+    for (int i = 0; i < 5; ++i) static_cast<void>(reference.next_float());
+
+    EXPECT_EQ(mixed(), reference());
+}
+
+TEST(BulkGenerateFloat, StaysInTheUnitInterval) {
+    constexpr std::size_t n = 100'000;
+    engine g{3ull};
+    std::vector<float> out(n);
+    g.generate(std::span<float>{out});
+
+    for (std::size_t i = 0; i < n; ++i) {
+        ASSERT_GE(out[i], 0.0f) << "index " << i;
+        ASSERT_LT(out[i], 1.0f) << "index " << i;
+    }
+}
+
+TEST(BulkGenerateFloat, DoesNotWriteBeyondTheRequest) {
+    constexpr std::size_t n     = 257;  // one past a tile
+    constexpr std::size_t slack = 16;
+    const float guard           = -1.0f;
+
+    std::vector<float> buf(n + slack, guard);
+    engine g{1ull};
+    g.generate_n(buf.data(), n);
+
+    for (std::size_t i = n; i < buf.size(); ++i) {
+        EXPECT_EQ(buf[i], guard) << "clobbered float " << i;
+    }
+}
+
+// The two conversion variants are the same loop at two widths. Since the
+// conversion is elementwise, they must agree bit for bit -- the ISA choice is
+// a speed decision, never a stream decision.
+TEST(BulkGenerateFloat, ConversionWidthsAgreeBitForBit) {
+#if VPHILOX_HAS_AVX2
+    if (!detail::detect_cpu().avx2) GTEST_SKIP() << "no AVX2 on this CPU";
+
+    constexpr std::size_t n = 4096 + 5;  // deliberately not a vector multiple
+    std::vector<u32> src(n);
+    engine g{0xABCDull};
+    g.generate(std::span<u32>{src});
+
+    std::vector<float> baseline(n), wide(n);
+    detail::to_float01_n_baseline(src.data(), baseline.data(), n);
+    detail::to_float01_n_avx2(src.data(), wide.data(), n);
+
+    EXPECT_EQ(baseline, wide);
+#else
+    GTEST_SKIP() << "AVX2 not compiled in";
+#endif
 }
