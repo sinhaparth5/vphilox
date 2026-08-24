@@ -86,6 +86,14 @@ Philox counters across SIMD lanes.
   - [ ] Gate on `avx512f` **and** `avx512dq`
   - [ ] Measure downclocking — do not let dispatch prefer AVX-512 until it demonstrably beats AVX2 on the same part
 - [ ] `detail/kernel_neon.hpp` — `vmull_u32` wide multiply, `vshrn_n_u64` hi extraction
+  **Parked 2026-08-24**, pending access to the aarch64 development machine. Not blocked on
+  anything in the repo: the pre-NEON baseline it has to improve on is pinned at 3.194
+  cycles/byte in
+  [`docs/benchmarks/throughput-matrix-pi-2026-08-24.md`](docs/benchmarks/throughput-matrix-pi-2026-08-24.md),
+  and the Pi 5 can verify a finished kernel even though it is not the box to write one on.
+  Go in expecting NEON to land near PCG64 and to stay 2.3-2.9x behind xoshiro256++ — half of
+  AVX2's 3.30x on half the vector width. That is worth doing for the ARM users, but it is
+  not a route to winning the throughput matrix.
   - [ ] `vtrn`/`vzip`/`vext` for the word permutation
   - [ ] Verify on real aarch64 hardware, not just cross-compilation
 - [~] Attach per-kernel ISA flags to the kernel TUs only (`VPHILOX_FLAGS_AVX2`/`_AVX512` are staged in CMake), or use `[[gnu::target]]` — never `-march=native` on the whole build
@@ -206,13 +214,31 @@ AVX2 clears it: the buffered engine runs at 1.41x `std::mt19937`, the raw kernel
           matrix or for one generator per thread) — pinned to the vendored C by a
           side-by-side test rather than trusted
   - [x] Report GB/s **and** cycles/byte — every row reports both through `report_metrics`
-  - [ ] Run the matrix on frequency-pinned hardware and write it up. The laptop run that
-        validated the harness sits at 4-10% CV against this project's sub-1% bar, so it is a
-        smoke test rather than a result. It does put xoshiro256++ at roughly 2x the AVX2
-        kernel with PCG64 level with it, which is the comparison the write-up has to address
-        rather than omit
-- [ ] **Scaling** — `benchmarks/bench_scaling.cpp` at 1/2/4/8/16/32 threads
-  - [ ] Confirm linear scaling; investigate any knee (memory bandwidth vs false sharing)
+  - [~] Run the matrix on frequency-pinned hardware and write it up, via
+        `scripts/benchmarks/run_matrix.sh`, which pins the governor, records provenance, and
+        refuses a run that lost the cycle counter or came in above 1% CV
+    - [x] **AArch64 — Raspberry Pi 5**, every row inside the sub-1% CV bar; see
+          [`docs/benchmarks/throughput-matrix-pi-2026-08-24.md`](docs/benchmarks/throughput-matrix-pi-2026-08-24.md).
+          vphilox runs the scalar kernel there until #28 lands and so places last:
+          xoshiro256++ is 5.84x it, PCG64 1.97x, `std::mt19937` 1.67x. The four rows shared
+          with the August baseline reproduce within 2% (the two pure-kernel rows within
+          0.1%), and the refill buffer costs 25.2% with `generate_n` recovering 100.0% of the
+          kernel — the x86 bulk-path result from #37 holding on a second architecture
+    - [ ] **x86-64 AVX2** — the laptop run that validated the harness sits at 4-10% CV, so
+          this column still needs a pinned host
+- [~] **Scaling** — `benchmarks/bench_scaling.cpp` at 1/2/4/8/16/32 threads
+  - [x] Harness rebuilt to be interpretable: aggregate cycles/byte (flat = linear scaling),
+        a `generate_n` arm beside the buffered one, the working set as a second axis so an
+        L2-resident curve and a DRAM-resident one can be told apart, and a persistent worker
+        pool so thread creation is no longer inside `bytes_per_second`
+  - [~] Confirm linear scaling; investigate any knee (memory bandwidth vs false sharing)
+    - [x] Laptop reading (Coffee Lake 4C/8T, unpinned, indicative): the bulk arm holds
+          0.797 → 0.820 cycles/byte from 1 to 4 threads — flat to the physical core count —
+          then 1.24x at 8, which is SMT sharing execution units rather than contention. The
+          buffered arm degrades from 2 threads (1.25x), so the bulk path is the one that
+          scales. A 4 MiB working set is bandwidth-bound throughout, 6.66x by 32 threads
+    - [ ] Re-run on a frequency-pinned host; RDTSC counts reference cycles, so the clock
+          moves under thread count on an unpinned machine
   - [ ] OpenMP variant alongside the `std::thread` one
   - [ ] Instruction-cache miss rates via libpfm
 - [ ] **Cross-platform bit parity** — same key and counter produce identical output on x86-64, aarch64, and (if reachable) a cuRAND/GPU reference. This is the reproducibility claim; it needs a test, not an assertion.
