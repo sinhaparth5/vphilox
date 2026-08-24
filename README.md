@@ -1,6 +1,6 @@
 <p align="center">
-  <img src="docs/assets/vphilox-logo-v2.png" width="220" height="220"
-       alt="Four parallel number streams passing through a counter to form the vphilox logo">
+  <img src="docs/assets/vphilox-logo.svg" width="200" height="200"
+       alt="vphilox logo: a V traced across a lattice of counter cells">
 </p>
 
 <h1 align="center">vphilox</h1>
