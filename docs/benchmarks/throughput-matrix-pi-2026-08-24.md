@@ -128,4 +128,4 @@ which xoshiro offers at any speed.
 ## Artifacts
 
 - [`results/pi-arm-matrix.json`](../../results/pi-arm-matrix.json)
-- [`results/pi-arm-environment.txt`](../../results/pi-arm-environment.txt)
+- [`results/pi-arm-matrix-environment.txt`](../../results/pi-arm-matrix-environment.txt)

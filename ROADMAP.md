@@ -231,14 +231,24 @@ AVX2 clears it: the buffered engine runs at 1.41x `std::mt19937`, the raw kernel
         a `generate_n` arm beside the buffered one, the working set as a second axis so an
         L2-resident curve and a DRAM-resident one can be told apart, and a persistent worker
         pool so thread creation is no longer inside `bytes_per_second`
-  - [~] Confirm linear scaling; investigate any knee (memory bandwidth vs false sharing)
-    - [x] Laptop reading (Coffee Lake 4C/8T, unpinned, indicative): the bulk arm holds
-          0.797 → 0.820 cycles/byte from 1 to 4 threads — flat to the physical core count —
-          then 1.24x at 8, which is SMT sharing execution units rather than contention. The
-          buffered arm degrades from 2 threads (1.25x), so the bulk path is the one that
-          scales. A 4 MiB working set is bandwidth-bound throughout, 6.66x by 32 threads
-    - [ ] Re-run on a frequency-pinned host; RDTSC counts reference cycles, so the clock
-          moves under thread count on an unpinned machine
+  - [x] Confirm linear scaling — **done on the Pi 5**, see
+        [`docs/benchmarks/scaling-pi-2026-08-24.md`](docs/benchmarks/scaling-pi-2026-08-24.md).
+        4 threads on 4 cores gives 3.95x at 98.8% efficiency, and aggregate cycles/byte
+        spans 0.063% across every thread count from 1 to 32 and both working sets. Beyond
+        the core count throughput plateaus while cost per byte still does not move, which is
+        what zero shared state should look like. The bulk path is 28.9% cheaper by a
+        constant margin — the same refill-buffer overhead the matrix put at 25.2%,
+        reproduced by a second benchmark
+    - [x] **Corrects the laptop reading.** Coffee Lake suggested the buffered arm degraded
+          from 2 threads; on a pinned clock with no SMT both arms scale within 0.24%. RDTSC
+          counts reference cycles, so a moving turbo ceiling landed in the column, and 8
+          threads on 4C/8T is hyperthreading rather than scaling
+  - [~] Investigate the knee (memory bandwidth vs false sharing)
+    - [x] No knee on ARM, and that is about the kernel not the memory system: 3.19
+          cycles/byte over 4 cores is ~3 GB/s, far under what LPDDR4X supplies, so the 4 MiB
+          arm could not provoke one. Coffee Lake with AVX2 degrades 6.66x by 32 threads at
+          the same working set. This axis starts discriminating on ARM once #28 lands
+    - [ ] Locate the knee on a pinned x86 host with the AVX2 kernel
   - [ ] OpenMP variant alongside the `std::thread` one
   - [ ] Instruction-cache miss rates via libpfm
 - [~] **Cross-platform bit parity** — same key and counter produce identical output on x86-64,

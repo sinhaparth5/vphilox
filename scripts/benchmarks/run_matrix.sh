@@ -70,7 +70,10 @@ esac
 
 BENCH="$REPO/build/bench/benchmarks/$target"
 JSON="$OUTDIR/$tag-$suffix.json"
-ENVFILE="$OUTDIR/$tag-environment.txt"
+# Suffixed, not just "$tag-environment.txt": two suites under one tag would
+# otherwise overwrite each other's provenance, leaving a write-up citing an
+# environment file that describes a different run.
+ENVFILE="$OUTDIR/$tag-$suffix-environment.txt"
 
 # ---------------------------------------------------------------- build
 
