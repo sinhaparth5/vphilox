@@ -23,11 +23,8 @@ Derived from `docs/VPhilox Development Phases.md` and
 **Status:** Phases 0-3 complete; **Phase 4 complete.** The instruction-cache
 study is measured — a bare-metal Tiger Lake laptop cleared the co-location gate
 that no earlier host could — and the cuRAND cross-check is done without needing
-a GPU at all.
-
-**Status:** Phases 0-3 complete; Phase 4 complete except libpfm. Phase 5 has
-started: a full paper draft is in `paper/`, building clean at 15 pages and
-blocked on one citation.
+a GPU at all. **Phase 5 has started:** a full paper draft is in `paper/`,
+building clean at 15 pages and blocked on one citation.
 
 Current version
 `2026.08.0` (see [VERSIONING.md](VERSIONING.md)).
