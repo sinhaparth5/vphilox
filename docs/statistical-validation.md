@@ -105,10 +105,30 @@ every backend that passes the parity matrix.
 
 Full log: `results/practrand/backend-equivalence-1TB.txt`.
 
-**The AVX-512 arm remains open.** `--backend avx512` currently resolves to
-avx2, because the stub sets `implemented = false` and dispatch correctly
-refuses to select it. This unblocks with #24; the GCP Xeon used above reports
-`avx512f`/`avx512dq` and can test it.
+**The AVX-512 arm was blocked and is no longer.** When this was written the
+stub set `implemented = false`, so dispatch correctly refused it and
+`--backend avx512` resolved to avx2. #24 landed on 2026-08-24 and the kernel
+is now selected on hardware that reports `avx512f`/`avx512dq`.
+
+The terabyte `cmp` above has *not* been repeated with it, and this section is
+not claiming it has. What covers AVX-512 instead is the same argument that
+retired the other three arms, applied one layer down:
+`tests/test_kernel_parity.cpp` sweeps it against the scalar kernel across
+carrying counters, edge keys and every block count that straddles a plausible
+SIMD width, and `test_cross_platform_parity.cpp` folds an 8191-block stream —
+tails, refill buffer, chunked `generate_n`, carry chain and float conversion —
+into a digest pinned in the file. A kernel that reproduces the scalar stream
+bit for bit cannot fail a battery the scalar stream passes.
+
+The same now holds for NEON on real hardware: the Raspberry Pi 5 runs the full
+suite green at `cce395b` with the backend resolving to `neon`, so that digest
+is confirmed identical across two architectures and four kernels rather than
+argued from x86 alone.
+
+Re-running the terabyte comparison on AVX-512 is cheap if a suitable host is
+free and would be worth doing. #42 was closed on the byte-identity argument
+rather than on four batteries, and that reasoning is unchanged by a fourth
+kernel existing — this is a belt-and-braces run, not a gap in the evidence.
 
 ## The float32 stream
 

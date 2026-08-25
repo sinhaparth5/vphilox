@@ -1,5 +1,11 @@
 # Throughput matrix, Raspberry Pi 5 — 2026-08-24
 
+> **Superseded for ranking.** #28 landed on 2026-08-25 and vphilox no longer
+> places last on this machine. The current AArch64 column is
+> [`neon-unroll-pi-2026-08-25.md`](neon-unroll-pi-2026-08-25.md). This page is
+> kept as the pre-NEON baseline the kernel was measured against, and because
+> its projection is now checkable — see [The projection, resolved](#the-projection-resolved).
+
 First run of the completed Phase 4 comparison matrix (issues #46, #47, #49),
 now that xoshiro256++ and PCG64 are wired into `bench_engines`. This is the
 AArch64 column.
@@ -124,6 +130,28 @@ write-up should not be framed as though it were — vphilox's case against
 xoshiro is the counter-based properties (O(1) `discard`, a reproducible stream
 from any (key, counter), independent substreams without `jump()`), none of
 which xoshiro offers at any speed.
+
+## The projection, resolved
+
+Added 2026-08-25, after the fact.
+
+The section above projected 2.0-2.5x from the NEON kernel, landing the scalar
+3.194 cycles/byte somewhere in **1.28-1.60**, enough to pass `std::mt19937`
+and to sit level with or ahead of PCG64, and still roughly 2.3-2.9x behind
+xoshiro256++.
+
+Measured, at `cce395b`: **1.4652 cycles/byte** — inside the projected band,
+1.33x `std::mt19937`, 1.11x PCG64, and 2.68x behind xoshiro256++. Every part
+of the projection held, including the part that said catching xoshiro was not
+a realistic goal.
+
+That is worth recording for one reason only: it is the *reasoning* that was
+validated, not just the number. The projection came from halving AVX2's
+measured 3.30x on the argument that NEON is 128 bits against 256. It reached
+the right band by the wrong route — the delivered speedup came from unrolling
+two independent groups to hide multiply latency (#89), not from lane width,
+and the kernel had to be measured at 1.46x before the real cause was found. A
+projection landing in its band is not evidence that its mechanism was right.
 
 ## Artifacts
 
