@@ -36,34 +36,35 @@ the two single-machine figures.
 Cost per byte for each generator, divided by `std::mt19937` on the same
 machine. Lower is faster.
 
-|  | Pi 5 / NEON | Sapphire Rapids | Skylake-SP |
-|---|---:|---:|---:|
-| xoshiro256++ | 0.28x | 0.30x | 0.24x |
-| PCG64 | 0.83x | 0.59x | 0.33x |
-| `std::mt19937` | 1.00x | 1.00x | 1.00x |
-| Philox, unspecialised | 1.65x | 1.55x | 1.15x |
-| vphilox, `operator()` | 1.15x | 0.79x | 0.51x |
-| **vphilox, `generate_n`** | **0.75x** | **0.38x** | **0.22x** |
+|  | Pi 5 / NEON | Sapphire Rapids | Skylake-SP | Cascade Lake |
+|---|---:|---:|---:|---:|
+| xoshiro256++ | 0.28x | 0.30x | 0.24x | 0.17x |
+| PCG64 | 0.83x | 0.59x | 0.33x | 0.32x |
+| `std::mt19937` | 1.00x | 1.00x | 1.00x | 1.00x |
+| Philox, unspecialised | 1.65x | 1.55x | 1.15x | 1.10x |
+| vphilox, `operator()` | 1.15x | 0.79x | 0.51x | 0.58x |
+| **vphilox, `generate_n`** | **0.75x** | **0.38x** | **0.22x** | **0.24x** |
 
 Three things this figure is for.
 
 **The original objection.** vphilox was rejected upstream with "the performance
-here is 1/10 of mt". Unspecialised Philox is 1.15-1.65x `std::mt19937` here —
-not 10x — and with the wide multiplies specialised the bulk path is 0.22-0.75x
-it. That is the whole reason the SIMD work exists.
+here is 1/10 of mt". Unspecialised Philox is 1.10-1.65x `std::mt19937` here —
+not 10x, and within 10% of parity on Cascade Lake — and with the wide multiplies
+specialised the bulk path is 0.22-0.75x it. That is the whole reason the SIMD
+work exists.
 
-**xoshiro256++ still leads, except once.** It is ahead on the Pi and on
-Sapphire Rapids. On Skylake-SP `generate_n` is 0.4210 cycles/byte against
-xoshiro's 0.4703 — vphilox wins that one part, on one machine. That is a
-result, not a trend, and it does not change the guidance in `CLAUDE.md`: do not
-optimise toward xoshiro. It is a latency-bound scalar chain, it offers none of
-the properties this library exists for, and the comparison is here to be
+**xoshiro256++ leads on three of the four.** It is ahead on the Pi, on Sapphire
+Rapids and on Cascade Lake. On Skylake-SP `generate_n` is 0.4210 cycles/byte
+against xoshiro's 0.4703 — vphilox wins that one part, on one machine. That is
+a result, not a trend, and it does not change the guidance in `CLAUDE.md`: do
+not optimise toward xoshiro. It is a latency-bound scalar chain, it offers none
+of the properties this library exists for, and the comparison is here to be
 reported honestly rather than chased.
 
 **The buffer is the remaining cost.** The gap between the two vphilox rows is
 the refill drain, and it widens as the kernel gets faster: 1.53x on the Pi,
-2.09x on Sapphire Rapids, 2.37x on Skylake-SP. The faster the kernel, the more
-the second pass over every byte dominates.
+2.09x on Sapphire Rapids, 2.37x on Skylake-SP, 2.42x on Cascade Lake. The
+faster the kernel, the more the second pass over every byte dominates.
 
 ### `generate_n` call size — [`plots/generate-n-sweep.svg`](plots/generate-n-sweep.svg)
 
@@ -71,7 +72,9 @@ the second pass over every byte dominates.
 
 What a small bulk call costs relative to the raw kernel on the same machine.
 Eight words a call is 1.4-1.9x the kernel; by 256 words the remainder is a few
-percent, and by 65536 it is gone. The dashed line per machine is `operator()`
+percent, and by 65536 it is gone. Cascade Lake is the exception at 1.92x for an
+eight-word call, which is the same story as its buffer gap: the fastest kernel
+of the four pays the most for a call too small to amortise. The dashed line per machine is `operator()`
 through the refill buffer, which is what a caller pays if they never reach for
 the bulk path.
 

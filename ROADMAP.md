@@ -106,8 +106,8 @@ Philox counters across SIMD lanes.
         `permutexvar` — the SoA-to-AoS step is a 128-bit lane gather, not an element permute
   - [x] Gate on `avx512f` **and** `avx512dq`, matching the existing `detect_cpu()` probe. Only
         F instructions are used; DQ is carried because the probe requires it
-  - [x] Measure downclocking — dispatch preferring AVX-512 is correct on both generations
-        tested; see
+  - [x] Measure downclocking — dispatch preferring AVX-512 is correct on all three
+        generations tested; see
         [`docs/benchmarks/avx512-downclocking-2026-08-24.md`](docs/benchmarks/avx512-downclocking-2026-08-24.md)
     - [x] Sapphire Rapids: 1.80x AVX2, 90% of the ideal 2x, no downclocking visible
     - [x] **Skylake-SP: 1.83x AVX2** — the part the concern was written about, and the penalty
@@ -115,8 +115,16 @@ Philox counters across SIMD lanes.
           width, and Philox's inner loop is entirely light-tier integer work (`vpmuludq`,
           `vpaddd`, `vpxord`, shuffles) with no floating point at all. Counter-based generators
           sidestep the AVX-512 downclocking trap by construction
-    - [ ] Cascade Lake — untested, sits between the two parts measured, and very unlikely to
-          differ given the light-tier argument. Not blocking
+    - [x] **Cascade Lake: 1.56x AVX2** — measured 2026-08-25, and the prediction above was
+          wrong. It converts 78% of the doubled lane width where the other two convert ~90%,
+          and the shortfall is confined to the 512-bit path: its AVX2 kernel is 2.83x scalar,
+          identical to Skylake-SP's. A light-tier licence drop fits — that instance is
+          nominally 2.80 GHz against Skylake-SP's 2.00 GHz, so it has clock to lose — but GCP
+          exposes no vPMU, `cycles`/`ref-cycles` both report `<not supported>`, and the one
+          measurement that would settle it could not be taken. Recorded as a hypothesis.
+          **Dispatch is unchanged**: 1.56x AVX2 and 4.42x scalar, so preferring AVX-512 is
+          still right on every part measured. See
+          [`docs/benchmarks/avx512-cascade-lake-2026-08-25.md`](docs/benchmarks/avx512-cascade-lake-2026-08-25.md)
   - [x] Unexpected: **the ranking against xoshiro256++ flips between parts.** vphilox is
         fastest in the matrix on Skylake-SP (1.12x ahead) and second on Sapphire Rapids (1.27x
         behind). xoshiro is a latency-bound dependency chain that gains from a newer core;
