@@ -120,6 +120,16 @@ Four measurement rules, each learned by getting them wrong:
 - **A cloud VM is fine for correctness, not for throughput** — steal time is
   invisible. The exception is a dedicated-vCPU instance that still comes in
   under the CV bar, which should be labelled as cloud in the write-up.
+- **A VM cannot control thread placement, even when it reports the topology.**
+  Inside WSL2 the guest publishes a correct-looking sibling map and `taskset`
+  accepts the mask, but the hypervisor schedules vCPUs onto host cores on its
+  own, so the mask fixes virtual CPU IDs and nothing physical. The tell is that
+  two workers on one core's siblings come out *faster* than two on separate
+  cores (0.63 against 0.63-0.77 cycles/byte, and stable against a 20% spread),
+  which is impossible for a port-bound kernel under real co-location. Any
+  placement study needs bare metal. Checking that the PMU works and that SMT is
+  reported is not enough — check that co-location actually costs what #51 says
+  it costs before trusting a placement result.
 - **Report results that cut against the library.** xoshiro256++ leads on three
   of four parts, and on ARM the buffered engine is still behind `std::mt19937`
   even though the NEON kernel now leads it; both are in `docs/benchmarks/` and

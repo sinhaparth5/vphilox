@@ -460,12 +460,27 @@ and whose state can be written on one platform and read on another.
     - [x] `instructions_per_byte` doubles as the self-check: it is a property of
           the kernel, so it must not move with thread count. Measured invariant
           to six digits from 1 to 8 threads, and 0.00% CV across repetitions
-    - [ ] The measurement itself, on the pinned 16-core host from #51. The
+    - [x] **The host requirement is narrower than it looked, and no machine on
+          record meets it.** The study needs SMT *and* a working PMU *and*
+          controllable placement. The 16-core Cascade Lake host from #51 has the
+          cores but GCP exposes no vPMU at all (`perf stat -e cycles` reports
+          `<not supported>`), so it cannot count. The Pi 5 is the only bare-metal
+          machine on record and has a working PMU but no SMT, so it cannot cross
+          the co-location boundary the question is about. A WSL2 laptop with
+          4C/8T and a working PMU was tried and rejected: `taskset` there fixes
+          virtual CPU IDs only, and two workers on one core's siblings measured
+          *faster* than two on separate cores, which is impossible under real
+          co-location. What is needed is bare-metal x86 with SMT
+    - [ ] The measurement itself, on bare-metal x86 with SMT. The
           question is narrow: #51 concluded the hyperthread knee is
           execution-port contention, and the standing alternative is that two
           workers on one core thrash a shared instruction cache, since these
           kernels are large unrolled bodies. MPKI flat across the co-location
-          boundary excludes it; MPKI that climbs with it does not
+          boundary excludes it; MPKI that climbs with it does not. One weak
+          indication from the rejected host: absolute MPKI sat at 0.19-0.26
+          under every placement tried, which is low enough that instruction
+          supply is unlikely to be the mechanism — but placement was not
+          controlled there, so it is a hint, not a result
 - [~] **Cross-platform bit parity** — same key and counter produce identical output on x86-64,
       aarch64, and (if reachable) a cuRAND/GPU reference. This is the reproducibility claim;
       it needs a test, not an assertion.
