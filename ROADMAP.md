@@ -132,14 +132,21 @@ Philox counters across SIMD lanes.
         *is* the SoA-to-AoS transpose, one instruction against AVX2's eight-step unpack and
         AVX-512's two rounds of `shuffle_i32x4`. NEON is genuinely cleaner here than x86
   - [x] Verified on real aarch64 hardware (Raspberry Pi 5, Cortex-A76), not cross-compilation
-  - [~] **1.46x scalar, which is below expectation and leaves vphilox last on ARM**: 2.204
-        cycles/byte against `std::mt19937` 1.956 and PCG64 1.625. The projection of 2.0-2.5x
-        was arithmetically wrong — half of AVX2's 3.30x is ~1.65x, and 1.46x is close to that
-    - [ ] Interleave two independent 4-lane groups (8 blocks/iteration). At 2.20 c/B each
-          round costs ~14 cycles for ~18 NEON ops, i.e. ~1.3 ops/cycle against Cortex-A76's
-          2/cycle peak, so it is latency-bound on the round dependency chain rather than
-          width-bound. A second chain to fill the stalls should reach ~1.6-1.8 c/B, which
-          would clear `std::mt19937` and land level with PCG64
+  - [x] **2.19x scalar after the two-group unroll**: 1.465 cycles/byte, against
+        `std::mt19937` 1.948 and PCG64 1.625 — vphilox leads both on ARM
+        (`docs/benchmarks/neon-unroll-pi-2026-08-25.md`)
+    - [x] The first landing was 1.46x scalar at 2.204 c/B, which left vphilox last on ARM.
+          The projection of 2.0-2.5x was arithmetically wrong — half of AVX2's 3.30x is
+          ~1.65x, and the measured 1.46x was close to that
+    - [x] Interleave two independent 4-lane groups (8 blocks/iteration). The diagnosis held:
+          at 2.20 c/B a round cost ~14 cycles for ~18 NEON ops, ~1.3 ops/cycle against
+          Cortex-A76's 2/cycle peak, so the kernel was latency-bound on the round dependency
+          chain rather than width-bound. Measured 1.465 c/B, a 1.504x speedup and better than
+          the 1.6-1.8 predicted. The scalar, PCG64 and xoshiro256++ control rows did not move
+    - [x] **This is where the NEON optimisation stops.** At 1.465 c/B a round costs ~9.4
+          cycles for the same ~18 ops, i.e. **1.92 ops/cycle against a 2/cycle peak**. The
+          kernel is now issue-bound, not latency-bound; a third group has ~4% of headroom to
+          chase and would cost register pressure
 - [x] Attach per-kernel ISA flags to the kernel TUs only (`VPHILOX_FLAGS_AVX2`/`_AVX512` are staged in CMake), or use `[[gnu::target]]` — never `-march=native` on the whole build
   - [x] AVX2 uses `[[gnu::target("avx2")]]` via `VPHILOX_TARGET`, which is what a header-only
         kernel needs; the build stays free of ISA flags and still starts on a non-AVX2 CPU
@@ -158,10 +165,15 @@ Philox counters across SIMD lanes.
   - [x] NEON green on Cortex-A76, first run, including tails and chunking
 
 **Deliverable:** AVX2/AVX-512/NEON kernels beating `std::mt19937` single-threaded.
-All three exist and are verified on real hardware. Against `std::mt19937` on the raw
-kernel: AVX-512 **4.63x** (Skylake-SP) and **2.64x** (Sapphire Rapids), AVX2 **1.41x
-buffered / 2.42x raw** (Coffee Lake). NEON is the exception at **0.89x** — it is the one
-target where the deliverable is not met, and the unroll noted above is what would meet it.
+**Met on all three targets.** Against `std::mt19937` on the raw kernel: AVX-512 **4.63x**
+(Skylake-SP) and **2.64x** (Sapphire Rapids), AVX2 **1.41x buffered / 2.42x raw** (Coffee
+Lake), NEON **1.33x** (Cortex-A76). NEON was the one target that missed, at 0.89x on its
+first landing; the two-group unroll closed it and also put vphilox 1.11x ahead of PCG64.
+
+One caveat carried into Phase 4: on ARM the *buffered* engine is still 0.87x
+`std::mt19937` (2.242 c/B). The kernel got 1.50x faster and the refill drain did not, so
+the copy now takes 53% of that path, up from 35%. Callers get the ARM win through
+`generate_n`/`generate`; closing it for `operator()` is issues #36 and #37.
 
 ---
 

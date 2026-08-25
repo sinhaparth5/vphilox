@@ -88,9 +88,9 @@ Four measurement rules, each learned by getting them wrong:
   invisible. The exception is a dedicated-vCPU instance that still comes in
   under the CV bar, which should be labelled as cloud in the write-up.
 - **Report results that cut against the library.** xoshiro256++ leads on three
-  of four parts and NEON leaves vphilox behind `std::mt19937` on ARM; both are
-  in `docs/benchmarks/` and the roadmap because omitting them would be the
-  problem, not the numbers.
+  of four parts, and on ARM the buffered engine is still behind `std::mt19937`
+  even though the NEON kernel now leads it; both are in `docs/benchmarks/` and
+  the roadmap because omitting them would be the problem, not the numbers.
 
 `VPHILOX_FETCH_DEPS=OFF` forces an offline build using only installed
 GoogleTest/Benchmark.
@@ -255,14 +255,17 @@ to make it pass.
 
 ## Current state
 
-Phase 1 (scalar reference, KATs, baseline benchmarks) is done. Phase 2 is
-substantially done: **all three SIMD kernels exist and are verified on real
-hardware.** AVX2 is 3.3x scalar (`docs/benchmarks/avx2-2026-08-23.md`),
-AVX-512 is 4.1x scalar and 1.80-1.83x AVX2 with no downclocking penalty on
-either Sapphire Rapids or Skylake-SP
-(`docs/benchmarks/avx512-downclocking-2026-08-24.md`), and NEON is 1.46x scalar
-on a Cortex-A76 — below the ~1.65x half-of-AVX2 expectation, and the one target
-where vphilox still loses to `std::mt19937`. The engine also has a portable
+Phase 1 (scalar reference, KATs, baseline benchmarks) is done. Phase 2 has met
+its deliverable: **all three SIMD kernels exist, are verified on real hardware,
+and each beats `std::mt19937` on the raw kernel.** AVX2 is 3.3x scalar
+(`docs/benchmarks/avx2-2026-08-23.md`), AVX-512 is 4.1x scalar and 1.80-1.83x
+AVX2 with no downclocking penalty on either Sapphire Rapids or Skylake-SP
+(`docs/benchmarks/avx512-downclocking-2026-08-24.md`), and NEON is 2.19x scalar
+on a Cortex-A76 after the two-group unroll
+(`docs/benchmarks/neon-unroll-pi-2026-08-25.md`) — 1.33x `std::mt19937` and
+1.11x PCG64. The one gap left there is the *buffered* engine on ARM, still
+0.87x `std::mt19937` because the refill drain now costs more than the kernel
+does; `generate_n` gets the full win. The engine also has a portable
 serialized state (`include/vphilox/serialize.hpp`), which is the problem the
 library was built around. Phase 4
 statistical validation is done and does not need re-running: PractRand clean to
