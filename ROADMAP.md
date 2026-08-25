@@ -20,7 +20,7 @@ particular) is a comparison worth *reporting* honestly, not a target to chase.
 Derived from `docs/VPhilox Development Phases.md` and
 `docs/Vector Philox Development Strategy.md`.
 
-**Status:** Phases 0-3 complete; Phase 4 complete except OpenMP and libpfm.
+**Status:** Phases 0-3 complete; Phase 4 complete except libpfm.
 Current version
 `2026.08.0` (see [VERSIONING.md](VERSIONING.md)).
 
@@ -421,7 +421,20 @@ and whose state can be written on one platform and read on another.
           recover the real core clock: 3.371 → 3.366 GHz from 1 to 16 active cores, and
           identical under scalar, AVX2 and AVX-512 load. That also settles #27's open
           hypothesis — Philox's AVX-512 kernel triggers no measurable licence drop
-  - [ ] OpenMP variant alongside the `std::thread` one
+  - [x] OpenMP variant alongside the `std::thread` one — `BM_thread_scaling_omp`
+        and `BM_thread_scaling_omp_bulk` run the identical job over the identical
+        buffers and disjoint counter ranges, so the only variable is the construct
+        that starts the workers. Both runtimes get persistent threads (libgomp keeps
+        its team alive between parallel regions exactly as the pool does), which
+        makes the comparison the cost of the parallel construct rather than of
+        spawning threads. The point is to show the scaling result belongs to the
+        generator and not to this project's own pool. Registered only when CMake
+        finds OpenMP; two guards keep a bad row from being mistaken for a good one
+        — `omp_set_dynamic(0)` plus a team-size check, because a short team would
+        otherwise leave `bytes` counting work nobody did, and a per-slot thread
+        identity check, because a `perf_event_open` counter measures the thread
+        that opened it and OpenMP does not promise a stable thread-number-to-thread
+        mapping across regions. Both report a skipped row rather than a number
   - [ ] Instruction-cache miss rates via libpfm
 - [~] **Cross-platform bit parity** — same key and counter produce identical output on x86-64,
       aarch64, and (if reachable) a cuRAND/GPU reference. This is the reproducibility claim;

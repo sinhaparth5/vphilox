@@ -25,7 +25,7 @@ endif()
 # bench_engines  - vphilox vs mt19937 vs scalar Philox (Phase 1 baseline,
 #                  Phase 4 comparison matrix)
 # bench_float    - mantissa injection vs uniform_real_distribution (Phase 3)
-# bench_scaling  - OpenMP thread scaling, 1..32 threads (Phase 4)
+# bench_scaling  - thread scaling, 1..32 threads, std::thread and OpenMP (Phase 4)
 set(VPHILOX_BENCH_SOURCES
     bench_engines.cpp
     bench_float.cpp
