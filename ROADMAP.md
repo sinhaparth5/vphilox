@@ -26,8 +26,8 @@ that no earlier host could — and the cuRAND cross-check is done without needin
 a GPU at all. **Phase 5 is under way:** the paper in `paper/` is a complete
 draft with every Phase 4 result folded in, and the changelog covers Phases 2
 through 4. What is left needs things this repository cannot produce on its own:
-the XGBoost thread URL, an affiliation, a tag, a Zenodo DOI, a TechRxiv
-preprint, an arXiv endorsement, and vcpkg/Conan packaging. The route through
+a tag, a Zenodo DOI, a TechRxiv preprint, an arXiv endorsement, and vcpkg/Conan
+packaging. The XGBoost citation and the affiliation are both filled. The route through
 those services, and the reason for their order, is in
 [`docs/publishing-guide.md`](docs/publishing-guide.md).
 
@@ -588,8 +588,7 @@ and whose state can be written on one platform and read on another.
       §1 quotes the review comment on dmlc/xgboost#12485 verbatim, discloses in a
       footnote that this author submitted the proposal it declined, and cites
       dmlc/xgboost#12459 as an unrelated user's report of the same failure in the field.
-      One gap is a red placeholder rather than a `\todo`: the affiliation line in the
-      author block.
+      The affiliation and ORCID are filled in the author block and `CITATION.cff`.
 
       All four Phase 4 results are now folded in. §8.3 reports the instruction-supply
       measurement (#53), §8.4 the OpenMP runtime contrast (#52), §9.1 the cuRAND
