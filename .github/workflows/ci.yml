@@ -160,6 +160,84 @@ jobs:
           # SVGs it does check, and no two rasterisers agree byte-for-byte.
           python3 scripts/benchmarks/publish_results.py --check
 
+  paper:
+    name: paper builds
+    runs-on: ubuntu-latest
+    # Only when the paper or the figures it pulls in actually changed. A TeX
+    # install is minutes of runner time and the other jobs have nothing to do
+    # with it.
+    steps:
+      # Full history: the change check below needs a merge base, which a
+      # shallow clone does not have.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Has the paper changed?
+        id: changed
+        run: |
+          # Compare against the PR base, or against the previous commit on a
+          # push. If neither is available, build it rather than skip it.
+          base="${{ github.event.pull_request.base.sha }}"
+          if [ -z "$base" ]; then
+            base="$(git rev-parse --verify --quiet HEAD^ || true)"
+          fi
+          if [ -z "$base" ]; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+            echo "no base to compare against; building"
+            exit 0
+          fi
+          if git diff --name-only "$base" HEAD \
+               | grep -qE '^(paper/|docs/benchmarks/plots/)'; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "build=false" >> "$GITHUB_OUTPUT"
+            echo "paper untouched; skipping the TeX install"
+          fi
+
+      # IEEEtran is in texlive-publishers, algorithm2e in texlive-science, and
+      # adjustbox / cleveref / todonotes in texlive-latex-extra. Naming them
+      # rather than installing texlive-full keeps this to a few minutes.
+      - name: Install TeX
+        if: steps.changed.outputs.build == 'true'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            texlive-latex-base texlive-latex-recommended texlive-latex-extra \
+            texlive-publishers texlive-science texlive-fonts-recommended
+
+      # --strict, because the paper's quality bar is zero overfull boxes and
+      # zero undefined references, and a draft that quietly loses a \cref
+      # target is worse than one that fails here.
+      - name: Build the paper
+        if: steps.changed.outputs.build == 'true'
+        run: paper/build.sh --strict
+
+      # The tracked paper/vphilox.pdf can go stale, because nothing forces a
+      # rebuild when the source changes and most contributors have no TeX
+      # install. This artifact is the current PDF regardless.
+      - name: Upload the built PDF
+        if: steps.changed.outputs.build == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: vphilox-paper
+          path: paper/vphilox.pdf
+
+      # Not an error: the tracked PDF is a convenience copy for readers with no
+      # TeX install, and two TeX distributions do not agree byte for byte, so
+      # comparing this build against the tracked file would warn on every run
+      # and mean nothing. Comparing commit times does mean something -- it says
+      # the source was committed after the PDF was, which is exactly staleness.
+      - name: Note whether the tracked PDF is behind the source
+        run: |
+          tex="$(git log -1 --format=%ct -- paper/vphilox.tex)"
+          pdf="$(git log -1 --format=%ct -- paper/vphilox.pdf)"
+          if [ -n "$tex" ] && [ -n "$pdf" ] && [ "$tex" -gt "$pdf" ]; then
+            echo "::warning file=paper/vphilox.pdf::vphilox.tex was committed after vphilox.pdf, so the tracked PDF is behind the source. Run paper/build.sh and commit it, or download the vphilox-paper artifact from this run."
+          else
+            echo "tracked PDF is no older than the source"
+          fi
+
   # TODO(phase-4): a scheduled job running PractRand for a few hours on the
   # nightly build. Too slow for per-PR CI, but a regression in the statistical
   # properties needs to be caught by something.

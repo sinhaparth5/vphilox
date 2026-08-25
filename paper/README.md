@@ -12,13 +12,23 @@ later is a preamble change plus `\bibliography{refs}`.
 
 ```bash
 ./build.sh                  # -> vphilox.pdf
+./build.sh --strict         # the same, but exit non-zero on overfull boxes
+                            # or undefined references. This is what CI runs.
 ```
 
 > **The tracked `vphilox.pdf` is behind `vphilox.tex`.** The Phase 4 results
 > were folded into the source on a machine with no TeX installed, so the PDF
 > could not be regenerated. Run `./build.sh` on a host with `pdflatex` and
-> commit the result before circulating the PDF or submitting anywhere. Nothing
-> in CI catches this, because CI does not build the paper.
+> commit the result before circulating the PDF or submitting anywhere.
+
+CI's `paper builds` job compiles the paper whenever anything under `paper/` or
+`docs/benchmarks/plots/` changes, so the source is checked even by contributors
+with no TeX install, and it uploads the resulting PDF as a run artifact named
+`vphilox-paper`. **It cannot check the tracked PDF the way `--check` checks the
+figures**, because two TeX distributions do not produce identical bytes; instead
+it warns when `vphilox.tex` was committed more recently than `vphilox.pdf`,
+which is exactly the staleness that matters. Download the artifact if you want
+the current PDF without installing TeX.
 
 `vphilox.pdf` is **tracked**, so the paper can be read without a TeX install.
 That only works if a rebuild with unchanged sources produces an unchanged file,
