@@ -104,10 +104,9 @@ The `\todo` markers in the source are the list, and there is one left: the
 **Zenodo DOI**, in the Availability section and in `CITATION.cff`. It cannot be
 filled before the release exists, so it is not a writing task.
 
-Plus one that is not a `\todo` marker because it is a red placeholder in the
-author block: the **affiliation line** on the title page. The publishing guide
-suggests `Independent Researcher, City, Country` for an unaffiliated submission.
-An ORCID belongs there too, and Zenodo asks for one separately.
+The affiliation and ORCID are filled: *Independent researcher, Oxford, United
+Kingdom*, ORCID `0009-0002-3120-9301`, in both the author block and
+`CITATION.cff`. Nothing red is left on the title page.
 
 The XGBoost citation, which used to be the item blocking publication, is filled.
 Section 1 quotes the review comment on
