@@ -25,6 +25,14 @@
 // producing twice the output. A rise is the knee, and it is visible without
 // having to compare rows by eye.
 //
+// Two threading runtimes are measured, not one. The std::thread pool below is
+// the library's own harness; the OpenMP variant is what a caller is far more
+// likely to actually write, and #52 exists to check that the scaling result is
+// a property of the generator rather than of this file's pool. Both are given
+// persistent workers -- libgomp keeps its team alive between parallel regions
+// exactly as the pool does -- so the comparison is the cost of the parallel
+// construct, not of spawning threads.
+//
 // Workers live in a persistent pool rather than being spawned per iteration.
 // With 256 KiB per worker a spawn-and-join costs a large fraction of the fill
 // itself, which landed in `bytes_per_second` but not in `cycles_per_byte`
@@ -51,6 +59,7 @@
 
 #include <benchmark/benchmark.h>
 
+#include <atomic>
 #include <condition_variable>
 #include <cstdint>
 #include <functional>
@@ -148,11 +157,13 @@ private:
     bool stop_{false};
 };
 
-;
-
 enum class fill_mode { per_call, bulk };
 
-template <fill_mode Mode>
+/// Which threading runtime drives the workers. The job they run is identical,
+/// so a difference between the two columns is the runtime's, not the kernel's.
+enum class runtime_kind { std_thread, openmp };
+
+template <fill_mode Mode, runtime_kind Runtime>
 void run_scaling(benchmark::State& state) {
     const auto threads = static_cast<std::size_t>(state.range(0));
     const auto words   = static_cast<std::size_t>(state.range(1));
@@ -172,10 +183,22 @@ void run_scaling(benchmark::State& state) {
     // the main thread and report nothing. Each accumulates across iterations.
     std::vector<std::unique_ptr<cycle_counter>> counters(threads);
 
-    worker_pool pool(threads);
+    // ...which also means slot t only stays meaningful while slot t keeps the
+    // same OS thread. The pool guarantees that by construction; OpenMP does
+    // not promise a stable thread-number-to-thread mapping across parallel
+    // regions, and if libgomp ever stopped providing one the counters would
+    // silently measure the wrong threads rather than fail. Record the owner
+    // and check it instead of trusting the runtime.
+    std::vector<std::thread::id> owners(threads);
+    std::atomic<bool> migrated{false};
 
     const std::function<void(std::size_t)> job = [&](std::size_t t) {
-        if (!counters[t]) counters[t] = std::make_unique<cycle_counter>();
+        if (!counters[t]) {
+            counters[t] = std::make_unique<cycle_counter>();
+            owners[t]   = std::this_thread::get_id();
+        } else if (owners[t] != std::this_thread::get_id()) {
+            migrated.store(true, std::memory_order_relaxed);
+        }
         auto& cycles = *counters[t];
 
         const auto start = vphilox::counter_advanced(
@@ -195,9 +218,43 @@ void run_scaling(benchmark::State& state) {
         benchmark::DoNotOptimize(buf.data());
     };
 
-    for (auto _ : state) {
-        pool.run(job);
-        benchmark::ClobberMemory();
+    if constexpr (Runtime == runtime_kind::openmp) {
+#if VPHILOX_HAVE_OPENMP
+        // Dynamic adjustment lets the runtime hand back a smaller team than
+        // asked for, which would leave `bytes` below counting work nobody did.
+        // Turn it off, then confirm -- a short team is a skipped row, not a
+        // quietly optimistic number.
+        omp_set_dynamic(0);
+        int team = 0;
+#pragma omp parallel num_threads(static_cast<int>(threads))
+        {
+#pragma omp single
+            team = omp_get_num_threads();
+        }
+        if (static_cast<std::size_t>(team) != threads) {
+            state.SkipWithError("OpenMP gave a smaller team than requested");
+            return;
+        }
+
+        for (auto _ : state) {
+#pragma omp parallel num_threads(static_cast<int>(threads))
+            {
+                job(static_cast<std::size_t>(omp_get_thread_num()));
+            }
+            benchmark::ClobberMemory();
+        }
+#endif
+    } else {
+        worker_pool pool(threads);
+        for (auto _ : state) {
+            pool.run(job);
+            benchmark::ClobberMemory();
+        }
+    }
+
+    if (migrated.load(std::memory_order_relaxed)) {
+        state.SkipWithError("worker threads migrated between slots; cycle counts unreliable");
+        return;
     }
 
     const auto bytes =
@@ -210,6 +267,7 @@ void run_scaling(benchmark::State& state) {
     }
 
     std::string label = vphilox::backend_name(vphilox::engine::which_backend());
+    label += Runtime == runtime_kind::openmp ? ", runtime=openmp" : ", runtime=std::thread";
     if (total_cycles > 0 && bytes > 0) {
         // Aggregate: all threads' cycles over all threads' bytes. Flat across
         // the thread axis means linear scaling.
@@ -224,15 +282,28 @@ void run_scaling(benchmark::State& state) {
 /// The buffered `operator()` path -- one word at a time, through the refill
 /// buffer.
 void BM_thread_scaling(benchmark::State& state) {
-    run_scaling<fill_mode::per_call>(state);
+    run_scaling<fill_mode::per_call, runtime_kind::std_thread>(state);
 }
 
 /// The bulk path. On a single thread this is worth 25% on ARM and 42% on AVX2
 /// (#37); the open question is whether that advantage survives contention or
 /// whether the memory system takes it back.
 void BM_thread_scaling_bulk(benchmark::State& state) {
-    run_scaling<fill_mode::bulk>(state);
+    run_scaling<fill_mode::bulk, runtime_kind::std_thread>(state);
 }
+
+#if VPHILOX_HAVE_OPENMP
+/// The same two paths under OpenMP (#52). Same buffers, same disjoint counter
+/// ranges, same aggregate metric -- only the construct that starts the workers
+/// differs, so these rows are directly comparable to the two above.
+void BM_thread_scaling_omp(benchmark::State& state) {
+    run_scaling<fill_mode::per_call, runtime_kind::openmp>(state);
+}
+
+void BM_thread_scaling_omp_bulk(benchmark::State& state) {
+    run_scaling<fill_mode::bulk, runtime_kind::openmp>(state);
+}
+#endif
 
 // 256 KiB per worker stays L2-resident; 4 MiB per worker does not.
 constexpr std::int64_t kL2Words   = 1 << 16;
@@ -248,9 +319,20 @@ BENCHMARK(BM_thread_scaling_bulk)
     ->UseRealTime()
     ->Unit(benchmark::kMillisecond);
 
-// TODO(phase-4): OpenMP variant to compare against std::thread (#52), and
-// instruction-cache miss rates via libpfm (#53), which Google Benchmark can
-// collect with --benchmark_perf_counters.
+#if VPHILOX_HAVE_OPENMP
+BENCHMARK(BM_thread_scaling_omp)
+    ->ArgsProduct({{1, 2, 4, 8, 16, 32}, {kL2Words, kDramWords}})
+    ->UseRealTime()
+    ->Unit(benchmark::kMillisecond);
+
+BENCHMARK(BM_thread_scaling_omp_bulk)
+    ->ArgsProduct({{1, 2, 4, 8, 16, 32}, {kL2Words, kDramWords}})
+    ->UseRealTime()
+    ->Unit(benchmark::kMillisecond);
+#endif
+
+// TODO(phase-4): instruction-cache miss rates via libpfm (#53), which Google
+// Benchmark can collect with --benchmark_perf_counters.
 
 }  // namespace
 
