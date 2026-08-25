@@ -11,8 +11,14 @@ later is a preamble change plus `\bibliography{refs}`.
 ## Build
 
 ```bash
-./build.sh                  # -> vphilox.pdf, 15 pages
+./build.sh                  # -> vphilox.pdf
 ```
+
+> **The tracked `vphilox.pdf` is behind `vphilox.tex`.** The Phase 4 results
+> were folded into the source on a machine with no TeX installed, so the PDF
+> could not be regenerated. Run `./build.sh` on a host with `pdflatex` and
+> commit the result before circulating the PDF or submitting anywhere. Nothing
+> in CI catches this, because CI does not build the paper.
 
 `vphilox.pdf` is **tracked**, so the paper can be read without a TeX install.
 That only works if a rebuild with unchanged sources produces an unchanged file,
@@ -32,51 +38,67 @@ stale figure fails loudly instead of ending up in the submission. `figures/` is
 gitignored because those copies are generated; the tracked originals live under
 `docs/`.
 
-Builds clean: 15 pages, zero errors, zero overfull boxes, zero undefined
-references. `acmart` is not installed, which is the other half of why this is
-`article` (see below).
+The last build on a TeX host produced 15 pages with zero errors, zero overfull
+boxes and zero undefined references. The Phase 4 additions since then have not
+been through `pdflatex` (see the note above), so the page count will have moved
+and the two new tables have not been seen in a two-column measure.
 
 ## Where the numbers come from
 
 Every figure and every table maps onto an archived run. Nothing in the draft
 was typed from memory.
 
+Rows are keyed by `\label` rather than by number, because the numbers move
+whenever a table is added.
+
 | Paper | Source |
 |---|---|
-| Table 2 (relative matrix) | `docs/benchmarks/raw/*-matrix.csv`, five hosts |
-| Table 3 (AVX-512 vs AVX2) | `docs/benchmarks/avx512-downclocking-2026-08-24.md` |
-| Figures 1, 2, 5 | `plots/matrix-relative`, `generate-n-sweep`, `float-conversion-widths` |
-| Figure 3 (thread scaling) | `docs/benchmarks/raw/pi-arm-scaling.csv` |
-| Figure 4 (placement) | `docs/benchmarks/raw/cascadelake-32v-placement-*.csv` |
-| Section 9 (statistics) | `docs/statistical-validation.md`, `results/practrand/`, `results/testu01/` |
-| Section 4.3 (NEON unroll) | `docs/benchmarks/neon-unroll-pi-2026-08-25.md` |
-| Section 8.2 (placement) | `docs/benchmarks/scaling-cascade-lake-2026-08-25.md` |
+| `tab:machines` | `docs/benchmarks/raw/machines.csv` |
+| `tab:matrix` (relative matrix) | `docs/benchmarks/raw/*-matrix.csv`, five hosts |
+| `tab:avx512` (AVX-512 vs AVX2) | `docs/benchmarks/avx512-downclocking-2026-08-24.md` |
+| `tab:icache` (instruction supply) | `docs/benchmarks/icache-placement-tigerlake-2026-08-25.md` |
+| `tab:runtimes` (threading runtimes) | `docs/benchmarks/openmp-runtime-tigerlake-2026-08-25.md` |
+| `fig:matrix`, `fig:sweep`, `fig:floatwidths` | `plots/matrix-relative`, `generate-n-sweep`, `float-conversion-widths` |
+| `fig:scaling` (thread scaling) | `docs/benchmarks/raw/pi-arm-scaling.csv` |
+| `fig:placement` | `docs/benchmarks/raw/cascadelake-32v-placement-*.csv` |
+| `sec:neon` (NEON unroll) | `docs/benchmarks/neon-unroll-pi-2026-08-25.md` |
+| `sec:placement` | `docs/benchmarks/scaling-cascade-lake-2026-08-25.md` |
+| `sec:stat` (statistics) | `docs/statistical-validation.md`, `results/practrand/`, `results/testu01/` |
+| `sec:curand` | `docs/curand-parity.md`, `results/curand/` |
+
+The two new tables are tables and not figures on purpose. Both are two-arm
+contrasts of four numbers, which a plot makes harder to read rather than easier,
+and adding them to `publish_results.py` would put two more byte-reproducible
+SVG/PDF pairs under CI's `--check` for no gain in legibility.
 
 ## What is still open
 
-The `\todo` markers in the source are the list, and there are six:
+The `\todo` markers in the source are the list, and there are two left:
 
-1. **Affiliation line** on the title page.
-2. **The XGBoost citation.** The paper quotes a tenfold-slowdown figure from an
+1. **The XGBoost citation.** The paper quotes a tenfold-slowdown figure from an
    upstream discussion and answers it with measurements. The thread URL and an
    access date are needed before that section can go out; paraphrasing the
    quoted number without the source is not acceptable in a paper whose main
-   evaluation exists to rebut it.
-3. **PractRand release** and its URL.
-4. **cuRAND toolkit version**, once the GPU parity reference (#54) is measured.
-5. **Zenodo DOI**, in the Availability section and in `CITATION.cff`.
+   evaluation exists to rebut it. **This is the one that blocks publication.**
+2. **Zenodo DOI**, in the Availability section and in `CITATION.cff`.
 
-Two measurements named as pending in Section 10 are genuinely pending, not
-missing text: the instruction-cache placement study (#53) needs a bare-metal
-multi-core host, and the cuRAND parity reference (#54) needs an NVIDIA device.
-Neither is claimed as a result.
+Plus one that is not a `\todo` marker because it is a red placeholder in the
+author block: the **affiliation line** on the title page.
+
+Three earlier entries are closed. The PractRand release is pinned to
+`PractRand-pre0.95` with the SourceForge project URL; the cuRAND reference is
+pinned to cuRAND 10.4.1 from CUDA Toolkit 13.1, which is what
+`results/curand/curand-parity-tigerlake.txt` records; and the two measurements
+Section 10 previously listed as pending hardware have both been made and are now
+Sections 8.3, 8.4 and 9.1.
 
 ## Template
 
-The roadmap names the ACM template. This draft uses `article` with the standard
-preamble instead, because `acmart` is not installed here. Nothing in the body
-depends on `article`: the swap is the preamble, the title block and the
-bibliography style. `sudo apt install texlive-publishers` provides `acmart`.
+This draft uses `IEEEtran` in the Computer Society journal format, which is what
+TPDS, TC and TSE use. A conference submission changes the class options to
+`[conference]` and drops the `\IEEEcompsoc*` commands in the author block;
+nothing in the body depends on the class. `texlive-publishers` provides
+`IEEEtran`.
 
 ## House rules the prose follows
 

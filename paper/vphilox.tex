@@ -520,28 +520,46 @@ anything.
 
 \subsection{Machines}
 
-\Cref{tab:machines} lists the five hosts. The two Cascade Lake entries are the
+\Cref{tab:machines} lists the six hosts. The two Cascade Lake entries are the
 same processor, family 6 model 85 stepping 7, in a four-vCPU slice of a shared
 socket and on a whole two-socket host. They are reported as separate machines
 because cycles per byte does not transfer between hosts and these two behave as
 two hosts.
 
+Five hosts carry the throughput results in \cref{sec:single}. The sixth, a Tiger
+Lake laptop, carries only the two studies that need physical thread placement
+rather than absolute throughput, for the reason stated in the remark above: it
+is the one multi-core host on record that is both bare metal and
+simultaneously exposes a working performance monitoring unit. Its own throughput
+matrix is archived as harness validation and is quoted nowhere, because a
+four-core machine running a full desktop cannot hold the variation bar across a
+whole sweep.
+
 \begin{table*}[t]
 \centering
-\caption{Measurement hosts. The Raspberry Pi 5 is the only bare-metal
-machine.}\label{tab:machines}
-\begin{tabularx}{\linewidth}{lXrl}
+\caption{Measurement hosts. Two are bare metal; the remaining four are cloud
+instances with dedicated virtual CPUs.}\label{tab:machines}
+\footnotesize
+\begin{tabularx}{\linewidth}{lXrll}
 \toprule
-Label & Processor & MHz & Backend \\
+Label & Processor & MHz & Backend & Used for \\
 \midrule
-Pi 5 / NEON       & Raspberry Pi 5, 4-core Cortex-A76, bare metal & 2400 & \code{neon} \\
-Sapphire Rapids   & Intel Xeon Platinum 8481C, dedicated vCPU     & 2700 & \code{avx512} \\
-Skylake-SP        & Intel Xeon, dedicated vCPU                    & 2000 & \code{avx512} \\
-Cascade Lake 4v   & Intel Xeon, 4 dedicated vCPU                  & 2800 & \code{avx512} \\
-Cascade Lake 32v  & Intel Xeon, whole 2-socket host, 16 cores     & 2800 & \code{avx512} \\
+Pi 5 / NEON       & Raspberry Pi 5, 4-core Cortex-A76, bare metal & 2400 & \code{neon}   & throughput, scaling \\
+Sapphire Rapids   & Intel Xeon Platinum 8481C, dedicated vCPU     & 2700 & \code{avx512} & throughput \\
+Skylake-SP        & Intel Xeon, dedicated vCPU                    & 2000 & \code{avx512} & throughput \\
+Cascade Lake 4v   & Intel Xeon, 4 dedicated vCPU                  & 2800 & \code{avx512} & throughput \\
+Cascade Lake 32v  & Intel Xeon, whole 2-socket host, 16 cores     & 2800 & \code{avx512} & throughput, placement \\
+Tiger Lake        & Intel Core i5-11300H, 4 cores $\times$ 2 threads, bare metal, no turbo & 3100 & \code{avx512} & placement mechanism \\
 \bottomrule
 \end{tabularx}
 \end{table*}
+
+Turbo is disabled on the Tiger Lake host so that reference cycles and core
+cycles coincide: the timestamp counter ticks at that part's base clock, so with
+boost off cycles per byte is a true core-cycle count and a moving turbo ceiling
+cannot land in the column. The cost is that its absolute numbers are
+approximately $1.4\times$ the same machine's boosted numbers and are comparable
+only within that host, which is all either study asks of them.
 
 \subsection{Reproducibility of the figures}
 
@@ -741,6 +759,116 @@ Memory enters as a second and later limit, and it tracks footprint per socket
 against the 33~MiB last-level cache rather than tracking thread count. Frequency
 is flat across the whole range.
 
+\subsection{Instruction supply is not part of the penalty}\label{sec:icache}
+
+Sibling threads share one first-level instruction cache as well as the
+execution ports, which makes instruction supply a competing explanation for the
+same penalty. \Cref{tab:icache} separates them. Four workers run the identical
+job twice, changing only placement, with retired-instruction and level-one
+instruction-cache read-miss counters attached to each worker.
+
+\begin{table}[t]
+\centering
+\caption{Four workers under two placements, Tiger Lake, turbo disabled.
+Instruction supply improves where the penalty appears.}\label{tab:icache}
+\footnotesize
+\begin{tabular}{lrrr}
+\toprule
+Placement & Cyc./byte & i\$ MPKI & Instr./byte \\
+\midrule
+One per physical core & 0.5160 & 0.2108 & 0.958554 \\
+Packed onto siblings  & 0.8204 & 0.1356 & 0.958554 \\
+\midrule
+Change & $+59.0\%$ & $-35.7\%$ & $\pm 0.000000$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Co-location costs 59\% more cycles per byte while instruction-cache misses per
+thousand instructions \emph{fall} by 36\%. Instruction supply moves in the
+opposite direction to the penalty, which excludes it as the mechanism and leaves
+port contention standing. The direction is not an anomaly: both siblings execute
+the same kernel over disjoint counter ranges, so sharing one instruction cache
+between two threads running the same loop is constructive, and the second thread
+finds the code already resident. A workload whose threads ran different code
+would not get that for free.
+
+The third column is the check that the counters were attached to the correct
+threads. Instructions per byte is a property of the kernel and cannot move with
+placement, and it reads identically to six decimal places in both arms at zero
+variation across fifteen repetitions. This matters because the obvious
+instrumentation is wrong here: a benchmark framework that starts and stops
+counters on the thread running the benchmark loop would have counted the
+dispatcher, which blocks on a condition variable while the workers execute every
+instruction. Misses per thousand instructions is also a per-instruction ratio
+and therefore clock-independent, and it agrees to about 1\% between the
+turbo-enabled and turbo-disabled runs, across a 42\% change in clock.
+
+Two further guards are worth stating because the measurement fails silently
+without them. The study refuses to run on a host where two workers on one core's
+siblings do not cost at least 15\% more than two workers on separate cores,
+since the absence of that penalty means the affinity mask never moved anything;
+this host cleared the gate at 35.6\% to 40.6\% across three invocations, and
+that figure agrees with the 35\% measured on the unrelated Cascade Lake part.
+The co-located arm's variation, 2.22\%, exceeds this paper's 1\% bar and is
+reported rather than hidden. Its median reproduces to 0.04\% across two
+independent runs, and the finding is a direction rather than a threshold, so a
+2\% error bar does not reach a 36\% effect.
+
+\subsection{The scaling result is the generator, not the harness}\label{sec:runtime}
+
+Every number above is measured through one persistent worker pool built on
+\code{std::thread}, and a benchmark cannot distinguish a property of the
+generator from a property of its own scaffolding. Running the identical job
+under a second, independent threading runtime does distinguish them.
+\Cref{tab:runtimes} repeats the sweep under OpenMP, with persistent teams on
+both sides so that neither column carries thread creation cost, and normalises
+each runtime to its own single-worker result.
+
+\begin{table}[t]
+\centering
+\caption{Aggregate cost per byte by threading runtime, Tiger Lake, 256~KiB per
+worker. The $\times$ columns are normalised within each
+runtime.}\label{tab:runtimes}
+\footnotesize
+\begin{tabular}{rrrrr}
+\toprule
+Workers & \code{std::thread} & $\times$ & OpenMP & $\times$ \\
+\midrule
+1 & 0.5084 & 1.000 & 0.5086 & 1.000 \\
+2 & 0.5165 & 1.016 & 0.5086 & 1.000 \\
+4 & 0.6205 & 1.220 & 0.5102 & 1.003 \\
+8 & 0.8076 & 1.588 & 0.9126 & 1.794 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The two runtimes are indistinguishable while cores are free: 0.5084 against
+0.5086 at one worker, with both coefficients of variation at or below 0.14\%.
+At one worker per physical core OpenMP is flat to 0.3\%, which reproduces the
+sixteen-core result of \cref{sec:placement} on a completely different part and
+a different runtime. At eight workers both runtimes show the hyperthread knee,
+so the knee belongs to the hardware rather than to either implementation.
+
+The one row where they disagree is four workers, and the deviation belongs to
+the pool rather than to the generator. On the OpenMP path the team master is
+itself a worker, so four workers are four runnable threads on four cores. On the
+pool path the dispatcher is a separate thread that must be woken once per
+iteration to collect results, so four workers are five threads on four cores.
+That costs nothing until the workers have claimed every core, which is why the
+pool measures flat on the sixteen-core host and flat here at one and two
+workers. This explanation is an inference consistent with the data rather than a
+separate measurement, and the direct test would need a three-worker row that the
+benchmark does not register.
+
+A second-order result falls out of the same sweep and is recorded because it is
+actionable. OpenMP spins before sleeping at the end of a parallel region.
+Forcing it to sleep instead costs 9.0\% at one worker per physical core, where
+the spin is free, and saves 4.0\% at two workers per core, where every spin
+steals issue capacity from a sibling that is still working. Callers who run one
+worker per physical core should leave the default alone; callers who
+oversubscribe to every hardware thread should measure a passive wait policy.
+
 The practical guidance that follows is short: size a Philox thread pool by
 physical cores, not by the value \code{std::thread::hardware\_concurrency}
 returns.
@@ -811,6 +939,53 @@ confirms the tests are not redundant: a stuck low mantissa bit passes
 chi-squared and Kolmogorov-Smirnov and is caught only by the exact round trip,
 since halving the grid resolution leaves values uniform at any coarser scale.
 
+\subsection{Agreement with an independent implementation}\label{sec:curand}
+
+Everything above establishes that vphilox agrees with itself across four kernels
+and two architectures, and that the core function reproduces the published test
+vectors. Neither addresses the layer at which Philox implementations actually
+diverge. The round function is fixed by the specification; the mapping from a
+user-facing seed onto a counter and a key is not, and it is where two conforming
+implementations produce different streams from the same arguments.
+
+We therefore cross-check against NVIDIA's cuRAND~\cite{curand}, which seeds with
+a triple of seed, subsequence and offset where vphilox seeds with a key and a
+counter. Sixteen cases were compared over 4096 words each, under all three x86
+backends, and every case is identical. The cases were chosen to exercise the
+seeding arithmetic rather than the round function: offsets that are not block
+aligned, subsequence and offset values straddling $2^{32}$ so that a carry
+crosses the counter's low words, the maximum subsequence, and edge keys
+including all zeros and all ones.
+
+Each case asserts two independent things, and the separation is the point. The
+first feeds vphilox the counter and key that cuRAND reports for itself after
+seeding, which tests the round function and the counter increment order while
+assuming nothing about seeding. The second requires that the counter and key
+cuRAND derived equal what the documented mapping predicts from the seed triple.
+The first check would pass even if the mapping were entirely wrong, because it
+takes cuRAND's word for the state; the second is the interoperability claim, and
+it is the half that could plausibly have failed.
+
+The mapping it confirms is that cuRAND's subsequence occupies the counter's high
+64 bits, that its offset divided by four occupies the low 64 bits, and that the
+remainder of that division is a word index into the resulting block. The
+asymmetry worth stating is that a cuRAND offset counts words where a vphilox
+counter counts blocks of four. A practical consequence follows: cuRAND reserves
+the entire high half of the counter for stream selection, placing its
+subsequences $2^{66}$ values apart, so a program that partitions across GPU
+threads the cuRAND way and across CPU threads the vphilox way obtains identical
+non-overlapping streams provided both use the same convention.
+
+This comparison requires neither a GPU nor a device compiler. cuRAND guards its
+function decoration behind a macro, so defining that macro before including the
+header compiles NVIDIA's own reference implementation as host code. The
+arithmetic is unchanged by construction: the only target-dependent line in the
+generator computes the high half of a 32-by-32-bit product, and the host and
+device branches compute the same product by different instructions. What is
+verified is therefore NVIDIA's reference implementation rather than NVIDIA's
+device code generation, and the gap between the two is a hypothetical
+instruction-selection defect rather than anything concerning Philox.
+
 \section{Limitations and results that go against the design}\label{sec:limitations}
 
 \textbf{xoshiro256++ is faster on four of five machines.} It leads on the Pi, on
@@ -834,17 +1009,30 @@ kernel output block so values never leave vector registers, and until that
 lands, a caller requesting floats pays a per-value cost that the integer path
 does not.
 
-\textbf{Two measurements are pending hardware.} An instruction-cache study of
-worker placement requires a bare-metal multi-core host for the reason given in
-\cref{sec:method}, and a cuRAND parity reference requires an NVIDIA device. The
-harness for both is written and gated; neither result is claimed here.
+\textbf{The instruction-supply result rests on one four-core host.} The
+measurement in \cref{sec:icache} needs simultaneous access to symmetric
+multithreading, a working performance monitoring unit and real control over
+thread placement, and exactly one machine on record provides all three. Its
+co-located arm exceeds the variation bar, as \cref{sec:icache} states. The
+elimination of instruction supply is a direction reproduced across four runs and
+two clock regimes rather than a threshold, and it would be stronger on a host
+with more cores; the same is true of the runtime contrast in
+\cref{sec:runtime}, whose four-worker row is the row that matters and is
+measured where four workers exhaust the machine.
 
-\textbf{Cloud measurement.} Four of the five hosts are cloud instances with
+\textbf{The cuRAND comparison is against host-compiled reference code.} As
+\cref{sec:curand} states, what is verified is NVIDIA's reference implementation
+rather than code generated for a device. The residual gap is one line computing
+the high half of a 32-bit product.
+
+\textbf{Cloud measurement.} Four of the six hosts are cloud instances with
 dedicated virtual CPUs. Steal time is invisible on such a host, and the
 mitigation applied is the variation bar plus the quality label rather than
-elimination of the risk. The one bare-metal host, the Raspberry Pi 5, is also
-the machine on which the flattest and most reproducible scaling curve was
-measured, which is consistent with the concern being real.
+elimination of the risk. One of the two bare-metal hosts, the Raspberry Pi 5, is
+also the machine on which the flattest and most reproducible scaling curve was
+measured, which is consistent with the concern being real. The other bare-metal
+host is the four-core laptop just discussed, so the archive has no machine that
+is simultaneously bare metal and large.
 
 \section{Related work}\label{sec:related}
 
@@ -889,7 +1077,11 @@ the bulk path to between $0.22\times$ and $0.75\times$ the cost per byte of
 trap by construction, because Philox contains no floating-point instruction.
 Aggregate cost per byte does not move with thread count, and the first parallel
 limit on a sixteen-core host is hyperthread co-location rather than the
-generator or the memory system.
+generator or the memory system. Both alternative explanations for that limit are
+excluded by measurement rather than by argument: instruction supply improves
+under co-location even as the penalty appears, and a second threading runtime
+reproduces the flat result to within 0.3\%, so it is a property of the generator
+and not of the worker pool used to measure it.
 
 Two directions follow. The refill buffer is now the dominant remaining cost on
 the fastest kernels, at roughly 109\% of bulk throughput on AVX-512, so removing
@@ -948,16 +1140,14 @@ vol.~33, no.~4, pp.~22:1--22:40, 2007.
 \bibitem{practrand}
 C.~Doty-Humphrey,
 ``PractRand: Practically random, C++ library of statistical tests for RNGs,''
-version pre0.95, 2018.
-\todo[inline]{Confirm the release used and add the SourceForge URL with an
-access date.}
+release PractRand-pre0.95, which reports its own version as 0.95.
+[Online]. Available: \url{https://sourceforge.net/projects/pracrand/}
 
 \bibitem{curand}
 NVIDIA Corporation,
 \textit{cuRAND Library Programming Guide},
-2024.
-\todo[inline]{Pin the toolkit version actually used for the GPU parity
-reference once that measurement exists.}
+cuRAND 10.4.1, CUDA Toolkit 13.1.
+[Online]. Available: \url{https://docs.nvidia.com/cuda/curand/}
 
 \end{thebibliography}
 
