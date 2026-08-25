@@ -19,6 +19,7 @@
 #include "vphilox/vphilox.hpp"
 
 #include "bench_cycles.hpp"
+#include "bench_main.hpp"
 
 namespace {
 
@@ -232,4 +233,4 @@ BENCHMARK(BM_convert_avx512)->Apply(add_sizes);
 
 }  // namespace
 
-BENCHMARK_MAIN();
+VPHILOX_BENCHMARK_MAIN();

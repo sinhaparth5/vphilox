@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="440" viewBox="0 0 880 440" font-family="DejaVu Sans, Verdana, sans-serif">
+<title>Float conversion width against working set</title>
+<rect width="880" height="440" fill="#ffffff"/>
+<text x="18" y="28" font-size="15" text-anchor="start" fill="#222222" font-weight="bold">Float conversion cost against working set — Sapphire Rapids</text>
+<text x="18" y="48" font-size="11" text-anchor="start" fill="#555555" font-weight="normal">Log axes. The widths separate at 2 KiB and at 32 MiB, and converge at the 512 KiB row where the loop is bandwidth-bound.</text>
+<line x1="86" y1="331.95" x2="640" y2="331.95" stroke="#d8d8d8" stroke-width="1"/>
+<text x="78" y="335.95" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">0.05</text>
+<line x1="86" y1="282" x2="640" y2="282" stroke="#d8d8d8" stroke-width="1"/>
+<text x="78" y="286" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">0.1</text>
+<line x1="86" y1="232.06" x2="640" y2="232.06" stroke="#d8d8d8" stroke-width="1"/>
+<text x="78" y="236.06" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">0.2</text>
+<line x1="86" y1="166.04" x2="640" y2="166.04" stroke="#d8d8d8" stroke-width="1"/>
+<text x="78" y="170.04" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">0.5</text>
+<line x1="86" y1="116.09" x2="640" y2="116.09" stroke="#d8d8d8" stroke-width="1"/>
+<text x="78" y="120.09" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">1</text>
+<text x="20" y="72" font-size="11" text-anchor="start" fill="#555555" font-weight="normal">cycles/byte</text>
+<text x="100" y="396" font-size="11" text-anchor="middle" fill="#555555" font-weight="normal">256</text>
+<text x="100" y="411" font-size="9.5" text-anchor="middle" fill="#999999" font-weight="normal">2 KiB (tile)</text>
+<text x="212.71" y="396" font-size="11" text-anchor="middle" fill="#555555" font-weight="normal">2048</text>
+<text x="212.71" y="411" font-size="9.5" text-anchor="middle" fill="#999999" font-weight="normal">16 KiB</text>
+<text x="400.57" y="396" font-size="11" text-anchor="middle" fill="#555555" font-weight="normal">65536</text>
+<text x="400.57" y="411" font-size="9.5" text-anchor="middle" fill="#999999" font-weight="normal">512 KiB</text>
+<text x="626" y="396" font-size="11" text-anchor="middle" fill="#555555" font-weight="normal">4194304</text>
+<text x="626" y="411" font-size="9.5" text-anchor="middle" fill="#999999" font-weight="normal">32 MiB</text>
+<text x="363" y="432" font-size="12" text-anchor="middle" fill="#222222" font-weight="normal">words converted per call</text>
+<polyline points="100,304.61 212.71,306.67 400.57,300.49 626,107.91" fill="none" stroke="#1f4e79" stroke-width="2" stroke-linejoin="round"/>
+<circle cx="100" cy="304.61" r="3" fill="#1f4e79"/>
+<circle cx="212.71" cy="306.67" r="3" fill="#1f4e79"/>
+<text x="219.71" y="300.67" font-size="11" text-anchor="start" fill="#c0504d" font-weight="bold">!</text>
+<circle cx="400.57" cy="300.49" r="3" fill="#1f4e79"/>
+<text x="407.57" y="294.49" font-size="11" text-anchor="start" fill="#c0504d" font-weight="bold">!</text>
+<circle cx="626" cy="107.91" r="3" fill="#1f4e79"/>
+<polyline points="100,312.99 212.71,336.61 400.57,295.01 626,150.54" fill="none" stroke="#c0504d" stroke-width="2" stroke-linejoin="round"/>
+<circle cx="100" cy="312.99" r="3" fill="#c0504d"/>
+<text x="107" y="306.99" font-size="11" text-anchor="start" fill="#c0504d" font-weight="bold">!</text>
+<circle cx="212.71" cy="336.61" r="3" fill="#c0504d"/>
+<text x="219.71" y="330.61" font-size="11" text-anchor="start" fill="#c0504d" font-weight="bold">!</text>
+<circle cx="400.57" cy="295.01" r="3" fill="#c0504d"/>
+<circle cx="626" cy="150.54" r="3" fill="#c0504d"/>
+<text x="633" y="144.54" font-size="11" text-anchor="start" fill="#c0504d" font-weight="bold">!</text>
+<polyline points="100,350.5 212.71,354.09 400.57,299.86 626,191.45" fill="none" stroke="#3f8f4f" stroke-width="2" stroke-linejoin="round"/>
+<circle cx="100" cy="350.5" r="3" fill="#3f8f4f"/>
+<circle cx="212.71" cy="354.09" r="3" fill="#3f8f4f"/>
+<text x="219.71" y="348.09" font-size="11" text-anchor="start" fill="#c0504d" font-weight="bold">!</text>
+<circle cx="400.57" cy="299.86" r="3" fill="#3f8f4f"/>
+<text x="407.57" y="293.86" font-size="11" text-anchor="start" fill="#c0504d" font-weight="bold">!</text>
+<circle cx="626" cy="191.45" r="3" fill="#3f8f4f"/>
+<rect x="664" y="91" width="9" height="9" fill="#1f4e79" fill-opacity="1"/>
+<text x="679" y="100" font-size="12" text-anchor="start" fill="#222222" font-weight="normal">baseline (scalar)</text>
+<rect x="664" y="110" width="9" height="9" fill="#c0504d" fill-opacity="1"/>
+<text x="679" y="119" font-size="12" text-anchor="start" fill="#222222" font-weight="normal">AVX2 clone</text>
+<rect x="664" y="129" width="9" height="9" fill="#3f8f4f" fill-opacity="1"/>
+<text x="679" y="138" font-size="12" text-anchor="start" fill="#222222" font-weight="normal">AVX-512 clone</text>
+<text x="664" y="173" font-size="10" text-anchor="start" fill="#c0504d" font-weight="normal">! over the 1% CV bar</text>
+</svg>

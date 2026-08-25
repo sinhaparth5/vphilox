@@ -24,6 +24,7 @@
 #include "vphilox/vphilox.hpp"
 
 #include "bench_cycles.hpp"
+#include "bench_main.hpp"
 #include "third_party/pcg-cpp/pcg_random.hpp"
 #include "third_party/xoshiro256plusplus.hpp"
 
@@ -202,4 +203,4 @@ BENCHMARK(BM_pcg64);
 
 }  // namespace
 
-BENCHMARK_MAIN();
+VPHILOX_BENCHMARK_MAIN();

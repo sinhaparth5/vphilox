@@ -53,6 +53,7 @@
 #include "vphilox/vphilox.hpp"
 
 #include "bench_cycles.hpp"
+#include "bench_main.hpp"
 
 #if VPHILOX_HAVE_OPENMP
 #include <omp.h>
@@ -243,4 +244,4 @@ BENCHMARK(BM_thread_scaling_bulk)
 
 }  // namespace
 
-BENCHMARK_MAIN();
+VPHILOX_BENCHMARK_MAIN();

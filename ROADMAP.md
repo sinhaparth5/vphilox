@@ -405,7 +405,18 @@ and whose state can be written on one platform and read on another.
         NEON — four kernels, two architectures, three compilers. That is the
         reproducibility claim discharged by measurement rather than by assertion
   - [ ] cuRAND/GPU reference, if reachable
-- [ ] Publish plots and raw CSVs under `docs/benchmarks/`
+- [x] Publish plots and raw CSVs under `docs/benchmarks/` —
+      `scripts/benchmarks/publish_results.py` generates
+      [`docs/benchmarks/raw/`](docs/benchmarks/raw) and
+      [`plots/`](docs/benchmarks/plots) from the JSON in `results/`, and CI runs
+      it with `--check` so an archived run cannot leave the published figures
+      behind. Standard library only: matplotlib is not installed on the Pi or
+      the GCP images, and a plot needing a pip install is a plot nobody
+      regenerates. Cross-machine figures plot ratios measured within each
+      machine, because reference-cycle RDTSC and the Pi's `perf_event` counter
+      are not the same unit; `machines.csv` carries a `quality` column marking
+      the four archived runs that built the harness but do not meet the CV bar,
+      and no figure uses them
 
 **Deliverable:** a complete benchmark dataset and statistical pass logs.
 

@@ -16,6 +16,8 @@
 
 #include "vphilox/detail/kernel_scalar.hpp"
 
+#include "bench_main.hpp"
+
 namespace {
 
 using vphilox::counter4;
@@ -170,4 +172,4 @@ BENCHMARK(BM_layout8);
 
 }  // namespace
 
-BENCHMARK_MAIN();
+VPHILOX_BENCHMARK_MAIN();

@@ -126,6 +126,19 @@ jobs:
             \( -name '*.hpp' -o -name '*.cpp' \) -not -path '*/third_party/*/*' \
             | xargs clang-format --dry-run --Werror
 
+  published-data:
+    name: published benchmark data
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check docs/benchmarks/ is current
+        run: |
+          # The CSVs and SVGs under docs/benchmarks/ are generated from the raw
+          # JSON in results/, so a run archived without regenerating them leaves
+          # published figures that disagree with the data behind them. The
+          # script is standard-library only and takes under a second.
+          python3 scripts/benchmarks/publish_results.py --check
+
   # TODO(phase-4): a scheduled job running PractRand for a few hours on the
   # nightly build. Too slow for per-PR CI, but a regression in the statistical
   # properties needs to be caught by something.

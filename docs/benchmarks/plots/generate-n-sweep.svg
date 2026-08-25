@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="470" viewBox="0 0 880 470" font-family="DejaVu Sans, Verdana, sans-serif">
+<title>Cost per generate_n call size</title>
+<rect width="880" height="470" fill="#ffffff"/>
+<text x="18" y="28" font-size="15" text-anchor="start" fill="#222222" font-weight="bold">What a small generate_n call costs, relative to the bulk path</text>
+<text x="18" y="48" font-size="11" text-anchor="start" fill="#555555" font-weight="normal">1.0x is the raw kernel. Ratios within each machine, so the curves are comparable even though the cycles are not.</text>
+<line x1="78" y1="404" x2="630" y2="404" stroke="#d8d8d8" stroke-width="1"/>
+<text x="70" y="408" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">1.00x</text>
+<line x1="78" y1="346.86" x2="630" y2="346.86" stroke="#d8d8d8" stroke-width="1"/>
+<text x="70" y="350.86" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">1.25x</text>
+<line x1="78" y1="289.71" x2="630" y2="289.71" stroke="#d8d8d8" stroke-width="1"/>
+<text x="70" y="293.71" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">1.50x</text>
+<line x1="78" y1="232.57" x2="630" y2="232.57" stroke="#d8d8d8" stroke-width="1"/>
+<text x="70" y="236.57" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">1.75x</text>
+<line x1="78" y1="175.43" x2="630" y2="175.43" stroke="#d8d8d8" stroke-width="1"/>
+<text x="70" y="179.43" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">2.00x</text>
+<line x1="78" y1="118.29" x2="630" y2="118.29" stroke="#d8d8d8" stroke-width="1"/>
+<text x="70" y="122.29" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">2.25x</text>
+<line x1="78" y1="404" x2="630" y2="404" stroke="#999999" stroke-width="1.5"/>
+<text x="92" y="426" font-size="11" text-anchor="middle" fill="#555555" font-weight="normal">8</text>
+<text x="172.62" y="426" font-size="11" text-anchor="middle" fill="#555555" font-weight="normal">32</text>
+<text x="293.54" y="426" font-size="11" text-anchor="middle" fill="#555555" font-weight="normal">256</text>
+<text x="374.15" y="426" font-size="11" text-anchor="middle" fill="#555555" font-weight="normal">1024</text>
+<text x="616" y="426" font-size="11" text-anchor="middle" fill="#555555" font-weight="normal">65536</text>
+<text x="354" y="450" font-size="12" text-anchor="middle" fill="#222222" font-weight="normal">words per generate_n call</text>
+<polyline points="92,317.26 172.62,352.18 293.54,397.68 374.15,401.68 616,403.98" fill="none" stroke="#1f4e79" stroke-width="2" stroke-linejoin="round"/>
+<circle cx="92" cy="317.26" r="3" fill="#1f4e79"/>
+<circle cx="172.62" cy="352.18" r="3" fill="#1f4e79"/>
+<circle cx="293.54" cy="397.68" r="3" fill="#1f4e79"/>
+<circle cx="374.15" cy="401.68" r="3" fill="#1f4e79"/>
+<circle cx="616" cy="403.98" r="3" fill="#1f4e79"/>
+<line x1="78" y1="282.8" x2="630" y2="282.8" stroke="#1f4e79" stroke-width="1" stroke-dasharray="5 4"/>
+<polyline points="92,242.91 172.62,344.26 293.54,388.72 374.15,399.8 616,403.85" fill="none" stroke="#c0504d" stroke-width="2" stroke-linejoin="round"/>
+<circle cx="92" cy="242.91" r="3" fill="#c0504d"/>
+<circle cx="172.62" cy="344.26" r="3" fill="#c0504d"/>
+<circle cx="293.54" cy="388.72" r="3" fill="#c0504d"/>
+<circle cx="374.15" cy="399.8" r="3" fill="#c0504d"/>
+<circle cx="616" cy="403.85" r="3" fill="#c0504d"/>
+<line x1="78" y1="155.8" x2="630" y2="155.8" stroke="#c0504d" stroke-width="1" stroke-dasharray="5 4"/>
+<polyline points="92,194.35 172.62,322.08 293.54,384.63 374.15,399.21 616,405.22" fill="none" stroke="#3f8f4f" stroke-width="2" stroke-linejoin="round"/>
+<circle cx="92" cy="194.35" r="3" fill="#3f8f4f"/>
+<circle cx="172.62" cy="322.08" r="3" fill="#3f8f4f"/>
+<circle cx="293.54" cy="384.63" r="3" fill="#3f8f4f"/>
+<circle cx="374.15" cy="399.21" r="3" fill="#3f8f4f"/>
+<circle cx="616" cy="405.22" r="3" fill="#3f8f4f"/>
+<line x1="78" y1="90.96" x2="630" y2="90.96" stroke="#3f8f4f" stroke-width="1" stroke-dasharray="5 4"/>
+<rect x="654" y="87" width="9" height="9" fill="#1f4e79" fill-opacity="1"/>
+<text x="669" y="96" font-size="12" text-anchor="start" fill="#222222" font-weight="normal">Pi 5 / NEON</text>
+<rect x="654" y="106" width="9" height="9" fill="#c0504d" fill-opacity="1"/>
+<text x="669" y="115" font-size="12" text-anchor="start" fill="#222222" font-weight="normal">Sapphire Rapids</text>
+<rect x="654" y="125" width="9" height="9" fill="#3f8f4f" fill-opacity="1"/>
+<text x="669" y="134" font-size="12" text-anchor="start" fill="#222222" font-weight="normal">Skylake-SP</text>
+<text x="654" y="169" font-size="10" text-anchor="start" fill="#555555" font-weight="normal">dashed: operator() through</text>
+<text x="654" y="183" font-size="10" text-anchor="start" fill="#555555" font-weight="normal">the refill buffer</text>
+</svg>
