@@ -200,7 +200,20 @@ the copy now takes 53% of that path, up from 35%. Callers get the ARM win throug
         `VPHILOX_TARGET("avx2")` — and selects at runtime like the kernels do
   - [x] Bulk float API to consume it: `generate_n(float*, n)` / `generate(std::span<float>)`,
         equivalent to the same number of `next_float()` calls, ~2x that path
-  - [ ] AVX-512 / NEON variants — blocked on #24 and #28, not on hardware access
+  - [x] AVX-512 variant — a third clone under `VPHILOX_TARGET("avx512f")`. Verified to emit
+        the sixteen-lane form (`vpsrld $9 / vpord / vaddps / vmovups %zmm`) on GCC 15, which
+        is worth checking because vector width is a *tune* decision and a target attribute
+        does not change the tune. `avx512f` alone suffices — the `dq` subset the kernel needs
+        is not required for a shift, an or and a subtract
+  - [x] No NEON variant, and that is the answer rather than a gap: NEON is baseline on
+        aarch64, so the consumer's own translation unit already compiles the plain loop to
+        `ushr`/`orr`/`fsub`. The ISA gap this file exists to close does not exist there
+  - [x] The converter is now **derived from the resolved backend** instead of repeating the
+        CPU probe, so the two cannot disagree. That also fixed a latent inconsistency:
+        `VPHILOX_BACKEND=neon` on x86 gave the AVX2 kernel and the *baseline* converter
+  - [ ] Measure it. Correctness is settled — bit-identical to baseline by construction and
+        by test — but whether sixteen lanes beat eight on an elementwise pass over memory is
+        unmeasured, and needs a Sapphire Rapids or Skylake-SP host
   - [ ] Decide whether to fuse conversion into the kernels and remove the second pass.
         Needs a frequency-pinned host: this laptop put the cost anywhere between 10% and 26%
 - [x] MSVC CPU detection (`__cpuidex` leaf 7 + `XGETBV` OS-state check) — no longer stubbed to `false`.
