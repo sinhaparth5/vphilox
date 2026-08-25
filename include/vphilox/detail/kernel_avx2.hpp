@@ -5,7 +5,7 @@
 //
 // AVX2 Philox4x32-R over eight interleaved counters.
 //
-// LANE LAYOUT (issue #12, docs/benchmarks/simd-lane-layout.md)
+// LANE LAYOUT (issue #12)
 //
 // Structure of arrays: four __m256i, one per counter word. Register x_w holds
 // word w of eight consecutive blocks, with 32-bit lane j carrying block

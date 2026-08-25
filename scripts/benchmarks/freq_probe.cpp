@@ -13,8 +13,9 @@
 //   ./freq_probe                      # AVX-512 load, if the CPU has it
 //   VPHILOX_BACKEND=avx2 ./freq_probe
 //
-// Results are archived in results/<tag>-frequency-probe.txt and written up in
-// docs/benchmarks/avx512-cascade-lake-2026-08-25.md.
+// Results are archived in results/<tag>-frequency-probe.txt. Frequency came
+// out flat across the whole thread range, which is what excluded turbo as an
+// explanation for the scaling knee and retired the AVX-512 licence hypothesis.
 //
 // Written for issue #51 and reused for #27.
 //

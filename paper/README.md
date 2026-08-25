@@ -55,6 +55,12 @@ The tracked `vphilox.pdf` is the one CI built, so it is current with the source.
 Every figure and every table maps onto an archived run. Nothing in the draft
 was typed from memory.
 
+Sources are CSVs and raw JSON rather than prose. The per-run write-ups that
+used to sit in `docs/benchmarks/` were removed once their conclusions had been
+folded into `docs/benchmarks/README.md`, the paper itself and `CLAUDE.md`; the
+measurements they described are all still in `raw/` and `results/`, and the
+pages themselves are in git history.
+
 Rows are keyed by `\label` rather than by number, because the numbers move
 whenever a table is added.
 
@@ -62,23 +68,26 @@ whenever a table is added.
 |---|---|
 | `tab:machines` | `docs/benchmarks/raw/machines.csv`, except the MHz column — see below |
 | `tab:matrix` (relative matrix) | `docs/benchmarks/raw/*-matrix.csv`, five hosts |
-| `tab:avx512` (AVX-512 vs AVX2) | `docs/benchmarks/avx512-downclocking-2026-08-24.md` |
-| `tab:icache` (instruction supply) | `docs/benchmarks/icache-placement-tigerlake-2026-08-25.md` |
-| `tab:runtimes` (threading runtimes) | `docs/benchmarks/openmp-runtime-tigerlake-2026-08-25.md` |
+| `tab:avx512` (AVX-512 vs AVX2) | `results/{sapphire-rapids,skylake-sp}-matrix.json`, pinned-backend runs |
+| `tab:icache` (instruction supply) | `docs/benchmarks/raw/tigerlake-icache-{phys,ht}-icache.csv` |
+| `tab:runtimes` (threading runtimes) | `docs/benchmarks/raw/tigerlake-omp-l1-{default,passive}-scaling.csv` |
 | `fig:matrix`, `fig:sweep`, `fig:floatwidths` | `plots/matrix-relative`, `generate-n-sweep`, `float-conversion-widths` |
 | `fig:scaling` (thread scaling) | `docs/benchmarks/raw/pi-arm-scaling.csv` |
 | `fig:placement` | `docs/benchmarks/raw/cascadelake-32v-placement-*.csv` |
-| `sec:neon` (NEON unroll) | `docs/benchmarks/neon-unroll-pi-2026-08-25.md` |
-| `sec:placement` | `docs/benchmarks/scaling-cascade-lake-2026-08-25.md` |
+| `sec:neon` (NEON unroll) | `docs/benchmarks/raw/pi5-matrix.csv`, `pi-arm-matrix.csv` |
+| `sec:placement` | `docs/benchmarks/raw/cascadelake-32v-placement-*.csv` |
 | `sec:stat` (statistics) | `docs/statistical-validation.md`, `results/practrand/`, `results/testu01/` |
 | `sec:curand` | `docs/curand-parity.md`, `results/curand/` |
 
-The one column not taken from the CSV is `tab:machines`'s MHz, which carries
-each host's nominal clock. `machines.csv` has a `reported_mhz` column, but that
-is Google Benchmark's reading of the clock at run start rather than a machine
-specification, and on an idle laptop it reads an order of magnitude low. The
-table's figures come from the per-host write-ups instead; see
-`docs/benchmarks/README.md`.
+The one column not taken directly from a CSV field is `tab:machines`'s MHz,
+which carries each host's nominal clock. `machines.csv` has a `reported_mhz`
+column, but that is Google Benchmark's reading of the clock at run start rather
+than a machine specification, and on an idle laptop it reads an order of
+magnitude low. The nominal figures come from the same file's `cpu` column
+instead, where the x86 model strings state the base clock outright
+(`Xeon(R) Platinum 8481C CPU @ 2.70GHz`). The Pi is the exception, because
+`Cortex-A76` names no clock: its 2400 MHz comes from `CPU max MHz` in
+`results/pi-arm-baseline-environment.txt`.
 
 The two new tables are tables and not figures on purpose. Both are two-arm
 contrasts of four numbers, which a plot makes harder to read rather than easier,

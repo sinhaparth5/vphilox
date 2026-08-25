@@ -253,8 +253,8 @@ not depend on how the caller chunks the request — that independence is what
 makes parity testing meaningful and lets the engine refill in any size. Kernels
 handle their own tails and must not assume `out` is aligned.
 `preferred_blocks` advertises the tail-free width: scalar 1, AVX2 8, AVX-512 16,
-NEON 8. On x86 that is one counter per 32-bit lane, which is what
-`docs/benchmarks/simd-lane-layout.md` settled, and both figures are double what
+NEON 8. On x86 that is one counter per 32-bit lane, which is what the
+lane-layout study settled, and both figures are double what
 was originally planned — those plans underestimated the reachable lane count.
 NEON is 8 for a different reason: four lanes per register, but two independent
 groups per iteration, because the Cortex-A76 kernel was latency-bound rather
@@ -339,12 +339,10 @@ to make it pass.
 
 Phase 1 (scalar reference, KATs, baseline benchmarks) is done. Phase 2 has met
 its deliverable: **all three SIMD kernels exist, are verified on real hardware,
-and each beats `std::mt19937` on the raw kernel.** AVX2 is 3.3x scalar
-(`docs/benchmarks/avx2-2026-08-23.md`), AVX-512 is 4.1x scalar and 1.80-1.83x
-AVX2 with no downclocking penalty on either Sapphire Rapids or Skylake-SP
-(`docs/benchmarks/avx512-downclocking-2026-08-24.md`), and NEON is 2.19x scalar
-on a Cortex-A76 after the two-group unroll
-(`docs/benchmarks/neon-unroll-pi-2026-08-25.md`) — 1.33x `std::mt19937` and
+and each beats `std::mt19937` on the raw kernel.** AVX2 is 3.3x scalar,
+AVX-512 is 4.1x scalar and 1.80-1.83x AVX2 with no downclocking penalty on
+either Sapphire Rapids or Skylake-SP, and NEON is 2.19x scalar on a Cortex-A76
+after the two-group unroll — 1.33x `std::mt19937` and
 1.11x PCG64. The one gap left there is the *buffered* engine on ARM, still
 0.87x `std::mt19937` because the refill drain now costs more than the kernel
 does; `generate_n` gets the full win. The engine also has a portable
@@ -358,12 +356,12 @@ benchmark runs.
 
 Four measured results worth not re-deriving. The ~10x
 scalar-Philox-vs-mt19937 slowdown from the literature did **not** reproduce on
-any machine measured here (`docs/benchmarks/baseline-2026-08-21.md`). The
+any machine measured here. The
 refill buffer now costs ~109% of bulk throughput on AVX-512, ~42% on AVX2 and
 ~10% on x86 scalar — the faster the kernel, the more the drain pass dominates —
 which is what makes issues #36 and #37 worth more than their original
-estimates. And **the multi-core knee is hyperthreading, not the memory system**
-(`docs/benchmarks/scaling-cascade-lake-2026-08-25.md`): one thread per physical
+estimates. And **the multi-core knee is hyperthreading, not the memory
+system**: one thread per physical
 core is flat to sixteen cores, two workers sharing a core cost 35% each because
 the kernel is execution-port-bound, and memory only enters as a second limit
 that tracks footprint per socket. Advise callers to size pools by physical
@@ -375,13 +373,11 @@ The fourth closes that knee out on both remaining alternatives, measured on a
 bare-metal Tiger Lake laptop after no earlier host could control placement.
 **Instruction supply is not the mechanism** — co-location costs +59% cycles/byte
 while i-cache MPKI *falls* 36%, because both siblings run the identical kernel
-so sharing one L1i is constructive
-(`docs/benchmarks/icache-placement-tigerlake-2026-08-25.md`). **And the flat
+so sharing one L1i is constructive. **And the flat
 scaling result is the generator, not this project's worker pool** — libgomp
 reproduces it at 1.000/1.000/1.003x to one thread per physical core, where the
 `std::thread` pool drifts to 1.220x because its dispatcher is an extra thread
-once the workers own every core
-(`docs/benchmarks/openmp-runtime-tigerlake-2026-08-25.md`). Do not re-run either
+once the workers own every core. Do not re-run either
 on a VM; both needed the co-location gate to pass first.
 
 ## The paper

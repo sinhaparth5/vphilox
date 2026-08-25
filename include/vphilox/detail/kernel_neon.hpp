@@ -5,7 +5,7 @@
 //
 // NEON Philox4x32-R over four interleaved counters, two groups in flight.
 //
-// LANE LAYOUT (issue #12, docs/benchmarks/simd-lane-layout.md)
+// LANE LAYOUT (issue #12)
 //
 // The same structure of arrays as the x86 kernels, four lanes wide: four
 // uint32x4_t, one per counter word, with 32-bit lane j carrying block base + j.

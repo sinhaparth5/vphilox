@@ -67,8 +67,8 @@
 // one core's hyperthread siblings cost 35% each, so a curve that bends past
 // eight threads on a 8C/16T socket is reporting where the threads landed as
 // much as how the generator scales, which is also why the CV jumps there.
-// Attributing a knee needs the placement fixed by hand; see
-// docs/benchmarks/scaling-cascade-lake-2026-08-25.md for how that was done.
+// Attributing a knee needs the placement fixed by hand, which is what
+// scripts/benchmarks/run_placement.sh does.
 
 #include <benchmark/benchmark.h>
 

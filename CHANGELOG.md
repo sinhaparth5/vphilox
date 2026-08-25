@@ -22,16 +22,15 @@ Any entry that would change it would be a new algorithm, not a release.
   counters per `__m512i`, one counter per 32-bit lane. Measured at 4.1x the
   scalar kernel and 1.80–1.83x AVX2, with **no downclocking penalty** on either
   Sapphire Rapids or Skylake-SP. Philox's inner loop is entirely light-tier
-  integer work, so it never enters a frequency licence that costs anything; see
-  `docs/benchmarks/avx512-downclocking-2026-08-24.md`. That measurement also
+  integer work, so it never enters a frequency licence that costs anything.
+  That measurement also
   retired the open licence hypothesis behind issue #27.
 - **ARM NEON backend** (`detail/kernel_neon.hpp`): four counters per
   `uint32x4_t` with **two independent groups interleaved per iteration**. The
   two-group unroll is not width, it is latency: the Cortex-A76 kernel was
   latency-bound rather than width-bound, so `preferred_blocks` is 8 on NEON for
   a different reason than it is 8 on AVX2. 2.19x scalar, 1.33x `std::mt19937`
-  and 1.11x PCG64 on a Cortex-A76; see
-  `docs/benchmarks/neon-unroll-pi-2026-08-25.md`.
+  and 1.11x PCG64 on a Cortex-A76.
 - **Cross-check against NVIDIA cuRAND** (`tools/vphilox_curand_parity`,
   `docs/curand-parity.md`): 16/16 cases identical over 4096 words each, under
   all three x86 backends, together with the documented seeding mapping between
@@ -79,7 +78,7 @@ Any entry that would change it would be a new algorithm, not a release.
 - Bulk float generation: `generate_n(float*, count)` and
   `generate(std::span<float>)`, equivalent to the same number of
   `next_float()` calls in both output and resulting engine state. Roughly 2x
-  the word-at-a-time path; see `docs/benchmarks/float-conversion-2026-08-24.md`
+  the word-at-a-time path
   for why the exact figure is not recorded yet.
 - `detail/float_bulk.hpp`: the u32 -> float conversion loop compiled twice,
   once at the consumer's baseline ISA and once under `VPHILOX_TARGET("avx2")`,
@@ -109,14 +108,12 @@ Any entry that would change it would be a new algorithm, not a release.
   `operator()` calls would and leave the engine where those calls would, so
   bulk and single-word access mix freely on one engine. Generating straight
   into the caller's buffer reaches 100.0% of the raw kernel — 1.72x the
-  buffered engine and 2.40x `std::mt19937`. See
-  `docs/benchmarks/buffer-overhead-2026-08-23.md`.
+  buffered engine and 2.40x `std::mt19937`.
 - AVX2 backend (`detail/kernel_avx2.hpp`): eight interleaved counters per
   `__m256i`, split even/odd `_mm256_mul_epu32` wide multiplies, in-register
   counter carry expansion, and an unpack/permute transpose back to block order.
   Dispatch selects it automatically on AVX2 hardware. Measured at 3.30x the
-  scalar kernel and 1.41x `std::mt19937` through the buffered engine; see
-  `docs/benchmarks/avx2-2026-08-23.md`.
+  scalar kernel and 1.41x `std::mt19937` through the buffered engine.
 - TestU01 harness (`tools/vphilox_testu01`) and build scripts for PractRand and
   TestU01 under `scripts/statistical/`. The harness drives `vphilox::engine`
   through TestU01's callback interface, so the refill buffer and runtime
@@ -172,17 +169,15 @@ Any entry that would change it would be a new algorithm, not a release.
   competing explanations were then excluded by measurement rather than by
   argument. Instruction supply is not the mechanism — co-location costs +59%
   cycles/byte while i-cache MPKI *falls* 36%, because both siblings run the
-  identical kernel and sharing one L1i is therefore constructive
-  (`docs/benchmarks/icache-placement-tigerlake-2026-08-25.md`). And the flat
+  identical kernel and sharing one L1i is therefore constructive. And the flat
   result belongs to the generator rather than to this project's worker pool —
   libgomp reproduces it at 1.000/1.000/1.003x to one thread per physical core,
   where the `std::thread` pool drifts to 1.220x because its dispatcher is an
-  extra thread once the workers own every core
-  (`docs/benchmarks/openmp-runtime-tigerlake-2026-08-25.md`). Frequency was
+  extra thread once the workers own every core. Frequency was
   excluded by direct measurement (`scripts/benchmarks/freq_probe.cpp`).
 - **The reported ~10x scalar-Philox penalty against `std::mt19937` did not
-  reproduce on any of five CPUs measured** (0.61–0.87x, not 0.10x); see
-  `docs/benchmarks/baseline-2026-08-21.md`. Specialising the wide multiplies
+  reproduce on any of five CPUs measured** (0.61–0.87x, not 0.10x).
+  Specialising the wide multiplies
   puts the raw kernel at 2.6–4.6x `std::mt19937` and 4.1–5.3x unspecialised
   Philox.
 - **Results that cut against the library are recorded rather than omitted.**

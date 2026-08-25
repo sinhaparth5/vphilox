@@ -35,7 +35,8 @@ several times faster than `std::mt19937`.
 > 0.87x, the one place where vphilox comes out behind. Every backend produces the
 > same bytes, checked against the published Random123 vectors and pinned by a
 > digest test. PractRand runs clean to a terabyte and TestU01 BigCrush passes all
-> 160 statistics. Follow the work in the [roadmap](ROADMAP.md).
+> 160 statistics. Open work is tracked in
+> [issues](https://github.com/sinhaparth5/vphilox/issues).
 
 ## What it gives you
 
@@ -271,7 +272,7 @@ benchmarks/               Google Benchmark programs
 tools/                    Raw stream, TestU01 driver, cuRAND cross-check
 scripts/                  Benchmark harness and statistical battery runners
 results/                  Archived benchmark JSON and battery logs
-docs/                     Theory, research, plans, and recorded results
+docs/                     Theory, measured results, and figures
 paper/                    The LaTeX write-up and its figures
 ```
 
@@ -280,9 +281,6 @@ The technical background lives in the documentation:
 - [How Philox and vphilox work](docs/vPhilox%20theory.md)
 - [Measured results, figures, and the rules they follow](docs/benchmarks/README.md)
 - [Statistical validation](docs/statistical-validation.md)
-- [Research and prior work](docs/Research%20on%20vPhilox.md)
-- [Development strategy](docs/Vector%20Philox%20Development%20Strategy.md)
-- [Current roadmap](ROADMAP.md)
 
 Benchmarks are run through `scripts/benchmarks/run_matrix.sh` rather than by
 hand. It pins the governor, records provenance beside the numbers, and refuses a

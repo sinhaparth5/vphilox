@@ -35,8 +35,7 @@ namespace vphilox {
 /// __m512i, on the same reasoning issue #12 used for AVX2 -- and at 8 every
 /// engine refill would have fallen entirely into that kernel's scalar tail.
 /// Refill sizes from 8 to 128 blocks measured neutral or worse for the
-/// buffered path (docs/benchmarks/buffer-overhead-2026-08-23.md), so widening
-/// costs nothing but 128 bytes per engine.
+/// buffered path, so widening costs nothing but 128 bytes per engine.
 inline constexpr std::size_t refill_blocks = 16;
 inline constexpr std::size_t refill_words  = refill_blocks * block_words;
 
@@ -145,8 +144,9 @@ public:
     /// This exists because the buffer is not free: draining it word by word is
     /// a second pass over every byte, and once the kernel is vectorised that
     /// pass costs about as much as generating the data did. Writing straight
-    /// into the caller's memory is the only way to skip it. See
-    /// `docs/benchmarks/buffer-overhead-2026-08-23.md`.
+    /// into the caller's memory is the only way to skip it: the drain is ~109%
+    /// of bulk throughput on AVX-512, ~42% on AVX2 and ~10% on x86 scalar, so
+    /// the faster the kernel the more the second pass dominates.
     void generate_n(result_type* dst, std::size_t count) noexcept {
         const auto& entry = detail::resolve_dispatch<Rounds>();
 
@@ -198,7 +198,7 @@ public:
     /// Fusing the conversion into the kernels would remove the pass outright,
     /// and `bench_float` measures the prize: the gap between this and
     /// `generate_n(u32*)`. It has not been measured on a machine that can
-    /// hold a clock -- see docs/benchmarks/float-conversion-2026-08-24.md.
+    /// hold a clock.
     void generate_n(float* dst, std::size_t count) noexcept {
         const detail::float_convert_fn convert = detail::resolve_float_convert();
 
