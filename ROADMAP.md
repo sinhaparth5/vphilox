@@ -646,7 +646,11 @@ because it needs an endorsement that is easier to obtain once the preprint and
 the DOI both exist. The same manuscript must not go to both Zenodo and TechRxiv,
 or one paper ends up with two competing DOIs.
 
-- [ ] Tag and publish `sinhaparth5/vphilox` — everything below depends on it
+- [ ] Tag and publish `sinhaparth5/vphilox` — everything below depends on it.
+      The tag bumps MICRO: `2026.08.0` was never tagged but already has a dated
+      changelog section describing the Phase 0/1 scaffold, so reusing it would
+      ship release notes that say there is no speedup yet. `VERSIONING.md` has
+      the steps and CI's `release readiness` job enforces them
 - [ ] Zenodo DOI for the tagged release (software archive, not the manuscript)
 - [ ] Update `CITATION.cff` with the DOI once Zenodo assigns one
 - [ ] TechRxiv preprint (IEEE-operated, moderated, supplies the paper's DOI)
@@ -658,7 +662,8 @@ or one paper ends up with two competing DOIs.
       through 4: the serialized state, all three SIMD kernels, the cuRAND cross-check, the
       per-worker counters and placement gate, the figure pipeline, the cross-platform
       parity digest, and the four measured results worth not re-deriving. It still needs a
-      release heading rather than `[Unreleased]` when the tag goes out
+      release heading rather than `[Unreleased]` when the tag goes out, and CI's
+      `release readiness` job now fails the tag if that has not happened
 
 ---
 

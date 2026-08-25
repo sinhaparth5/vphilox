@@ -48,12 +48,31 @@ not a legal octal digit).
 1. Edit `VERSION`.
 2. `cmake --build build && ctest --test-dir build` — `test_version.cpp` checks
    the plumbing.
-3. Add a `CHANGELOG.md` entry.
-4. Commit, then tag as `v<VERSION>` (e.g. `v2026.08.0`).
+3. Rename `CHANGELOG.md`'s `[Unreleased]` heading to the new version and date
+   it, then open a fresh empty `[Unreleased]` above it.
+4. Update `version` and `date-released` in `CITATION.cff`, and the version
+   badge in `README.md`.
+5. Commit, then tag as `v<VERSION>` (e.g. `v2026.08.1`).
 
 Same year and month as the last release? Bump MICRO. New month? New
 `YYYY.0M.0`. Months with no release are simply skipped — there is no
 obligation to ship monthly.
+
+Pushing the tag runs CI's `release readiness` job, which is the only job gated
+on a tag ref. It fails the tag if `VERSION` and the tag disagree, if
+`CHANGELOG.md` has no section for that version, if `[Unreleased]` still has
+content in it, or if `paper/vphilox.tex` still holds a `\todo` marker or the
+affiliation placeholder. Those are all cheap to fix beforehand and awkward
+afterwards, because a tag is what Zenodo mints a DOI against.
+
+**`2026.08.0` was never tagged.** It has a dated `CHANGELOG.md` section and it
+is what `VERSION` still says, but no `v2026.08.0` exists in the repository and
+that section describes the Phase 0/1 scaffold, down to a *Known limitations*
+entry reading "SIMD kernels fall back to scalar; there is no speedup yet". The
+first real tag therefore bumps MICRO rather than reusing that number.
+
+`docs/publishing-guide.md` picks up from the tag: Zenodo archives the release,
+TechRxiv hosts the paper, arXiv follows.
 
 ## Compatibility contract
 
