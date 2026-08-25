@@ -19,8 +19,9 @@ repository-code: "https://github.com/sinhaparth5/vphilox"
 license:
   - Apache-2.0
   - MIT
-version: 2026.08.0
-date-released: "2026-08-21"
+version: 2026.08.1
+date-released: "2026-08-26"
+doi: "10.5281/zenodo.22103483"
 keywords:
   - pseudorandom number generation
   - counter-based PRNG
@@ -32,13 +33,13 @@ keywords:
   - high-performance computing
   - reproducibility
   - C++20
-# TODO(phase-5): three edits at release time, in this order.
-#   1. Set `version` and `date-released` to the tag and the day it goes out.
-#      The date below is when this file was written, not a release date.
-#   2. Add `doi:` with the Zenodo DOI reserved for the tagged release.
-#   3. Add a `preferred-citation:` block for the TechRxiv preprint, and swap it
-#      for the arXiv version if and when that supersedes it.
-# See docs/publishing-guide.md.
+# The `doi` above is the Zenodo record for this specific version. If the record
+# also has a concept DOI covering every version, prefer that one here so a
+# citation keeps resolving after the next release.
+#
+# TODO(phase-5): one edit left. Add a `preferred-citation:` block for the
+# TechRxiv preprint once it has a DOI, and swap it for the arXiv version if and
+# when that supersedes it. See docs/publishing-guide.md.
 references:
   - type: conference-paper
     title: "Parallel Random Numbers: As Easy as 1, 2, 3"

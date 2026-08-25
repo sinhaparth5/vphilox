@@ -19,18 +19,33 @@ the tagged source, benchmark data, scripts, documentation, version number,
 license, repository URL, and ORCID. Once checked, publish the record to activate
 the DOI. See the [Zenodo DOI guide](https://help.zenodo.org/docs/deposit/describe-records/reserve-doi/).
 
+**Done.** The reserved DOI is
+[10.5281/zenodo.22103483](https://doi.org/10.5281/zenodo.22103483), and it is
+recorded in `CITATION.cff`, `README.md`, `CHANGELOG.md` and the paper's
+Availability section. Zenodo also mints a concept DOI covering every version of
+a record; if this one has one, `CITATION.cff` should carry that instead, so a
+citation survives the next release.
+
 ## 2. Finish the Manuscript
 
 Before publishing the preprint:
 
-- Use `Independent Researcher, City, Country` as the affiliation.
-- Replace every visible TODO and placeholder.
-- Add the source for the previously reported tenfold slowdown.
-- Record the PractRand release and the CUDA/cuRAND version, or clearly mark
-  unperformed work as future work.
-- Add the Zenodo software DOI and rebuild `paper/vphilox.pdf`.
-- Ask at least one knowledgeable reader to check the claims, citations,
-  methodology, figures, and language.
+- ~~Use `Independent Researcher, City, Country` as the affiliation.~~ Done:
+  Oxford, United Kingdom, with the ORCID beside it.
+- ~~Replace every visible TODO and placeholder.~~ Done: no `\todo` and no
+  `\textcolor` placeholder remains, and CI's `release readiness` job fails a tag
+  that reintroduces either.
+- ~~Add the source for the previously reported tenfold slowdown.~~ Done: §1
+  quotes dmlc/xgboost#12485 verbatim, with a footnote disclosing that this
+  author submitted the proposal it declined.
+- ~~Record the PractRand release and the CUDA/cuRAND version.~~ Done:
+  PractRand-pre0.95 and cuRAND 10.4.1 / CUDA Toolkit 13.1, both in the
+  bibliography.
+- ~~Add the Zenodo software DOI and rebuild `paper/vphilox.pdf`.~~ Done.
+- **Open.** Ask at least one knowledgeable reader to check the claims,
+  citations, methodology, figures, and language. This is the last item before
+  the manuscript goes to TechRxiv, and it is the one nothing in the repository
+  can substitute for.
 
 ## 3. Post the Paper on TechRxiv
 

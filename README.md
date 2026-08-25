@@ -7,7 +7,8 @@
 
 <p align="center">
   <a href="https://github.com/sinhaparth5/vphilox/actions/workflows/ci.yml"><img alt="Build and test status" src="https://github.com/sinhaparth5/vphilox/actions/workflows/ci.yml/badge.svg?branch=master"></a>
-  <a href="VERSIONING.md"><img alt="Development version 2026.08.0" src="https://img.shields.io/badge/version-2026.08.0-22c55e"></a>
+  <a href="VERSIONING.md"><img alt="Version 2026.08.1" src="https://img.shields.io/badge/version-2026.08.1-22c55e"></a>
+  <a href="https://doi.org/10.5281/zenodo.22103483"><img alt="Archived on Zenodo" src="https://img.shields.io/badge/DOI-10.5281%2Fzenodo.22103483-3b82f6"></a>
   <a href="CMakeLists.txt"><img alt="C++20" src="https://img.shields.io/badge/C%2B%2B-20-00599c?logo=cplusplus"></a>
   <a href="CMakeLists.txt"><img alt="Header-only library" src="https://img.shields.io/badge/header--only-yes-334155"></a>
   <a href="#license"><img alt="MIT or Apache 2.0 license" src="https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-22c55e"></a>
@@ -301,7 +302,9 @@ benchmark results in both cycles per byte and GB/s.
 ## Citing vphilox
 
 [`CITATION.cff`](CITATION.cff) holds the machine-readable record; GitHub turns it
-into BibTeX or APA from the "Cite this repository" button on the sidebar.
+into BibTeX or APA from the "Cite this repository" button on the sidebar. The
+release is archived on Zenodo as
+[doi:10.5281/zenodo.22103483](https://doi.org/10.5281/zenodo.22103483).
 
 The generator itself is not ours. It comes from J. K. Salmon, M. A. Moraes,
 R. O. Dror, and D. E. Shaw, *Parallel Random Numbers: As Easy as 1, 2, 3*, SC'11,
