@@ -89,7 +89,21 @@ refuses runs that are not worth writing up:
 ```bash
 scripts/benchmarks/run_matrix.sh --tag <machine> --cpu <isolated-cpu>
 scripts/benchmarks/run_matrix.sh --tag <machine> --bench scaling   # unpinned; needs every core
+scripts/benchmarks/run_matrix.sh --tag <machine> --bench scaling --perf-counters  # i-cache study
 ```
+
+`--perf-counters` adds per-worker retired-instruction and L1 i-cache-miss
+counters (#53) and writes `<tag>-icache.json` rather than `<tag>-scaling.json`.
+Keep the two apart: the extra ioctls land in wall time, so **only `icache_mpki`
+and `instructions_per_byte` are quotable from an i-cache run** — its
+`bytes_per_second` is not comparable with the published scaling curve. The
+counters are per-worker rather than Google Benchmark's
+`--benchmark_perf_counters` because those start and stop on the thread running
+the benchmark loop, which here is the dispatcher: it blocks on a condition
+variable while the workers do every instruction. `instructions_per_byte` is
+the built-in check — it is a property of the kernel, so it must not move with
+thread count, and a run where it does has counters attached to the wrong
+threads.
 
 It writes `results/<tag>-{matrix,scaling}.json` plus a matching
 `-environment.txt`, and exits non-zero if the cycle counter did not report or
