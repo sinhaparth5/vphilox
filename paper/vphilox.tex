@@ -83,7 +83,7 @@
 \title{Portable, Seekable Random Streams for Parallel CPU Simulation}
 
 \author{Parth Sinha\\
-  \todo[inline]{Affiliation line: institution, city, country, or ``Independent researcher''.}
+  \textit{Affiliation to be supplied}\\
   \texttt{sinhaparth555@gmail.com}\\
   \url{https://github.com/sinhaparth5/vphilox}}
 
@@ -92,6 +92,9 @@
 \begin{document}
 
 \maketitle
+
+\todo[inline]{Title page: replace the affiliation placeholder with institution,
+city and country, or with ``Independent researcher''.}
 
 \begin{abstract}
 A long simulation that checkpoints its random generator and resumes on a
@@ -641,16 +644,18 @@ pinned, same binary in each row.
 
 \begin{table}[ht]
 \centering
-\caption{Bulk kernel cost per byte by pinned backend, cycles per byte. The
-final column is the AVX-512 improvement over AVX2 on the same
-part.}\label{tab:avx512}
-\begin{tabular}{lrrrr}
+\caption{Bulk kernel cost per byte by pinned backend, cycles per byte, same
+binary in every row. Width conversion is the AVX-512 speedup as a fraction of
+the doubled lane width, so 100\% would be perfect scaling with
+register width.}\label{tab:avx512}
+\begin{tabular}{lrrrrr}
 \toprule
-Machine & scalar & AVX2 & AVX-512 & AVX-512 vs AVX2 \\
+Machine & scalar & AVX2 & AVX-512 & vs AVX2 & width conv. \\
 \midrule
-Skylake-SP        & 2.1753 & 0.7698 & \textbf{0.4202} & $1.83\times$ \\
-Sapphire Rapids   & 1.9311 & 0.8462 & \textbf{0.4712} & $1.80\times$ \\
-Cascade Lake 32v  &        &        &                 & $1.56\times$ \\
+Skylake-SP        & 2.1753 & 0.7698 & \textbf{0.4202} & $1.83\times$ & 92\% \\
+Sapphire Rapids   & 1.9311 & 0.8462 & \textbf{0.4712} & $1.80\times$ & 90\% \\
+Cascade Lake 32v  & 2.2883 & 0.8740 & \textbf{0.4747} & $1.84\times$ & 92\% \\
+Cascade Lake 4v   & 2.4142 & 0.8537 & \textbf{0.5466} & $1.56\times$ & 78\% \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -666,15 +671,26 @@ built on integer multiplication are therefore unusually good candidates for
 512-bit vectorization, because they never enter the licence tier that makes it
 a bad trade.
 
-The effect is not identical across parts. Cascade Lake converts 78\% of the
-doubled lane width against 92\% on Skylake-SP, so a claim of no penalty at all
-is too strong as a statement about the architecture. Light tier means a smaller
-frequency reduction, not none. AVX-512 still wins on every part measured, so
-the dispatch preference stands.
+One row of \cref{tab:avx512} is worth reading carefully, because it looks at
+first like the penalty and is not. A four-vCPU slice of a Cascade Lake socket
+converts 78\% of the doubled width, against 90\% to 92\% everywhere else. That
+is a property of the instance rather than of the part. The same stepping on a
+whole two-socket host converts 92\%, and on the shared slice the \emph{scalar}
+kernel is slower as well, at 2.4142 against 2.2883 cycles per byte for code
+containing no 512-bit instruction at all. No frequency licence can produce a
+scalar slowdown. The consistent explanation is that other tenants on the shared
+socket move the package turbo budget underneath a measurement that the
+timestamp counter reports in reference cycles, which is the risk described in
+\cref{sec:method} rather than a property of the generator.
 
-Frequency was excluded by direct measurement rather than by argument: a probe
-records core frequency alongside the benchmark, and it is flat across the range
-in question.
+We do not claim that reading is confirmed, and the 4-vCPU figure is reported
+rather than discarded. What the two hosts jointly support is narrower and
+sufficient: AVX-512 beats AVX2 on every part measured, by $1.56\times$ at worst
+and $1.84\times$ at best, so the dispatch preference stands. On a part whose
+cores are not shared, the Philox AVX-512 kernel triggers no measurable
+frequency reduction, and that is measured rather than argued. A probe records
+core frequency alongside the benchmark and it is flat across the range in
+question.
 
 \section{Parallel behaviour}\label{sec:parallel}
 

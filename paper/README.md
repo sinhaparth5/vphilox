@@ -16,13 +16,9 @@ pdflatex vphilox.tex
 pdflatex vphilox.tex        # second pass resolves \cref and the TOC
 ```
 
-**This draft has not been compiled.** No TeX distribution is installed on the
-machine it was written on, so the checks that were run are structural rather
-than a build: environment balance, every `\ref`/`\cref` resolving to a label,
-every `\cite` resolving to a `\bibitem`, no unused macros, balanced braces, and
-all five referenced figure files present. Expect the first real `pdflatex` run
-to surface something these cannot see. Install with
-`sudo apt install texlive-latex-recommended texlive-latex-extra texlive-science`.
+Builds clean: 15 pages, zero errors, zero overfull boxes, zero undefined
+references. `acmart` is not installed, which is the other half of why this is
+`article` (see below).
 
 The figures come from `docs/benchmarks/plots/`, which is **generated** by
 `scripts/benchmarks/publish_results.py` from the JSON in `results/`.
@@ -68,10 +64,9 @@ Neither is claimed as a result.
 ## Template
 
 The roadmap names the ACM template. This draft uses `article` with the standard
-preamble instead, because `acmart` is not installed here and an uncompilable
-class swap is worse than a compilable one that is easy to change later. Nothing
-in the body depends on `article`: the swap is the preamble, the title block and
-the bibliography style.
+preamble instead, because `acmart` is not installed here. Nothing in the body
+depends on `article`: the swap is the preamble, the title block and the
+bibliography style. `sudo apt install texlive-publishers` provides `acmart`.
 
 ## House rules the prose follows
 

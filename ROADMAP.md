@@ -26,8 +26,8 @@ that no earlier host could — and the cuRAND cross-check is done without needin
 a GPU at all.
 
 **Status:** Phases 0-3 complete; Phase 4 complete except libpfm. Phase 5 has
-started: a full paper draft is in `paper/`, uncompiled and blocked on one
-citation.
+started: a full paper draft is in `paper/`, building clean at 15 pages and
+blocked on one citation.
 
 Current version
 `2026.08.0` (see [VERSIONING.md](VERSIONING.md)).
@@ -585,10 +585,9 @@ and whose state can be written on one platform and read on another.
       XGBoost discussion: the paper quotes its 10x figure and spends its evaluation
       rebutting it, so it cannot go out without the thread URL.
 
-      Written against `article` rather than `acmart`: no TeX distribution is installed on
-      the dev machine, so a class that cannot be checked is worse than one that can. The
-      swap is the preamble, the title block and the bibliography style. **The draft has
-      not been compiled** — only structurally checked (balance, refs, cites, macros).
+      Written against `article` rather than `acmart`, which is not installed here. The
+      swap is the preamble, the title block and the bibliography style. Builds clean under
+      `pdflatex`: 15 pages, no errors, no overfull boxes, no undefined references.
 
       The original title names the method, not the contribution, and it invites exactly the
       comparison the measurements lose: xoshiro256++ is faster on four of the five machines
@@ -608,10 +607,12 @@ and whose state can be written on one platform and read on another.
   - [x] Scalar wide-multiply bottleneck analysis — §4.2 and §7.2, with the finding that the
         reported ~10x penalty against `std::mt19937` did **not** reproduce on any of five CPUs
         measured (1.10-1.65x cost per byte, not 10x)
-  - [x] AVX2/AVX-512/NEON lane interleaving theory — §4, including why the AVX-512 downclocking
-        penalty stays small here (Philox's inner loop is entirely light-tier integer work), and
-        the qualification that Cascade Lake converts 78% of the doubled width against 92% on
-        Skylake-SP, so "no penalty" is too strong as an architecture claim
+  - [x] AVX2/AVX-512/NEON lane interleaving theory — §4 and §7.4, including why the AVX-512
+        downclocking penalty stays small here (Philox's inner loop is entirely light-tier
+        integer work). §7.4 reports all four pinned-backend runs and separates the two Cascade
+        Lake instances: the 78% width conversion belongs to the shared 4-vCPU slice, the same
+        stepping on a whole host converts 92%, and the scalar kernel is slower there too, which
+        no licence can explain
   - [x] IEEE-754 mantissa injection math — §5, including exactness by Sterbenz's lemma and why
         the exhaustive round trip catches what no distributional test can
   - [x] Benchmark figures from Phase 4, reported honestly — §10 carries both results that cut
