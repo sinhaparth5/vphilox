@@ -88,9 +88,9 @@ Four measurement rules, each learned by getting them wrong:
   invisible. The exception is a dedicated-vCPU instance that still comes in
   under the CV bar, which should be labelled as cloud in the write-up.
 - **Report results that cut against the library.** xoshiro256++ leads on three
-  of four parts and NEON leaves vphilox behind `std::mt19937` on ARM; both are
-  in `docs/benchmarks/` and the roadmap because omitting them would be the
-  problem, not the numbers.
+  of four parts, and on ARM the buffered engine is still behind `std::mt19937`
+  even though the NEON kernel now leads it; both are in `docs/benchmarks/` and
+  the roadmap because omitting them would be the problem, not the numbers.
 
 `VPHILOX_FETCH_DEPS=OFF` forces an offline build using only installed
 GoogleTest/Benchmark.
@@ -141,7 +141,8 @@ The layering, bottom up:
 - `detail/kernel_avx2.hpp` — eight interleaved counters per `__m256i`,
   `[[gnu::target("avx2")]]` rather than a TU flag because the kernel lives in a
   header. `detail/kernel_avx512.hpp` interleaves sixteen counters per `__m512i`
-  and `detail/kernel_neon.hpp` four per `uint32x4_t`; both are real
+  and `detail/kernel_neon.hpp` four per `uint32x4_t` with two groups
+  interleaved per iteration; both are real
   implementations, verified on Sapphire Rapids / Skylake-SP and Cortex-A76.
 - `detail/cpu_features.hpp` — one-shot runtime CPU probe. The x86 path is a raw
   `CPUID` + `XGETBV` probe written once for every compiler (`__cpuidex` on MSVC,
@@ -178,10 +179,12 @@ not depend on how the caller chunks the request — that independence is what
 makes parity testing meaningful and lets the engine refill in any size. Kernels
 handle their own tails and must not assume `out` is aligned.
 `preferred_blocks` advertises the tail-free width: scalar 1, AVX2 8, AVX-512 16,
-NEON 4 — one counter per 32-bit lane in every case, which is what
-`docs/benchmarks/simd-lane-layout.md` settled. The AVX-512 and NEON figures are
-16 and 4 rather than the 8 and 2 originally planned; both plans underestimated
-the reachable lane count.
+NEON 8. On x86 that is one counter per 32-bit lane, which is what
+`docs/benchmarks/simd-lane-layout.md` settled, and both figures are double what
+was originally planned — those plans underestimated the reachable lane count.
+NEON is 8 for a different reason: four lanes per register, but two independent
+groups per iteration, because the Cortex-A76 kernel was latency-bound rather
+than width-bound (issue #89).
 
 ### Dispatch and the `implemented` flag
 
@@ -252,14 +255,17 @@ to make it pass.
 
 ## Current state
 
-Phase 1 (scalar reference, KATs, baseline benchmarks) is done. Phase 2 is
-substantially done: **all three SIMD kernels exist and are verified on real
-hardware.** AVX2 is 3.3x scalar (`docs/benchmarks/avx2-2026-08-23.md`),
-AVX-512 is 4.1x scalar and 1.80-1.83x AVX2 with no downclocking penalty on
-either Sapphire Rapids or Skylake-SP
-(`docs/benchmarks/avx512-downclocking-2026-08-24.md`), and NEON is 1.46x scalar
-on a Cortex-A76 — below the ~1.65x half-of-AVX2 expectation, and the one target
-where vphilox still loses to `std::mt19937`. The engine also has a portable
+Phase 1 (scalar reference, KATs, baseline benchmarks) is done. Phase 2 has met
+its deliverable: **all three SIMD kernels exist, are verified on real hardware,
+and each beats `std::mt19937` on the raw kernel.** AVX2 is 3.3x scalar
+(`docs/benchmarks/avx2-2026-08-23.md`), AVX-512 is 4.1x scalar and 1.80-1.83x
+AVX2 with no downclocking penalty on either Sapphire Rapids or Skylake-SP
+(`docs/benchmarks/avx512-downclocking-2026-08-24.md`), and NEON is 2.19x scalar
+on a Cortex-A76 after the two-group unroll
+(`docs/benchmarks/neon-unroll-pi-2026-08-25.md`) — 1.33x `std::mt19937` and
+1.11x PCG64. The one gap left there is the *buffered* engine on ARM, still
+0.87x `std::mt19937` because the refill drain now costs more than the kernel
+does; `generate_n` gets the full win. The engine also has a portable
 serialized state (`include/vphilox/serialize.hpp`), which is the problem the
 library was built around. Phase 4
 statistical validation is done and does not need re-running: PractRand clean to
