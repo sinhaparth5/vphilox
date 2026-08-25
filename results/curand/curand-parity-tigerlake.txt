@@ -1,0 +1,105 @@
+# vphilox <-> cuRAND Philox4_32_10 parity run
+date_utc:     2026-08-25T20:01:30Z
+host:         parthsinha
+cpu:          11th Gen Intel(R) Core(TM) i5-11300H @ 3.10GHz
+gpu:          NVIDIA GeForce RTX 3060 Laptop GPU (present but unused; see note)
+cuda_headers: /usr/local/cuda-13.1/
+compiler:     c++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+git_sha:      a34b71fb4a063d1cb69c7976d081cbf028075fd8
+command:      for b in scalar avx2 avx512; do VPHILOX_BACKEND=$b build/tools/vphilox_curand_parity; done
+#
+# No GPU or nvcc is involved: cuRAND's own reference implementation is
+# compiled as host C++ by overriding its QUALIFIERS macro. The only
+# target-dependent line in the generator is mulhilo32, whose host and
+# device branches compute the same 32x32->high-32 product.
+#
+=== VPHILOX_BACKEND=scalar ===
+# vphilox <-> cuRAND Philox4_32_10 parity
+# vphilox version : 2026.08.0
+# vphilox backend : scalar
+# curand headers  : 10401
+# curand build    : host (QUALIFIERS overridden; no device code)
+# words per case  : 4096
+#
+origin                   core OK    mapping OK    ctr 00000000:00000000:00000000:00000000  key 00000000:00000000  w0
+plain seed               core OK    mapping OK    ctr 00000000:00000000:00000000:00000000  key 00000000:deadbeef  w0
+64-bit seed              core OK    mapping OK    ctr 00000000:00000000:00000000:00000000  key 01234567:89abcdef  w0
+all-ones seed            core OK    mapping OK    ctr 00000000:00000000:00000000:00000000  key ffffffff:ffffffff  w0
+offset 1 (mid-block)     core OK    mapping OK    ctr 00000000:00000000:00000000:00000000  key 00000000:00003039  w1
+offset 2 (mid-block)     core OK    mapping OK    ctr 00000000:00000000:00000000:00000000  key 00000000:00003039  w2
+offset 3 (mid-block)     core OK    mapping OK    ctr 00000000:00000000:00000000:00000000  key 00000000:00003039  w3
+offset 4 (next block)    core OK    mapping OK    ctr 00000000:00000000:00000000:00000001  key 00000000:00003039  w0
+offset 7 (mid-block)     core OK    mapping OK    ctr 00000000:00000000:00000000:00000001  key 00000000:00003039  w3
+subsequence 1            core OK    mapping OK    ctr 00000000:00000001:00000000:00000000  key 00000000:00000063  w0
+subsequence 2^32         core OK    mapping OK    ctr 00000001:00000000:00000000:00000000  key 00000000:00000063  w0
+subsequence max          core OK    mapping OK    ctr ffffffff:ffffffff:00000000:00000000  key 00000000:00000063  w0
+offset across 2^32       core OK    mapping OK    ctr 00000000:00000000:00000001:00000000  key 00000000:00000007  w0
+offset carry boundary    core OK    mapping OK    ctr 00000000:00000000:00000000:ffffffff  key 00000000:00000007  w0
+both set                 core OK    mapping OK    ctr 00000000:00001234:00000000:00000400  key feedface:cafebeef  w0
+both large               core OK    mapping OK    ctr 00000000:ffffffff:00000040:00000002  key a5a5a5a5:a5a5a5a5  w1
+#
+# core    : 16/16 cases identical over 4096 words each
+# mapping : 16/16 cases match the documented derivation
+# VERDICT : IDENTICAL
+exit: 0
+
+=== VPHILOX_BACKEND=avx2 ===
+# vphilox <-> cuRAND Philox4_32_10 parity
+# vphilox version : 2026.08.0
+# vphilox backend : avx2
+# curand headers  : 10401
+# curand build    : host (QUALIFIERS overridden; no device code)
+# words per case  : 4096
+#
+origin                   core OK    mapping OK    ctr 00000000:00000000:00000000:00000000  key 00000000:00000000  w0
+plain seed               core OK    mapping OK    ctr 00000000:00000000:00000000:00000000  key 00000000:deadbeef  w0
+64-bit seed              core OK    mapping OK    ctr 00000000:00000000:00000000:00000000  key 01234567:89abcdef  w0
+all-ones seed            core OK    mapping OK    ctr 00000000:00000000:00000000:00000000  key ffffffff:ffffffff  w0
+offset 1 (mid-block)     core OK    mapping OK    ctr 00000000:00000000:00000000:00000000  key 00000000:00003039  w1
+offset 2 (mid-block)     core OK    mapping OK    ctr 00000000:00000000:00000000:00000000  key 00000000:00003039  w2
+offset 3 (mid-block)     core OK    mapping OK    ctr 00000000:00000000:00000000:00000000  key 00000000:00003039  w3
+offset 4 (next block)    core OK    mapping OK    ctr 00000000:00000000:00000000:00000001  key 00000000:00003039  w0
+offset 7 (mid-block)     core OK    mapping OK    ctr 00000000:00000000:00000000:00000001  key 00000000:00003039  w3
+subsequence 1            core OK    mapping OK    ctr 00000000:00000001:00000000:00000000  key 00000000:00000063  w0
+subsequence 2^32         core OK    mapping OK    ctr 00000001:00000000:00000000:00000000  key 00000000:00000063  w0
+subsequence max          core OK    mapping OK    ctr ffffffff:ffffffff:00000000:00000000  key 00000000:00000063  w0
+offset across 2^32       core OK    mapping OK    ctr 00000000:00000000:00000001:00000000  key 00000000:00000007  w0
+offset carry boundary    core OK    mapping OK    ctr 00000000:00000000:00000000:ffffffff  key 00000000:00000007  w0
+both set                 core OK    mapping OK    ctr 00000000:00001234:00000000:00000400  key feedface:cafebeef  w0
+both large               core OK    mapping OK    ctr 00000000:ffffffff:00000040:00000002  key a5a5a5a5:a5a5a5a5  w1
+#
+# core    : 16/16 cases identical over 4096 words each
+# mapping : 16/16 cases match the documented derivation
+# VERDICT : IDENTICAL
+exit: 0
+
+=== VPHILOX_BACKEND=avx512 ===
+# vphilox <-> cuRAND Philox4_32_10 parity
+# vphilox version : 2026.08.0
+# vphilox backend : avx512
+# curand headers  : 10401
+# curand build    : host (QUALIFIERS overridden; no device code)
+# words per case  : 4096
+#
+origin                   core OK    mapping OK    ctr 00000000:00000000:00000000:00000000  key 00000000:00000000  w0
+plain seed               core OK    mapping OK    ctr 00000000:00000000:00000000:00000000  key 00000000:deadbeef  w0
+64-bit seed              core OK    mapping OK    ctr 00000000:00000000:00000000:00000000  key 01234567:89abcdef  w0
+all-ones seed            core OK    mapping OK    ctr 00000000:00000000:00000000:00000000  key ffffffff:ffffffff  w0
+offset 1 (mid-block)     core OK    mapping OK    ctr 00000000:00000000:00000000:00000000  key 00000000:00003039  w1
+offset 2 (mid-block)     core OK    mapping OK    ctr 00000000:00000000:00000000:00000000  key 00000000:00003039  w2
+offset 3 (mid-block)     core OK    mapping OK    ctr 00000000:00000000:00000000:00000000  key 00000000:00003039  w3
+offset 4 (next block)    core OK    mapping OK    ctr 00000000:00000000:00000000:00000001  key 00000000:00003039  w0
+offset 7 (mid-block)     core OK    mapping OK    ctr 00000000:00000000:00000000:00000001  key 00000000:00003039  w3
+subsequence 1            core OK    mapping OK    ctr 00000000:00000001:00000000:00000000  key 00000000:00000063  w0
+subsequence 2^32         core OK    mapping OK    ctr 00000001:00000000:00000000:00000000  key 00000000:00000063  w0
+subsequence max          core OK    mapping OK    ctr ffffffff:ffffffff:00000000:00000000  key 00000000:00000063  w0
+offset across 2^32       core OK    mapping OK    ctr 00000000:00000000:00000001:00000000  key 00000000:00000007  w0
+offset carry boundary    core OK    mapping OK    ctr 00000000:00000000:00000000:ffffffff  key 00000000:00000007  w0
+both set                 core OK    mapping OK    ctr 00000000:00001234:00000000:00000400  key feedface:cafebeef  w0
+both large               core OK    mapping OK    ctr 00000000:ffffffff:00000040:00000002  key a5a5a5a5:a5a5a5a5  w1
+#
+# core    : 16/16 cases identical over 4096 words each
+# mapping : 16/16 cases match the documented derivation
+# VERDICT : IDENTICAL
+exit: 0
+

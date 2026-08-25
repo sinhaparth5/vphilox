@@ -20,9 +20,10 @@ particular) is a comparison worth *reporting* honestly, not a target to chase.
 Derived from `docs/VPhilox Development Phases.md` and
 `docs/Vector Philox Development Strategy.md`.
 
-**Status:** Phases 0-3 complete; Phase 4 complete except a cuRAND/GPU parity
-reference. The instruction-cache study is now measured — a bare-metal Tiger Lake
-laptop cleared the co-location gate that no earlier host could.
+**Status:** Phases 0-3 complete; **Phase 4 complete.** The instruction-cache
+study is measured — a bare-metal Tiger Lake laptop cleared the co-location gate
+that no earlier host could — and the cuRAND cross-check is done without needing
+a GPU at all.
 Current version
 `2026.08.0` (see [VERSIONING.md](VERSIONING.md)).
 
@@ -512,7 +513,7 @@ and whose state can be written on one platform and read on another.
           across independent runs, and the finding is a direction rather than a
           threshold, so the conclusion survives — but the cycles/byte column here
           is a weaker version of what #51 already measured on better hardware
-- [~] **Cross-platform bit parity** — same key and counter produce identical output on x86-64,
+- [x] **Cross-platform bit parity** — same key and counter produce identical output on x86-64,
       aarch64, and (if reachable) a cuRAND/GPU reference. This is the reproducibility claim;
       it needs a test, not an assertion.
   - [x] `tests/test_cross_platform_parity.cpp` folds an 8191-block stream into an FNV-1a
@@ -527,7 +528,29 @@ and whose state can be written on one platform and read on another.
         therefore now known to be identical on x86-64 scalar, AVX2, AVX-512 and aarch64
         NEON — four kernels, two architectures, three compilers. That is the
         reproducibility claim discharged by measurement rather than by assertion
-  - [ ] cuRAND/GPU reference, if reachable
+  - [x] **Cross-checked against NVIDIA cuRAND** (`docs/curand-parity.md`). 16/16
+        cases identical over 4096 words each, under `scalar`, `avx2` and
+        `avx512`. Two independent assertions per case: the *core*, feeding
+        cuRAND's own reported (counter, key) into vphilox, and the *mapping*,
+        that those values match what `(seed, subsequence, offset)` predicts.
+        Both were mutation-tested — swapping the predicted counter halves fails
+        mapping only (7/16), flipping one counter bit fails core only (0/16) —
+        so they are two tests rather than one written twice
+    - [x] **No GPU or nvcc needed, which makes it portable rather than weaker.**
+          cuRAND guards its decoration with `#if !defined(QUALIFIERS)`, so the
+          tool compiles NVIDIA's reference implementation as host C++. The only
+          target-dependent line in the generator is `mulhilo32`, whose host and
+          device branches both compute the high 32 bits of a 32x32 product. What
+          is unverified is NVIDIA's *device codegen*, not the algorithm, and
+          `docs/curand-parity.md` says so rather than glossing it
+    - [x] The interop mapping is now documented: cuRAND's `subsequence` occupies
+          the counter's high 64 bits, `offset / 4` the low 64, and `offset % 4`
+          is a word index into the block — so cuRAND's `offset` counts words
+          where a vphilox counter counts blocks of four. That asymmetry is the
+          part a caller would otherwise get wrong
+    - [x] Optional exactly as `vphilox_testu01` is: the target does not exist
+          unless the cuRAND headers are found, and configure logs which case you
+          are in. CUDA never becomes a dependency of the library
 - [x] Publish plots and raw CSVs under `docs/benchmarks/` —
       `scripts/benchmarks/publish_results.py` generates
       [`docs/benchmarks/raw/`](docs/benchmarks/raw) and
