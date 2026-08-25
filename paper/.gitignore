@@ -1,0 +1,11 @@
+# Staged copies of docs/benchmarks/plots/*.pdf; run ./stage-figures.sh.
+figures/
+# LaTeX build products.
+*.aux
+*.log
+*.out
+*.bbl
+*.blg
+*.toc
+*.synctex.gz
+vphilox.pdf

@@ -24,6 +24,11 @@ Derived from `docs/VPhilox Development Phases.md` and
 study is measured — a bare-metal Tiger Lake laptop cleared the co-location gate
 that no earlier host could — and the cuRAND cross-check is done without needing
 a GPU at all.
+
+**Status:** Phases 0-3 complete; Phase 4 complete except libpfm. Phase 5 has
+started: a full paper draft is in `paper/`, uncompiled and blocked on one
+citation.
+
 Current version
 `2026.08.0` (see [VERSIONING.md](VERSIONING.md)).
 
@@ -570,34 +575,48 @@ and whose state can be written on one platform and read on another.
 
 ## Phase 5 — Paper & release
 
-- [ ] **Paper** (LaTeX, ACM template) — working title *Portable, Seekable Random Streams for
+- [~] **Paper** (LaTeX) — working title *Portable, Seekable Random Streams for
       Parallel CPU Simulation*, retitled from *vPhilox: SIMD-Accelerated Counter-Based
       Pseudo-Random Number Generation for Parallel CPU Systems*.
 
+      **Full draft in `paper/vphilox.tex`; see `paper/README.md` for what is still open.**
+      Twelve sections, five figures, every number traced to an archived run. Six `\todo`
+      markers remain, and the one that blocks publication is the citation for the upstream
+      XGBoost discussion: the paper quotes its 10x figure and spends its evaluation
+      rebutting it, so it cannot go out without the thread URL.
+
+      Written against `article` rather than `acmart`: no TeX distribution is installed on
+      the dev machine, so a class that cannot be checked is worse than one that can. The
+      swap is the preamble, the title block and the bibliography style. **The draft has
+      not been compiled** — only structurally checked (balance, refs, cites, macros).
+
       The original title names the method, not the contribution, and it invites exactly the
-      comparison the measurements lose: xoshiro256++ is faster on three of the four parts
+      comparison the measurements lose: xoshiro256++ is faster on four of the five machines
       tested. Speed is the *objection this work removes*, not the result it reports. Lead with
       what no competing generator offers — a checkpoint that survives a change of standard
       library, O(1) seek, and results independent of thread count — and use the throughput
       figures to show those properties are free.
-  - [ ] **The portability failure** — the motivating problem, and currently missing from the
-        outline entirely. `std::mt19937`'s serialized state is not portable: format flags
-        differ (libstdc++ has `operator<<` force `dec`; the MSVC STL does not) and so does the
-        layout (624 words raw plus a position, against 624 rotated with none). A checkpoint
-        written on Linux fails on Windows and loads *silently wrong* on macOS. Counter-based
-        state — a key and a position — cannot fail this way
-  - [ ] **Reproducibility under parallelism** — identical output regardless of thread count and
-        scheduling, with the measured scaling behind it (3.95x on 4 cores, 98.8% efficiency,
-        aggregate cycles/byte flat to 0.063% from 1 to 32 threads)
-  - [ ] Scalar wide-multiply bottleneck analysis — and the finding that the reported ~10x
-        penalty against `std::mt19937` did **not** reproduce on any of five CPUs measured
-        (0.61-0.87x, not 0.10x)
-  - [ ] AVX2/AVX-512/NEON lane interleaving theory, including why AVX-512 shows no
-        downclocking penalty here: Philox's inner loop is entirely light-tier integer work
-  - [ ] IEEE-754 mantissa injection math
-  - [ ] Benchmark figures from Phase 4, reported honestly — including the two results that cut
-        against us, that xoshiro256++ leads on three of four parts and that NEON leaves vphilox
-        behind `std::mt19937` on ARM
+  - [x] **The portability failure** — §1 and §3. `std::mt19937`'s serialized state is not
+        portable: format flags differ (libstdc++ has `operator<<` force `dec`; the MSVC STL
+        does not) and so does the layout (624 words raw plus a position, against 624 rotated
+        with none). A checkpoint written on Linux fails on Windows and loads *silently wrong*
+        on macOS. Counter-based state — a key and a position — cannot fail this way
+  - [x] **Reproducibility under parallelism** — §8. Identical output regardless of thread count
+        and scheduling, with the measured scaling behind it (3.95x on 4 cores, 98.8%
+        efficiency, aggregate cycles/byte flat to 0.063% from 1 to 32 threads), plus the
+        placement result: the first knee is hyperthread co-location at 35%/worker, not memory
+  - [x] Scalar wide-multiply bottleneck analysis — §4.2 and §7.2, with the finding that the
+        reported ~10x penalty against `std::mt19937` did **not** reproduce on any of five CPUs
+        measured (1.10-1.65x cost per byte, not 10x)
+  - [x] AVX2/AVX-512/NEON lane interleaving theory — §4, including why the AVX-512 downclocking
+        penalty stays small here (Philox's inner loop is entirely light-tier integer work), and
+        the qualification that Cascade Lake converts 78% of the doubled width against 92% on
+        Skylake-SP, so "no penalty" is too strong as an architecture claim
+  - [x] IEEE-754 mantissa injection math — §5, including exactness by Sterbenz's lemma and why
+        the exhaustive round trip catches what no distributional test can
+  - [x] Benchmark figures from Phase 4, reported honestly — §10 carries both results that cut
+        against us, that xoshiro256++ leads on four of five machines and that NEON leaves the
+        buffered engine behind `std::mt19937` on ARM
 - [ ] arXiv preprint (cs.PF / cs.MS)
 - [ ] Zenodo DOI for the repository
 - [ ] Tag and publish `sinhaparth5/vphilox`
