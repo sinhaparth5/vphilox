@@ -8,6 +8,74 @@ Any entry that would change it would be a new algorithm, not a release.
 ## [Unreleased]
 
 ### Added
+- **Portable serialized state** (`include/vphilox/serialize.hpp`), which is the
+  problem the library was built around. `engine_state` records a *position* —
+  key, the block holding the next output, and the word within it — never the
+  engine's internals, so the format does not depend on the standard library,
+  the locale, or the engine's buffer size. It is deliberately not included by
+  `vphilox.hpp`, because it needs `<istream>`, `<ostream>` and `<string>` and
+  most callers never serialize. `state()` / `set_state()` are the exact round
+  trip; `basic_engine(g.key(), g.counter())` is not, because `counter()` is the
+  *next refill's* counter and skips whatever is still buffered, and a test
+  asserts that it skips.
+- **AVX-512 backend** (`detail/kernel_avx512.hpp`): sixteen interleaved
+  counters per `__m512i`, one counter per 32-bit lane. Measured at 4.1x the
+  scalar kernel and 1.80–1.83x AVX2, with **no downclocking penalty** on either
+  Sapphire Rapids or Skylake-SP. Philox's inner loop is entirely light-tier
+  integer work, so it never enters a frequency licence that costs anything; see
+  `docs/benchmarks/avx512-downclocking-2026-08-24.md`. That measurement also
+  retired the open licence hypothesis behind issue #27.
+- **ARM NEON backend** (`detail/kernel_neon.hpp`): four counters per
+  `uint32x4_t` with **two independent groups interleaved per iteration**. The
+  two-group unroll is not width, it is latency: the Cortex-A76 kernel was
+  latency-bound rather than width-bound, so `preferred_blocks` is 8 on NEON for
+  a different reason than it is 8 on AVX2. 2.19x scalar, 1.33x `std::mt19937`
+  and 1.11x PCG64 on a Cortex-A76; see
+  `docs/benchmarks/neon-unroll-pi-2026-08-25.md`.
+- **Cross-check against NVIDIA cuRAND** (`tools/vphilox_curand_parity`,
+  `docs/curand-parity.md`): 16/16 cases identical over 4096 words each, under
+  all three x86 backends, together with the documented seeding mapping between
+  the two libraries. cuRAND's `subsequence` is the counter's high 64 bits and
+  `offset / 4` the low 64, with `offset % 4` a word index — so a cuRAND
+  `offset` counts *words* where a vphilox counter counts *blocks of four*. The
+  tool needs no GPU and no `nvcc`: cuRAND guards its decoration behind
+  `QUALIFIERS`, so defining it compiles NVIDIA's reference implementation as
+  host C++. Like the TestU01 harness, the target simply does not exist unless
+  the cuRAND headers are found, and **CUDA never becomes a dependency of the
+  library.**
+- **Per-worker instruction counters** in `bench_scaling` (`--perf-counters`),
+  attaching retired-instruction and L1 i-cache-miss counters through
+  `perf_event_open` to each worker rather than to the benchmark loop's thread.
+  The distinction is the whole point: the thread running the loop is the
+  dispatcher, which blocks on a condition variable while the workers execute
+  every instruction, so a framework's built-in counters would measure the wrong
+  thread. `instructions_per_byte` is the built-in check — it is a property of
+  the kernel and must not move with thread count.
+- **An OpenMP arm** in `bench_scaling` alongside the `std::thread` pool, so the
+  scaling result can be attributed to the generator rather than to the harness.
+  Optional: without libgomp the benchmark still builds and registers half the
+  rows.
+- **`scripts/benchmarks/run_placement.sh`**, which runs one worker count under
+  two placements and compares `icache_mpki`. It reads the sibling map from
+  sysfs rather than assuming an enumeration, and **gates on a measured
+  co-location penalty of at least 15% before it will run anything.** That gate
+  is the reason it exists: a VM publishes a correct sibling map and accepts
+  every `taskset` mask while the hypervisor places vCPUs itself, so both arms
+  silently become the same placement.
+- **`scripts/benchmarks/publish_results.py`**, which derives every CSV and
+  figure under `docs/benchmarks/` from `results/*.json`; CI runs it with
+  `--check`. Standard library only, which is also why it writes its own SVG
+  *and* its own PDF rather than shelling out to a converter — both are
+  byte-reproducible text, so `--check` can police them. Cross-machine figures
+  plot ratios measured *within* each machine, because cycles/byte does not
+  transfer across hosts, and `machines.csv` carries a `quality` column so a
+  harness-validation run cannot be quoted as a result.
+- **`tests/test_cross_platform_parity.cpp`**, which folds an 8191-block stream
+  into an FNV-1a digest checked against a constant in the file. It covers what
+  the known-answer vectors miss: SIMD tails, the refill buffer, chunked
+  `generate_n`, the counter carry chain and float conversion. If it fails, the
+  generated stream changed, which is a wrong change rather than a stale
+  expectation.
 - Bulk float generation: `generate_n(float*, count)` and
   `generate(std::span<float>)`, equivalent to the same number of
   `next_float()` calls in both output and resulting engine state. Roughly 2x
@@ -63,6 +131,20 @@ Any entry that would change it would be a new algorithm, not a release.
   destination pointers.
 
 ### Changed
+- The engine's refill buffer grew from 8 blocks to 16 (128 to 256 bytes) so
+  that no backend ever splits a refill, which the AVX-512 kernel's sixteen-block
+  width would otherwise force. **Previously written serialized states remained
+  readable**, because the format records a position rather than the engine's
+  internals — that round trip is exactly the property the format was designed
+  for, and the cross-platform digest test proved the stream itself was
+  untouched.
+- `clang-format` is pinned to 21.1.8 in CI, and the version matters as much as
+  the config. clang-format is not stable across major versions: 18 (what
+  `ubuntu-24.04` ships) and 21 disagree on the short block after the
+  `#pragma omp parallel` in `bench_scaling.cpp`, and no source text satisfies
+  both, so an unpinned check enforces the runner image rather than
+  `.clang-format`. `CLANG_FORMAT_VERSION` in `.github/workflows/ci.yml` is the
+  only place the number is written.
 - `tools/vphilox_stream` fills its output chunk through the bulk path instead
   of word by word: 1.80x on AVX2, with byte-identical output on every backend.
 - `tools/vphilox_stream` now ignores `SIGPIPE`. PractRand closes the pipe the
@@ -82,6 +164,43 @@ Any entry that would change it would be a new algorithm, not a release.
   exists, so the path MSVC depends on is exercised on every Linux and macOS run.
 
 ### Notes
+- **Size thread pools by physical cores, not `hardware_concurrency()`.** The
+  first multi-core limit is hyperthread co-location, not the memory system: one
+  thread per physical core is flat to sixteen cores, while two workers sharing
+  one core cost about 35% each because the kernel is execution-port-bound.
+  Memory enters only as a second limit, tracking footprint per socket. Both
+  competing explanations were then excluded by measurement rather than by
+  argument. Instruction supply is not the mechanism — co-location costs +59%
+  cycles/byte while i-cache MPKI *falls* 36%, because both siblings run the
+  identical kernel and sharing one L1i is therefore constructive
+  (`docs/benchmarks/icache-placement-tigerlake-2026-08-25.md`). And the flat
+  result belongs to the generator rather than to this project's worker pool —
+  libgomp reproduces it at 1.000/1.000/1.003x to one thread per physical core,
+  where the `std::thread` pool drifts to 1.220x because its dispatcher is an
+  extra thread once the workers own every core
+  (`docs/benchmarks/openmp-runtime-tigerlake-2026-08-25.md`). Frequency was
+  excluded by direct measurement (`scripts/benchmarks/freq_probe.cpp`).
+- **The reported ~10x scalar-Philox penalty against `std::mt19937` did not
+  reproduce on any of five CPUs measured** (0.61–0.87x, not 0.10x); see
+  `docs/benchmarks/baseline-2026-08-21.md`. Specialising the wide multiplies
+  puts the raw kernel at 2.6–4.6x `std::mt19937` and 4.1–5.3x unspecialised
+  Philox.
+- **Results that cut against the library are recorded rather than omitted.**
+  xoshiro256++ is faster on four of the five machines measured; it leads on the
+  Pi 5, on Sapphire Rapids and on both Cascade Lake hosts, and vphilox's bulk
+  path wins only on Skylake-SP (0.4210 against 0.4703 cycles per byte). It is a
+  latency-bound scalar chain that a wider kernel does not catch, and it offers
+  none of the properties this library exists for. Separately, on ARM the
+  *buffered* engine is still 0.87x `std::mt19937` even though the NEON kernel
+  leads it, because the refill drain now costs more than the kernel does;
+  `generate_n` gets the full win.
+- A cloud VM is fine for correctness but not for throughput, because steal time
+  is invisible, and **a VM cannot control thread placement even when it reports
+  the topology**. Inside WSL2 the guest publishes a correct-looking sibling map
+  and `taskset` accepts the mask, but the hypervisor schedules vCPUs onto host
+  cores on its own. The tell was that two workers on one core's siblings came
+  out *faster* than two on separate cores, which is impossible for a port-bound
+  kernel under real co-location.
 - Statistical validation to 1 TB: PractRand's core battery reports no anomalies
   in 304 test results across eleven checkpoints, and TestU01 passes both
   SmallCrush (15/15) and BigCrush (all 160 statistics). Exactly one result was flagged in the whole terabyte — an `unusual`
