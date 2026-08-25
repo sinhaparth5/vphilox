@@ -593,12 +593,11 @@ and whose state can be written on one platform and read on another.
       those studies needed. §10 no longer lists any measurement as pending hardware.
 
       Written against `IEEEtran` in the Computer Society journal format, which is what
-      TPDS, TC and TSE use; a conference submission is a class-option change. The last
-      build on a TeX host was 15 pages with no errors, no overfull boxes and no undefined
-      references. **The tracked `paper/vphilox.pdf` is now behind the source**: the Phase 4
-      additions were written on a machine with no TeX installed, so `paper/build.sh` has
-      not been re-run and CI does not build the paper. Rebuild and commit the PDF before
-      circulating it.
+      TPDS, TC and TSE use; a conference submission is a class-option change. Builds
+      clean at 12 pages — no errors, no overfull boxes, no undefined references — and
+      **CI now builds it**, so that is verified rather than asserted. The `paper builds`
+      job also uploads the PDF as a run artifact, and warns when `vphilox.tex` was
+      committed more recently than the tracked `vphilox.pdf`.
 
       The original title names the method, not the contribution, and it invites exactly the
       comparison the measurements lose: xoshiro256++ is faster on four of the five machines

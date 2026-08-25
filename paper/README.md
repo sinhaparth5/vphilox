@@ -16,11 +16,6 @@ later is a preamble change plus `\bibliography{refs}`.
                             # or undefined references. This is what CI runs.
 ```
 
-> **The tracked `vphilox.pdf` is behind `vphilox.tex`.** The Phase 4 results
-> were folded into the source on a machine with no TeX installed, so the PDF
-> could not be regenerated. Run `./build.sh` on a host with `pdflatex` and
-> commit the result before circulating the PDF or submitting anywhere.
-
 CI's `paper builds` job compiles the paper whenever anything under `paper/` or
 `docs/benchmarks/plots/` changes, so the source is checked even by contributors
 with no TeX install, and it uploads the resulting PDF as a run artifact named
@@ -48,10 +43,12 @@ stale figure fails loudly instead of ending up in the submission. `figures/` is
 gitignored because those copies are generated; the tracked originals live under
 `docs/`.
 
-The last build on a TeX host produced 15 pages with zero errors, zero overfull
-boxes and zero undefined references. The Phase 4 additions since then have not
-been through `pdflatex` (see the note above), so the page count will have moved
-and the two new tables have not been seen in a two-column measure.
+Builds clean at **12 pages**: zero errors, zero overfull boxes, zero undefined
+references, verified by CI rather than asserted. The count was 15 under the
+`article` class this draft started in; two-column IEEEtran is denser, so the
+paper lost three pages while gaining the Phase 4 sections.
+
+The tracked `vphilox.pdf` is the one CI built, so it is current with the source.
 
 ## Where the numbers come from
 

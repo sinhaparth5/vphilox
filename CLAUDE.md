@@ -392,11 +392,15 @@ maps each table and figure to its source and lists what is still open.
 
 Two things to know before touching it. **`paper/vphilox.pdf` is tracked**, so
 `paper/build.sh` pins `SOURCE_DATE_EPOCH` to keep rebuilds byte-identical;
-without that every build churns 300 KB of binary diff. **CI does not build the
-paper**, so a `.tex` edit committed without a rebuild leaves the PDF silently
-stale — which is exactly the state it is in now, because the Phase 4 results
-were folded in on a host with no TeX installed. Rebuild it on a host with
-`pdflatex` before circulating anything.
+without that every build churns 300 KB of binary diff. And the source is
+checked, but the tracked PDF cannot be: CI's `paper builds` job runs
+`paper/build.sh --strict`, which fails on an overfull box or an undefined
+reference, and uploads the result as a run artifact — but two TeX distributions
+do not agree byte for byte, so it cannot gate the tracked file the way
+`publish_results.py --check` gates the figures. It warns instead when
+`vphilox.tex` was committed more recently than `vphilox.pdf`. **If you have no
+TeX install, do not commit a `.tex` edit and leave the PDF alone** — take the
+artifact from the CI run and commit that.
 
 The remaining blockers are not writing. The paper quotes the upstream XGBoost
 10x figure and spends its evaluation rebutting it, so it cannot go out without
