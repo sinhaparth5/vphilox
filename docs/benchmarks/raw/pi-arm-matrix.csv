@@ -1,0 +1,12 @@
+benchmark,cycles_per_byte,cycles_per_byte_cv_pct,bytes_per_second,median_time_ns,cycle_source
+BM_mt19937,1.918305,0.7752,1240332124.4,211514.543,perf_event
+BM_pcg64,1.625220,0.0013,1462348432.7,179285.700,perf_event
+BM_philox_scalar,3.211170,0.0103,743421523.0,352762.477,perf_event
+BM_vphilox,3.998099,0.0515,597556573.9,438803.809,perf_event
+BM_vphilox_bulk,3.194236,0.0100,747416695.6,350775.770,perf_event
+BM_vphilox_generate_n/1024,3.202351,0.0023,745436480.8,351719.837,perf_event
+BM_vphilox_generate_n/256,3.226764,0.0064,739710220.9,354459.996,perf_event
+BM_vphilox_generate_n/32,3.396762,0.0208,702804228.8,373046.631,perf_event
+BM_vphilox_generate_n/65536,3.194310,0.0062,747404759.5,350818.272,perf_event
+BM_vphilox_generate_n/8,3.969833,0.1047,601777849.9,435699.466,perf_event
+BM_xoshiro256pp,0.547165,0.0065,4267403392.5,61469.387,perf_event

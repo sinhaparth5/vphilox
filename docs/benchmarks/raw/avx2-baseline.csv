@@ -1,0 +1,5 @@
+benchmark,cycles_per_byte,cycles_per_byte_cv_pct,bytes_per_second,median_time_ns,cycle_source
+BM_mt19937,1.731685,1.4227,1796198108.6,145961.083,rdtsc
+BM_philox_scalar,2.235391,0.6689,1391399819.3,188414.726,rdtsc
+BM_vphilox,1.231685,0.8593,2525080258.6,103823.359,rdtsc
+BM_vphilox_bulk,0.715702,0.6483,4345338400.6,60332.237,rdtsc

@@ -10,6 +10,12 @@ As with the throughput matrix, **NEON is a stub (#28), so this is the scalar
 kernel.** What scales here is the counter-partitioning scheme, not a SIMD
 kernel — and that is the part the design claim is actually about.
 
+> **Still current.** #28 landed on 2026-08-25 and made the ARM kernel 2.19x
+> faster, which changes the per-byte figures below but not the scaling result:
+> what this page measures is that cost per byte is flat in thread count, and a
+> faster kernel moves the constant rather than the slope. The one line that
+> did go stale is the knee projection — see the note at the end.
+
 ## Environment
 
 | | |
@@ -72,6 +78,13 @@ knee and could not. The same benchmark on Coffee Lake with the AVX2 kernel
 degrades 6.66x by 32 threads at 4 MiB, because there the generator is fast
 enough to saturate something. Expect this axis to start discriminating on ARM
 only once #28 lands.
+
+> **Followed up 2026-08-25.** #28 landed and the ARM kernel is now 1.4652
+> cycles/byte, about 6.5 GB/s across four cores at 2.4 GHz. That is 2.2x more
+> demand on the memory system than this run placed, and still well under what
+> LPDDR4X supplies — so the projection was right that the axis would sharpen
+> and wrong that it would start discriminating. Locating the knee needs the
+> pinned x86 host with AVX2, not another Pi.
 
 **The bulk path is 28.9% cheaper per byte and that margin is constant.** It
 does not widen or narrow with thread count. This is the same refill-buffer

@@ -20,7 +20,8 @@ particular) is a comparison worth *reporting* honestly, not a target to chase.
 Derived from `docs/VPhilox Development Phases.md` and
 `docs/Vector Philox Development Strategy.md`.
 
-**Status:** Phase 0 complete, Phase 1 substantially complete. Current version
+**Status:** Phases 0-3 complete; Phase 4 complete except the pinned x86 columns.
+Current version
 `2026.08.0` (see [VERSIONING.md](VERSIONING.md)).
 
 Legend: `[x]` done · `[ ]` open · `[~]` partially done, detail in the sub-items
@@ -314,8 +315,10 @@ and whose state can be written on one platform and read on another.
         checkpoints. One `unusual` at 4 GB (p≈0.9998) that never recurred.
   - [x] Repeat per backend — settled by proving the streams are *byte-identical* over the same
         1 TB (`cmp`, both hashing to `cffff568…`) rather than by four batteries over the same
-        bytes. Stronger and a quarter the cost. AVX-512 still open: dispatch correctly refuses
-        the stub, so `--backend avx512` resolves to avx2 until #24 lands.
+        bytes. Stronger and a quarter the cost. The AVX-512 kernel (#24) has since landed and
+        is covered by the same byte-identity argument: `tests/test_kernel_parity.cpp` and
+        `test_cross_platform_parity.cpp` hold it to the scalar stream, so a fifth battery
+        over the same bytes would add nothing.
   - [x] float32 stream — the literal test is not meaningful and was replaced. Raw IEEE-754 bits
         are non-uniform *by construction* (clear sign, skewed exponent, zero-filled low mantissa
         after renormalisation), so every correct float generator fails it; ours fails 114 tests.
@@ -345,13 +348,18 @@ and whose state can be written on one platform and read on another.
   - [~] Run the matrix on frequency-pinned hardware and write it up, via
         `scripts/benchmarks/run_matrix.sh`, which pins the governor, records provenance, and
         refuses a run that lost the cycle counter or came in above 1% CV
-    - [x] **AArch64 — Raspberry Pi 5**, every row inside the sub-1% CV bar; see
-          [`docs/benchmarks/throughput-matrix-pi-2026-08-24.md`](docs/benchmarks/throughput-matrix-pi-2026-08-24.md).
-          vphilox runs the scalar kernel there until #28 lands and so places last:
-          xoshiro256++ is 5.84x it, PCG64 1.97x, `std::mt19937` 1.67x. The four rows shared
-          with the August baseline reproduce within 2% (the two pure-kernel rows within
-          0.1%), and the refill buffer costs 25.2% with `generate_n` recovering 100.0% of the
-          kernel — the x86 bulk-path result from #37 holding on a second architecture
+    - [x] **AArch64 — Raspberry Pi 5**, run twice. The pre-NEON column is
+          [`throughput-matrix-pi-2026-08-24.md`](docs/benchmarks/throughput-matrix-pi-2026-08-24.md)
+          and is superseded for ranking; the current one is
+          [`neon-unroll-pi-2026-08-25.md`](docs/benchmarks/neon-unroll-pi-2026-08-25.md).
+          With the NEON kernel and its two-group unroll, `generate_n` is **1.4652
+          cycles/byte** — 2.19x the scalar kernel, 1.33x `std::mt19937`, 1.11x PCG64 —
+          and xoshiro256++ still leads it by 2.68x. Every row is inside the sub-1% CV bar
+          except `BM_mt19937` at 1.21%, which is the row vphilox is being compared
+          *against*, so the noise does not flatter the result. What the pre-NEON run
+          established still holds: the refill buffer costs 25.2% of bulk throughput and
+          `generate_n` recovers 100.0% of the kernel, the x86 bulk-path result from #37
+          reproducing on a second architecture
     - [ ] **x86-64 AVX2** — the laptop run that validated the harness sits at 4-10% CV, so
           this column still needs a pinned host
 - [~] **Scaling** — `benchmarks/bench_scaling.cpp` at 1/2/4/8/16/32 threads
@@ -375,7 +383,9 @@ and whose state can be written on one platform and read on another.
     - [x] No knee on ARM, and that is about the kernel not the memory system: 3.19
           cycles/byte over 4 cores is ~3 GB/s, far under what LPDDR4X supplies, so the 4 MiB
           arm could not provoke one. Coffee Lake with AVX2 degrades 6.66x by 32 threads at
-          the same working set. This axis starts discriminating on ARM once #28 lands
+          the same working set. With NEON landed the ARM kernel is now 1.47 cycles/byte,
+          roughly 6.5 GB/s over 4 cores — still under what LPDDR4X supplies, so this axis
+          needs the x86 host below rather than another Pi run
     - [ ] Locate the knee on a pinned x86 host with the AVX2 kernel
   - [ ] OpenMP variant alongside the `std::thread` one
   - [ ] Instruction-cache miss rates via libpfm
@@ -388,10 +398,25 @@ and whose state can be written on one platform and read on another.
         and float conversion. Verified identical under `VPHILOX_BACKEND=scalar|avx2` and
         under `VPHILOX_FORCE_SCALAR`, and the constant itself was checked against an
         independent FNV implementation rather than recorded from the code it tests
-  - [ ] Confirm the same digest on real aarch64 — the test ships, it just has not been run
-        on the Pi yet
+  - [x] Confirm the same digest on real aarch64 — **done**. The Raspberry Pi 5 runs
+        110/110 tests green at `cce395b` with the backend resolving to `neon`, all eight
+        `CrossPlatformParity` cases included. The FNV-1a digest of an 8191-block stream is
+        therefore now known to be identical on x86-64 scalar, AVX2, AVX-512 and aarch64
+        NEON — four kernels, two architectures, three compilers. That is the
+        reproducibility claim discharged by measurement rather than by assertion
   - [ ] cuRAND/GPU reference, if reachable
-- [ ] Publish plots and raw CSVs under `docs/benchmarks/`
+- [x] Publish plots and raw CSVs under `docs/benchmarks/` —
+      `scripts/benchmarks/publish_results.py` generates
+      [`docs/benchmarks/raw/`](docs/benchmarks/raw) and
+      [`plots/`](docs/benchmarks/plots) from the JSON in `results/`, and CI runs
+      it with `--check` so an archived run cannot leave the published figures
+      behind. Standard library only: matplotlib is not installed on the Pi or
+      the GCP images, and a plot needing a pip install is a plot nobody
+      regenerates. Cross-machine figures plot ratios measured within each
+      machine, because reference-cycle RDTSC and the Pi's `perf_event` counter
+      are not the same unit; `machines.csv` carries a `quality` column marking
+      the four archived runs that built the harness but do not meet the CV bar,
+      and no figure uses them
 
 **Deliverable:** a complete benchmark dataset and statistical pass logs.
 

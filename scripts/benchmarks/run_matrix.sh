@@ -225,6 +225,15 @@ if ! grep -q '"cycles_per_byte"' "$JSON"; then
     exit 1
 fi
 
+# The binary stamps the resolved kernel into the JSON context, which is the one
+# fact the environment capture above cannot know: it runs before the benchmark,
+# and dispatch resolves inside it. Mirror it into the environment file so the
+# provenance is complete in one place.
+backend="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["context"].get("vphilox_backend","unknown"))' "$JSON")"
+echo "resolved-backend: $backend" >> "$ENVFILE"
+echo
+echo "==> resolved backend: $backend"
+
 echo
 echo "==> medians and cycles/byte CV"
 python3 - "$JSON" <<'PY'

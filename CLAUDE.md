@@ -63,6 +63,17 @@ Benchmarks report **cycles per byte** first, GB/s second (`bench_engines.cpp`
 reads RDTSC on x86 and `perf_event_open` on Linux ARM). Results are written up
 under `docs/benchmarks/`, raw JSON in `docs/benchmarks/raw/` and `results/`.
 
+The CSVs and figures under `docs/benchmarks/raw/` and `docs/benchmarks/plots/`
+are **generated, not hand-written** — `scripts/benchmarks/publish_results.py`
+derives them from `results/*.json`, and CI runs it with `--check`. Archive a run
+and re-run the script; never edit the output. It is standard library only on
+purpose. Cross-machine figures plot ratios measured within each machine, since
+cycles/byte does not transfer across hosts, and `machines.csv` carries a
+`quality` column so a harness-validation run cannot be quoted as a result.
+Every benchmark binary stamps the resolved backend into the JSON `context`
+(`benchmarks/bench_main.hpp`), which is the one fact the environment capture
+cannot know.
+
 Do not run benchmarks by hand. `scripts/benchmarks/run_matrix.sh` pins the
 governor and restores it on exit, records provenance next to the numbers, and
 refuses runs that are not worth writing up:

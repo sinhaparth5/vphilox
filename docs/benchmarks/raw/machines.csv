@@ -1,0 +1,11 @@
+tag,label,backend,quality,arch,cpu,nominal_mhz,cycle_source,date,commit,governor,compiler,command
+avx2-baseline,Tiger Lake / AVX2,avx2,harness validation: unpinned governor,x86_64,11th Gen Intel(R) Core(TM) i5-11300H @ 3.10GHz,4400,rdtsc,2026-08-23T09:50:31+01:00,,,g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0,
+avx512-baseline,Ice Lake SP,scalar,harness validation: 2-vCPU cloud VM,x86_64,Intel(R) Xeon(R) CPU @ 2.60GHz,2600,rdtsc,2026-08-22T09:54:10+00:00,,,,
+bulk-generate-baseline,Tiger Lake / AVX2,avx2,harness validation: unpinned governor,x86_64,11th Gen Intel(R) Core(TM) i5-11300H @ 3.10GHz,4400,rdtsc,2026-08-23T11:06:10+01:00,,,,
+pi-arm-baseline,Pi 5 / scalar,scalar,pinned bare metal,,,2400,,2026-08-22T10:08:29+01:00,,,,
+pi-arm-matrix,Pi 5 / scalar,scalar,pinned bare metal,aarch64,Cortex-A76,2400,perf_event,2026-08-24T12:52:15+01:00,2669e744eb5d0f5eff9528bd9d44e93c19ccb5af,performance,,
+pi-arm-scaling,Pi 5 / scalar,scalar,bare metal; unpinned by design,aarch64,Cortex-A76,2400,perf_event,2026-08-24T14:10:50+01:00,3f06c7cfd061277e11590d1fb36c33372cc6fd73,performance,c++ (Debian 12.2.0-14+deb12u1) 12.2.0,scripts/benchmarks/run_matrix.sh --tag pi-arm --bench scaling
+pi5-matrix,Pi 5 / NEON,neon,pinned bare metal,aarch64,Cortex-A76,2400,perf_event,2026-08-25T09:00:24+01:00,cce395bbcdbb102fa9852026502adb573fc15795,performance,c++ (Debian 12.2.0-14+deb12u1) 12.2.0,scripts/benchmarks/run_matrix.sh --tag pi5 --cpu 3
+sapphire-rapids-float-convert,Sapphire Rapids,avx512,cloud; dedicated vCPU,x86_64,Intel(R) Xeon(R) Platinum 8481C CPU @ 2.70GHz,2700,rdtsc,2026-08-25T08:50:50+00:00,,,,
+sapphire-rapids-matrix,Sapphire Rapids,avx512,cloud; dedicated vCPU,x86_64,Intel(R) Xeon(R) Platinum 8481C CPU @ 2.70GHz,2700,rdtsc,2026-08-24T13:57:46+00:00,d2a1a7cf0edc386a6987c6e790b2aa9957e6ecde,unavailable,c++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0,scripts/benchmarks/run_matrix.sh --tag sapphire-rapids --cpu 1
+skylake-sp-matrix,Skylake-SP,avx512,cloud; dedicated vCPU,x86_64,Intel(R) Xeon(R) CPU @ 2.00GHz,2000,rdtsc,2026-08-24T14:19:47+00:00,34f0492bb22b7b5d2d283121a3ae36fbaf6fa309,unavailable,c++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0,scripts/benchmarks/run_matrix.sh --tag skylake-sp --cpu 1
