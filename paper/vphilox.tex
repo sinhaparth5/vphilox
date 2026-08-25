@@ -1,10 +1,8 @@
-% SPDX-License-Identifier: MIT OR Apache-2.0
-% Copyright (c) 2026 Parth Sinha
-%
-% Phase 5 paper draft. See paper/README.md for how to build this and for the
-% list of numbers still pending hardware.
-
-\documentclass[11pt,a4paper]{article}
+\documentclass[10pt,journal,compsoc]{IEEEtran}
+% IEEE Computer Society journal format, which is what TPDS, TC and TSE use.
+% For a conference submission the only change is the class options:
+%   \documentclass[conference]{IEEEtran}
+% and dropping the \IEEEcompsoc* commands in the author block below.
 
 % ---------------------------------------------------------------
 % Core mathematics packages
@@ -33,7 +31,10 @@
 % ---------------------------------------------------------------
 % Cross-referencing and citations
 % ---------------------------------------------------------------
-\usepackage[numbers,sort&compress]{natbib}
+% cite.sty rather than natbib: IEEE numbers its references and sorts and
+% compresses runs of them, which is what this gives and what IEEEtran.bst
+% expects. natbib's author-year machinery has nothing to do here.
+\usepackage{cite}
 \usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
 \usepackage[capitalise,noabbrev]{cleveref}
 
@@ -41,14 +42,9 @@
 % Typography
 % ---------------------------------------------------------------
 \usepackage{microtype}
-\usepackage{parskip}
-\setlength{\parindent}{0pt}
-\setlength{\parskip}{6pt}
-
-% ---------------------------------------------------------------
-% Page layout
-% ---------------------------------------------------------------
-\usepackage[margin=2.5cm]{geometry}
+% No geometry and no parskip here: IEEEtran fixes the page geometry to the
+% IEEE specification, and IEEE paragraphs are indented rather than spaced.
+% Loading either would silently produce a document that is not the format.
 
 % ---------------------------------------------------------------
 % Miscellaneous
@@ -56,21 +52,15 @@
 \usepackage{xcolor}
 \usepackage{todonotes}
 \usepackage{listings}
-\lstset{basicstyle=\ttfamily\small, columns=fullflexible, breaklines=true,
-        frame=single, framesep=4pt, xleftmargin=0pt, showstringspaces=false}
+\lstset{basicstyle=\ttfamily\footnotesize, columns=fullflexible,
+        breaklines=true, frame=single, framesep=3pt, xleftmargin=0pt,
+        showstringspaces=false, aboveskip=6pt, belowskip=6pt}
 
 % ---------------------------------------------------------------
 % Theorem environments (amsthm)
 % ---------------------------------------------------------------
-\theoremstyle{plain}
-\newtheorem{theorem}{Theorem}[section]
-\newtheorem{proposition}[theorem]{Proposition}
-
-\theoremstyle{definition}
-\newtheorem{definition}[theorem]{Definition}
-
 \theoremstyle{remark}
-\newtheorem{remark}[theorem]{Remark}
+\newtheorem{remark}{Remark}
 
 % ---------------------------------------------------------------
 % Notation macros
@@ -80,22 +70,24 @@
 \newcommand{\key}{\mathbf{k}}
 \newcommand{\code}[1]{\texttt{#1}}
 
-\title{Portable, Seekable Random Streams for Parallel CPU Simulation}
-
-\author{Parth Sinha\\
-  \textit{Affiliation to be supplied}\\
-  \texttt{sinhaparth555@gmail.com}\\
-  \url{https://github.com/sinhaparth5/vphilox}}
-
-\date{\today}
-
 \begin{document}
 
-\maketitle
+\title{Portable, Seekable Random Streams for\\Parallel CPU Simulation}
 
-\todo[inline]{Title page: replace the affiliation placeholder with institution,
-city and country, or with ``Independent researcher''.}
+\author{Parth~Sinha%
+  \IEEEcompsocitemizethanks{%
+    \IEEEcompsocthanksitem P. Sinha is with
+      \textcolor{red}{[Affiliation: department, institution, city, country.]}\protect\\
+      E-mail: sinhaparth555@gmail.com
+    \IEEEcompsocthanksitem Source, measurement data and the scripts that
+      regenerate every figure in this paper:
+      \url{https://github.com/sinhaparth5/vphilox}}%
+  \thanks{Manuscript prepared \today.}}
 
+\markboth{IEEE Transactions on Parallel and Distributed Systems}%
+         {Sinha: Portable, Seekable Random Streams for Parallel CPU Simulation}
+
+\IEEEtitleabstractindextext{%
 \begin{abstract}
 A long simulation that checkpoints its random generator and resumes on a
 different machine is relying on a property that \code{std::mt19937} does not
@@ -121,9 +113,18 @@ bulk path. Aggregate cost per byte is flat across thread counts, and the first
 parallel limit we find is hyperthread co-location rather than the generator.
 \end{abstract}
 
+\begin{IEEEkeywords}
+Random number generation, counter-based generators, Philox, SIMD, AVX-512,
+ARM NEON, reproducibility, checkpoint and restart, parallel simulation, C++.
+\end{IEEEkeywords}}
+
+\maketitle
+\IEEEdisplaynontitleabstractindextext
+\IEEEpeerreviewmaketitle
+
 \section{Introduction}\label{sec:intro}
 
-Consider a Monte Carlo simulation that runs for a week, writes a checkpoint
+\IEEEPARstart{C}{onsider} a Monte Carlo simulation that runs for a week, writes a checkpoint
 every hour, and is restarted after a node failure onto whatever hardware the
 scheduler has free. For the restart to be scientifically meaningful, the random
 number generator must resume at exactly the position where it stopped. In C++
@@ -148,7 +149,7 @@ simulation continues from a state that is not the one that was saved.
 The failure is a consequence of serializing an implementation rather than a
 position. A Mersenne Twister state is a large array plus an index into it, and
 the array has no canonical form. A counter-based generator has no such array.
-Following Salmon et al.~\citep{salmon2011}, the $n$th output block of Philox is
+Following Salmon et al.~\cite{salmon2011}, the $n$th output block of Philox is
 a stateless bijection applied to the integer $n$ under a key, so the complete
 state of a stream is the key and the value of $n$. Writing that down is
 unambiguous, and reading it back cannot silently land somewhere else.
@@ -233,7 +234,7 @@ rounds the key advances by a Weyl sequence,
 $k_0 \mathrel{+}= \mathtt{0x9E3779B9}$ and
 $k_1 \mathrel{+}= \mathtt{0xBB67AE85}$, which breaks the symmetry that would
 otherwise make every round identical. Ten rounds are applied; seven already
-pass BigCrush~\citep{salmon2011}, so the standard variant carries a margin.
+pass BigCrush~\cite{salmon2011}, so the standard variant carries a margin.
 
 The whole construction is integer multiply, exclusive or, addition and word
 permutation. It contains no floating-point instruction, a fact that becomes
@@ -245,7 +246,7 @@ Every design decision below is subordinate to a single rule: for a given key
 and counter, vphilox produces exactly the bytes that the Random123 reference
 implementation produces, across compilers, architectures and library versions.
 This is enforced in two ways. The published test vectors of
-Salmon et al.~\citep{salmon2011} are checked directly, and an 8191-block stream
+Salmon et al.~\cite{salmon2011} are checked directly, and an 8191-block stream
 is folded into an FNV-1a digest compared against a constant fixed in the test
 source. The digest run covers what the published vectors cannot: SIMD tail
 handling, the refill buffer, chunked bulk calls, the counter carry chain and
@@ -324,7 +325,7 @@ difference is recorded as behaviour rather than left as a trap.
 Every backend implements one function, and \cref{alg:contract} states its
 obligation.
 
-\begin{algorithm}[H]
+\begin{algorithm}[t]
 \caption{Kernel contract, shared by all four backends}\label{alg:contract}
 \KwIn{Base counter $\ctr_0$, key $\key$, output pointer \code{out}, block count $B$}
 \KwOut{$4B$ unsigned 32-bit words written to \code{out}}
@@ -344,7 +345,7 @@ what allows the engine to choose any refill size.
 Each backend also advertises \code{preferred\_blocks}, the block count at which
 it runs without a tail. \Cref{tab:widths} lists the four.
 
-\begin{table}[ht]
+\begin{table*}[t]
 \centering
 \caption{Interleaving width per backend. On x86 the width is one counter per
 32-bit lane. NEON carries four lanes per register but two independent groups
@@ -359,7 +360,7 @@ AVX-512  & 16 & 16 counters per \code{\_\_m512i} \\
 NEON     & 8  & 4 counters per \code{uint32x4\_t}, 2 groups interleaved \\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{table*}
 
 \subsection{Why the multiplies are the difficulty}
 
@@ -445,13 +446,13 @@ the loop is bandwidth-bound and width buys nothing; and they separate again at
 size that matters, which is the case for moving the conversion onto the vector
 path.
 
-\begin{figure}[ht]
+\begin{figure*}[t]
 \centering
-\includegraphics[width=0.85\textwidth]{float-conversion-widths.pdf}
+\includegraphics[width=0.92\textwidth]{float-conversion-widths.pdf}
 \caption{Cost per byte of the $u32 \to$ float conversion loop against working
 set, Sapphire Rapids, logarithmic on both axes. One machine, so absolute cycles
 per byte is meaningful here.}\label{fig:floatwidths}
-\end{figure}
+\end{figure*}
 
 Both steps of \cref{eq:tofloat} are exact. The subtraction is exact by
 Sterbenz's lemma, since the operands lie within a factor of two of each other,
@@ -525,7 +526,7 @@ socket and on a whole two-socket host. They are reported as separate machines
 because cycles per byte does not transfer between hosts and these two behave as
 two hosts.
 
-\begin{table}[ht]
+\begin{table*}[t]
 \centering
 \caption{Measurement hosts. The Raspberry Pi 5 is the only bare-metal
 machine.}\label{tab:machines}
@@ -540,7 +541,7 @@ Cascade Lake 4v   & Intel Xeon, 4 dedicated vCPU                  & 2800 & \code
 Cascade Lake 32v  & Intel Xeon, whole 2-socket host, 16 cores     & 2800 & \code{avx512} \\
 \bottomrule
 \end{tabularx}
-\end{table}
+\end{table*}
 
 \subsection{Reproducibility of the figures}
 
@@ -559,14 +560,14 @@ check, because no two renderers agree byte for byte.
 \Cref{fig:matrix} and \cref{tab:matrix} give cost per byte for each generator
 divided by \code{std::mt19937} on the same machine. Lower is faster.
 
-\begin{figure}[ht]
+\begin{figure*}[t]
 \centering
-\includegraphics[width=0.85\textwidth]{matrix-relative.pdf}
+\includegraphics[width=0.92\textwidth]{matrix-relative.pdf}
 \caption{Cost per byte relative to \code{std::mt19937}, measured within each
 machine. Five hosts, seven generators.}\label{fig:matrix}
-\end{figure}
+\end{figure*}
 
-\begin{table}[ht]
+\begin{table*}[t]
 \centering
 \caption{Cost per byte relative to \code{std::mt19937} on the same machine.
 Bold marks the lowest cost achieved by vphilox in each column.}\label{tab:matrix}
@@ -583,7 +584,7 @@ vphilox, \code{operator()} & 1.15 & 0.79 & 0.51 & 0.58 & 0.68 \\
 vphilox, \code{generate\_n} & \textbf{0.75} & \textbf{0.38} & \textbf{0.22} & \textbf{0.24} & \textbf{0.33} \\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{table*}
 
 \subsection{The wide-multiply objection}
 
@@ -624,13 +625,13 @@ a few percent, and by 65536 words it has gone. The two fastest kernels pay the
 most for a call too small to amortise the setup, which is the same effect seen
 from the other direction.
 
-\begin{figure}[ht]
+\begin{figure*}[t]
 \centering
-\includegraphics[width=0.85\textwidth]{generate-n-sweep.pdf}
+\includegraphics[width=0.92\textwidth]{generate-n-sweep.pdf}
 \caption{Cost of a bulk call relative to the raw kernel on the same machine,
 against call size in words. The dashed line per machine is the per-call
 interface through the refill buffer.}\label{fig:sweep}
-\end{figure}
+\end{figure*}
 
 \subsection{AVX-512 and the frequency licence}\label{sec:avx512}
 
@@ -642,7 +643,7 @@ widest available kernel.
 It does not appear. \Cref{tab:avx512} gives bulk cost per byte with the backend
 pinned, same binary in each row.
 
-\begin{table}[ht]
+\begin{table*}[t]
 \centering
 \caption{Bulk kernel cost per byte by pinned backend, cycles per byte, same
 binary in every row. Width conversion is the AVX-512 speedup as a fraction of
@@ -658,7 +659,7 @@ Cascade Lake 32v  & 2.2883 & 0.8740 & \textbf{0.4747} & $1.84\times$ & 92\% \\
 Cascade Lake 4v   & 2.4142 & 0.8537 & \textbf{0.5466} & $1.56\times$ & 78\% \\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{table*}
 
 The reason is structural rather than a matter of tuning. Intel's frequency
 licences are tiered by the kind of 512-bit instruction executing, not by width
@@ -705,13 +706,13 @@ threads throughput plateaus while cost per byte still does not move, which is
 what exhausting the cores looks like rather than a limit in the generator.
 \Cref{fig:scaling} draws both working sets across the range.
 
-\begin{figure}[ht]
+\begin{figure*}[t]
 \centering
-\includegraphics[width=0.85\textwidth]{thread-scaling.pdf}
+\includegraphics[width=0.92\textwidth]{thread-scaling.pdf}
 \caption{Aggregate cost per byte against thread count on the Raspberry Pi 5.
 Four series are drawn and two are visible, because each working set lands on
 the other.}\label{fig:scaling}
-\end{figure}
+\end{figure*}
 
 Four cores are too few to reach a knee, which is why the placement study
 exists.
@@ -725,13 +726,13 @@ from 0.4750 to 0.4833 cycles per byte, a rise of 1.7\%. Placing two workers on
 one core's hyperthread siblings costs 0.6536 cycles per byte, approximately
 35\% per worker.
 
-\begin{figure}[ht]
+\begin{figure*}[t]
 \centering
-\includegraphics[width=0.85\textwidth]{scaling-placement.pdf}
+\includegraphics[width=0.92\textwidth]{scaling-placement.pdf}
 \caption{Aggregate cost per byte against thread placement, Cascade Lake, two
 sockets, sixteen physical cores. Dashed lines are the 4~MiB working
 set.}\label{fig:placement}
-\end{figure}
+\end{figure*}
 
 The mechanism is that the kernel is execution-port-bound. Two hardware threads
 sharing one core's multiply ports do not have two cores' worth of issue
@@ -847,26 +848,26 @@ measured, which is consistent with the concern being real.
 
 \section{Related work}\label{sec:related}
 
-Salmon et al.~\citep{salmon2011} introduced the Philox and Threefry families and
+Salmon et al.~\cite{salmon2011} introduced the Philox and Threefry families and
 the argument that a counter-based generator makes parallel random number
 generation a matter of partitioning integers. The reference implementation,
 Random123, is the source of the test vectors used here. This work differs in
 what it targets: portable serialized state as the deliverable, with
 vectorization as the means of making that state free rather than as the result.
 
-The Mersenne Twister~\citep{matsumoto1998} remains the default engine in the C++
+The Mersenne Twister~\cite{matsumoto1998} remains the default engine in the C++
 standard library, and its state is the object of the portability failure in
-\cref{sec:intro}. PCG~\citep{oneill2014} and
-xoshiro/xoroshiro~\citep{blackman2021} are modern stateful generators with small
+\cref{sec:intro}. PCG~\cite{oneill2014} and
+xoshiro/xoroshiro~\cite{blackman2021} are modern stateful generators with small
 states and strong statistical results; both appear in the comparison matrix, and
 both are faster than vphilox on most parts measured. Neither offers a
 standard-library-independent serialized state, constant-time seek or thread-count
 independence, which is the trade this paper is about.
 
-TestU01~\citep{lecuyer2007} and PractRand~\citep{practrand} supply the
+TestU01~\cite{lecuyer2007} and PractRand~\cite{practrand} supply the
 statistical batteries in \cref{sec:stat}. Vectorized generator implementations
 are available in vendor libraries, including Intel's Vector Statistics Library
-and NVIDIA's cuRAND~\citep{curand}, both of which include Philox variants; the
+and NVIDIA's cuRAND~\cite{curand}, both of which include Philox variants; the
 distinction here is the header-only, dependency-free distribution model and the
 run-time dispatch that lets one binary select its kernel on the host it lands
 on.
@@ -910,7 +911,7 @@ to match.}
 % ---------------------------------------------------------------
 % References
 % ---------------------------------------------------------------
-\begin{thebibliography}{99}
+\begin{thebibliography}{10}
 
 \bibitem{salmon2011}
 J.~K.~Salmon, M.~A.~Moraes, R.~O.~Dror, and D.~E.~Shaw,
