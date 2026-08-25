@@ -92,6 +92,23 @@ scripts/benchmarks/run_matrix.sh --tag <machine> --bench scaling   # unpinned; n
 scripts/benchmarks/run_matrix.sh --tag <machine> --bench scaling --perf-counters  # i-cache study
 ```
 
+The placement study #53 needed is `run_placement.sh`, which runs one worker
+count under two placements and compares `icache_mpki`. **It has now run** — on a
+bare-metal Tiger Lake laptop, the only host on record that clears its gate — so
+re-run it only on new hardware:
+
+```bash
+scripts/benchmarks/run_placement.sh --tag <machine>          # bare metal only
+```
+
+It reads the sibling map from sysfs rather than assuming an enumeration, and
+**it gates on a measured co-location penalty before it will run anything**: two
+workers on one core's siblings must cost at least 15% more cycles/byte than two
+on separate cores, or it aborts. That gate is the whole point. A VM publishes a
+correct sibling map and accepts every `taskset` mask while the hypervisor places
+vCPUs itself, so both arms silently become the same placement — see the VM rule
+above.
+
 `--perf-counters` adds per-worker retired-instruction and L1 i-cache-miss
 counters (#53) and writes `<tag>-icache.json` rather than `<tag>-scaling.json`.
 Keep the two apart: the extra ioctls land in wall time, so **only `icache_mpki`
@@ -120,6 +137,16 @@ Four measurement rules, each learned by getting them wrong:
 - **A cloud VM is fine for correctness, not for throughput** — steal time is
   invisible. The exception is a dedicated-vCPU instance that still comes in
   under the CV bar, which should be labelled as cloud in the write-up.
+- **A VM cannot control thread placement, even when it reports the topology.**
+  Inside WSL2 the guest publishes a correct-looking sibling map and `taskset`
+  accepts the mask, but the hypervisor schedules vCPUs onto host cores on its
+  own, so the mask fixes virtual CPU IDs and nothing physical. The tell is that
+  two workers on one core's siblings come out *faster* than two on separate
+  cores (0.63 against 0.63-0.77 cycles/byte, and stable against a 20% spread),
+  which is impossible for a port-bound kernel under real co-location. Any
+  placement study needs bare metal. Checking that the PMU works and that SMT is
+  reported is not enough — check that co-location actually costs what #51 says
+  it costs before trusting a placement result.
 - **Report results that cut against the library.** xoshiro256++ leads on three
   of four parts, and on ARM the buffered engine is still behind `std::mt19937`
   even though the NEON kernel now leads it; both are in `docs/benchmarks/` and
@@ -268,6 +295,14 @@ to make it pass.
 - `.clang-format` is authoritative and CI-enforced: Google base, 4-space indent,
   100 columns, left-aligned pointers, consecutive-assignment alignment (chosen
   so a botched lane index in intrinsic code is visible at a glance).
+  **The version is pinned to 21.1.8 and that matters as much as the config.**
+  clang-format is not stable across major versions: 18 (what `ubuntu-24.04`
+  ships) and 21 disagree on the short block after the `#pragma omp parallel` in
+  `bench_scaling.cpp`, and no source text satisfies both, so an unpinned check
+  enforces the runner image rather than `.clang-format`. CI installs the pin
+  into a venv; `CLANG_FORMAT_VERSION` at the top of `.github/workflows/ci.yml`
+  is the only place the number is written. If a format failure looks absurd,
+  check `clang-format --version` before changing any code.
 - `snake_case` files and functions; PascalCase GoogleTest names like
   `TEST(Counter, CarriesAcrossEveryWord)`.
 - Comments explain *why* — a note naming the lane layout or the reason for a
@@ -307,7 +342,7 @@ passing all 160 statistics (`docs/statistical-validation.md`).
 `ROADMAP.md` tracks phases and `docs/` holds the theory, research, and recorded
 benchmark runs.
 
-Three measured results worth not re-deriving. The ~10x
+Four measured results worth not re-deriving. The ~10x
 scalar-Philox-vs-mt19937 slowdown from the literature did **not** reproduce on
 any machine measured here (`docs/benchmarks/baseline-2026-08-21.md`). The
 refill buffer now costs ~109% of bulk throughput on AVX-512, ~42% on AVX2 and
@@ -321,3 +356,16 @@ that tracks footprint per socket. Advise callers to size pools by physical
 cores, not `hardware_concurrency()`. Frequency was excluded by direct
 measurement rather than argument (`scripts/benchmarks/freq_probe.cpp`), which
 also retired the open AVX-512 licence hypothesis from issue #27.
+
+The fourth closes that knee out on both remaining alternatives, measured on a
+bare-metal Tiger Lake laptop after no earlier host could control placement.
+**Instruction supply is not the mechanism** — co-location costs +59% cycles/byte
+while i-cache MPKI *falls* 36%, because both siblings run the identical kernel
+so sharing one L1i is constructive
+(`docs/benchmarks/icache-placement-tigerlake-2026-08-25.md`). **And the flat
+scaling result is the generator, not this project's worker pool** — libgomp
+reproduces it at 1.000/1.000/1.003x to one thread per physical core, where the
+`std::thread` pool drifts to 1.220x because its dispatcher is an extra thread
+once the workers own every core
+(`docs/benchmarks/openmp-runtime-tigerlake-2026-08-25.md`). Do not re-run either
+on a VM; both needed the co-location gate to pass first.

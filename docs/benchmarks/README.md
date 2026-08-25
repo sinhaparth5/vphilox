@@ -118,6 +118,17 @@ and is flat across the whole range, so none of the movement is turbo.
 the write-up. The short version for callers: **size a Philox thread pool by
 physical cores, not by `hardware_concurrency()`.**
 
+Two later studies on a bare-metal Tiger Lake laptop close the mechanism out, and
+neither adds a figure — both are single contrasts, not curves.
+[`icache-placement-tigerlake-2026-08-25.md`](icache-placement-tigerlake-2026-08-25.md)
+rules out instruction supply: co-location costs 59% more per byte while i-cache
+MPKI *falls* 36%, so the sibling threads are contending for execution ports and
+not for the instruction cache.
+[`openmp-runtime-tigerlake-2026-08-25.md`](openmp-runtime-tigerlake-2026-08-25.md)
+re-runs the whole comparison under libgomp and finds it flat to one thread per
+physical core where this project's own pool is not — so the flat result belongs
+to the generator, not to `bench_scaling.cpp`.
+
 ### Thread scaling — [`plots/thread-scaling.png`](plots/thread-scaling.png) · [PDF](plots/thread-scaling.pdf)
 
 ![Aggregate cost per byte against thread count](plots/thread-scaling.png)
@@ -159,9 +170,14 @@ compiler, and the verbatim command.
 
 **Read the `quality` column before quoting a number.** Four archived runs do
 not meet the bar in `CLAUDE.md` — an unpinned governor puts a moving turbo
-ceiling directly into cycles/byte, and a shared cloud vCPU hides steal time.
-They are kept because they built the harness, and they are excluded from every
-figure above.
+ceiling directly into cycles/byte, a shared cloud vCPU hides steal time, and a
+four-core desktop host cannot hold an unpinned 48-row curve quiet. They are kept
+because they built the harness, and they are excluded from every figure above.
+
+One further row is publishable but carries a warning in its own label:
+`tigerlake-icache-ht` says *cycles/byte above CV bar*, because the finding it
+supports is an i-cache miss rate rather than a throughput number. The quality
+column is where that distinction lives — read it, do not infer it from the tag.
 
 ## Provenance
 

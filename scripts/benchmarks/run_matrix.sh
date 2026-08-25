@@ -124,6 +124,18 @@ for required in "${required_rows[@]}"; do
     fi
 done
 
+# The OpenMP arm (#52) is registered only when CMake found OpenMP, so its
+# absence is a legitimate configuration rather than a stale binary -- a warning,
+# not the hard failure above. It is worth saying out loud because the rows come
+# along free with any scaling run, and a host that quietly lacks them produces
+# an archive that can never answer #52.
+if [[ "$bench" == "scaling" ]] && ! grep -q "^BM_thread_scaling_omp" <<<"$listing"; then
+    echo "NOTE: no BM_thread_scaling_omp rows -- OpenMP was not found at configure time." >&2
+    echo "  The std::thread curve still measures fine, but this run cannot compare the" >&2
+    echo "  two threading runtimes (#52). Install an OpenMP runtime and re-run the" >&2
+    echo "  bench preset if that comparison is wanted from this host." >&2
+fi
+
 mkdir -p "$OUTDIR"
 
 # ------------------------------------------------------------- governor

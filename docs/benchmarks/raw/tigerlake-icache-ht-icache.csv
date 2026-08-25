@@ -1,0 +1,2 @@
+benchmark,cycles_per_byte,cycles_per_byte_cv_pct,bytes_per_second,median_time_ns,cycle_source
+BM_thread_scaling_bulk/4/65536/real_time,0.820355,2.2151,9301271666.7,0.113,rdtsc

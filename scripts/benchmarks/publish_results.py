@@ -73,10 +73,15 @@ PLOT_OUT = os.path.join("docs", "benchmarks", "plots")
 #
 # The quality column is the one this project cannot leave implicit. Four of
 # these runs do not meet the bar in CLAUDE.md -- an unpinned governor puts a
-# moving turbo ceiling straight into cycles/byte, and a shared cloud vCPU hides
-# steal time -- and they are archived because they built the harness, not
+# moving turbo ceiling straight into cycles/byte, a shared cloud vCPU hides
+# steal time, and a four-core desktop host cannot hold an unpinned 48-row curve
+# under the CV bar -- and they are archived because they built the harness, not
 # because their numbers are publishable. The figures below use only the runs
 # marked publishable.
+#
+# A run can also be publishable while one of its columns is not: the tigerlake
+# i-cache arms are quoted for icache_mpki, and the co-located arm says so in its
+# own label rather than leaving a reader to assume its cycles/byte is quotable.
 RUNS = {
     "pi5-matrix":                    ("Pi 5 / NEON",       "neon",   "pinned bare metal"),
     "pi-arm-matrix":                 ("Pi 5 / scalar",     "scalar", "pinned bare metal"),
@@ -118,6 +123,32 @@ RUNS = {
     "avx2-baseline":                 ("Tiger Lake / AVX2", "avx2",   "harness validation: unpinned governor"),
     "bulk-generate-baseline":        ("Tiger Lake / AVX2", "avx2",   "harness validation: unpinned governor"),
     "avx512-baseline":               ("Ice Lake SP",       "scalar", "harness validation: 2-vCPU cloud VM"),
+    # Tiger Lake laptop, bare metal, turbo disabled so the core clock equals the
+    # TSC rate (base 3.1 GHz) and cycles/byte is true core cycles rather than
+    # reference cycles. This is the host that finally satisfied #51's placement
+    # gate off a VM: 38.9-40.6% co-location penalty against the 15% threshold.
+    #
+    # The i-cache arms answer #53 and are quoted for icache_mpki only -- the
+    # counter ioctls land in wall time, so their bytes_per_second is not
+    # comparable with any scaling curve.
+    "tigerlake-icache-phys-icache":  ("Tiger Lake / AVX-512", "avx512",
+                                      "bare metal; one thread per physical core"),
+    "tigerlake-icache-ht-icache":    ("Tiger Lake / AVX-512", "avx512",
+                                      "bare metal; hyperthread siblings; cycles/byte above CV bar"),
+    # The #52 runtime comparison. 65536 words is 256 KiB per worker, which stays
+    # cache-resident at four workers; the 1 MiB size does not (4 MiB per worker
+    # against an 8 MiB L3), so it measures #51's memory limit instead of the
+    # port contention this issue is about.
+    "tigerlake-omp-l1-default-scaling": ("Tiger Lake / AVX-512", "avx512",
+                                      "bare metal; OpenMP vs std::thread, default wait policy"),
+    "tigerlake-omp-l1-passive-scaling": ("Tiger Lake / AVX-512", "avx512",
+                                      "bare metal; OpenMP vs std::thread, OMP_WAIT_POLICY=passive"),
+    # The full 1..32 curve under the documented protocol. Archived for the shape
+    # and for provenance, NOT quotable row by row: a four-core desktop host
+    # cannot hold an unpinned 48-row curve under the 1% bar, and 30 of 48 rows
+    # missed it. The focused runs above are the ones the write-up quotes.
+    "tigerlake-scaling":             ("Tiger Lake / AVX-512", "avx512",
+                                      "harness validation: 4-core desktop host, most rows above CV bar"),
 }
 
 PUBLISHABLE = {tag for tag, meta in RUNS.items() if not meta[2].startswith("harness")}

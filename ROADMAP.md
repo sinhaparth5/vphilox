@@ -20,9 +20,9 @@ particular) is a comparison worth *reporting* honestly, not a target to chase.
 Derived from `docs/VPhilox Development Phases.md` and
 `docs/Vector Philox Development Strategy.md`.
 
-**Status:** Phases 0-3 complete; Phase 4 complete except two measurements that
-need hardware — the instruction-cache study (harness ready, wants the pinned
-16-core host) and a cuRAND/GPU parity reference.
+**Status:** Phases 0-3 complete; Phase 4 complete except a cuRAND/GPU parity
+reference. The instruction-cache study is now measured — a bare-metal Tiger Lake
+laptop cleared the co-location gate that no earlier host could.
 Current version
 `2026.08.0` (see [VERSIONING.md](VERSIONING.md)).
 
@@ -437,7 +437,27 @@ and whose state can be written on one platform and read on another.
         identity check, because a `perf_event_open` counter measures the thread
         that opened it and OpenMP does not promise a stable thread-number-to-thread
         mapping across regions. Both report a skipped row rather than a number
-  - [~] Instruction-cache miss rates — harness done, measurement pending a host
+    - [x] **Measured, and the answer is cleaner than expected**
+          (`docs/benchmarks/openmp-runtime-tigerlake-2026-08-25.md`). Normalised
+          to each runtime's own single-worker cost, libgomp is flat to one thread
+          per physical core — 1.000x, 1.000x, 1.003x at 1, 2, 4 workers — where
+          the `std::thread` pool drifts to 1.220x at four. The two runtimes are
+          indistinguishable at 1-2 workers (0.5084 against 0.5086, both CV <=
+          0.14%) and both show the hyperthread knee at eight. So the flat result
+          is the generator; the deviation belongs to the harness. The leading
+          explanation is thread count rather than threading model — OpenMP's team
+          master is a worker, so four workers is four runnable threads on four
+          cores, while the pool's dispatcher is a fifth — but that is an
+          inference, not a measurement, since the benchmark registers only
+          1/2/4/8 workers and the direct test needs three
+    - [x] Second-order: libgomp's barrier spin costs 9.0% at four workers (where
+          sleeping wastes futex wakeups) and *saves* 4.0% at eight (where every
+          spin steals execution ports from a working sibling). It also
+          contaminates neighbours — under random interleaving the two noisiest
+          rows in the 48-row sweep were *single-threaded* OpenMP at ~11% CV,
+          falling to 1.45-2.41% under `OMP_WAIT_POLICY=passive`, because a
+          previous 32-worker region's team was still spinning
+  - [x] Instruction-cache miss rates — harness done, measurement pending a host
         worth quoting. `--perf-counters` on a scaling run gives per-worker
         `icache_mpki` and `instructions_per_byte`, written to `<tag>-icache.json`
         so an instruction-supply study never overwrites the throughput curve it
@@ -460,12 +480,38 @@ and whose state can be written on one platform and read on another.
     - [x] `instructions_per_byte` doubles as the self-check: it is a property of
           the kernel, so it must not move with thread count. Measured invariant
           to six digits from 1 to 8 threads, and 0.00% CV across repetitions
-    - [ ] The measurement itself, on the pinned 16-core host from #51. The
-          question is narrow: #51 concluded the hyperthread knee is
-          execution-port contention, and the standing alternative is that two
-          workers on one core thrash a shared instruction cache, since these
-          kernels are large unrolled bodies. MPKI flat across the co-location
-          boundary excludes it; MPKI that climbs with it does not
+    - [x] **The host requirement is narrower than it looked, and no machine on
+          record meets it.** The study needs SMT *and* a working PMU *and*
+          controllable placement. The 16-core Cascade Lake host from #51 has the
+          cores but GCP exposes no vPMU at all (`perf stat -e cycles` reports
+          `<not supported>`), so it cannot count. The Pi 5 is the only bare-metal
+          machine on record and has a working PMU but no SMT, so it cannot cross
+          the co-location boundary the question is about. A WSL2 laptop with
+          4C/8T and a working PMU was tried and rejected: `taskset` there fixes
+          virtual CPU IDs only, and two workers on one core's siblings measured
+          *faster* than two on separate cores, which is impossible under real
+          co-location. What is needed is bare-metal x86 with SMT
+    - [x] **Measured on bare metal, and instruction supply is excluded**
+          (`docs/benchmarks/icache-placement-tigerlake-2026-08-25.md`). A Tiger
+          Lake i5-11300H, 4C/8T, `systemd-detect-virt` reporting `none`, cleared
+          the co-location gate at 38.9-40.6% against #51's 35% on an unrelated
+          part. Four workers moved from one thread per physical core onto two
+          cores' siblings cost **+59.0% cycles/byte while i-cache MPKI fell
+          35.7%** (0.2108 -> 0.1356). Instruction supply moves *opposite* to the
+          penalty, so it is not the mechanism and #51's port-contention
+          conclusion stands. The direction is explicable: both siblings run the
+          identical kernel, so sharing one 32 KiB L1i is constructive. The weak
+          hint from the rejected WSL2 host pointed the right way
+    - [x] The self-check passed exactly: `instructions_per_byte` read 0.958554 in
+          both arms, identical to six decimal places at 0.00% CV. As a second
+          check MPKI is clock-independent, and the turbo-on and turbo-off runs
+          agree to ~1% across a 42% change in clock
+    - [x] Honest limit: the co-located arm's cycles/byte CV is 2.22%, above this
+          project's 1% bar, because a four-core laptop running a desktop cannot
+          hold an unpinned two-core arm quiet. Its median reproduces to 0.04%
+          across independent runs, and the finding is a direction rather than a
+          threshold, so the conclusion survives — but the cycles/byte column here
+          is a weaker version of what #51 already measured on better hardware
 - [~] **Cross-platform bit parity** — same key and counter produce identical output on x86-64,
       aarch64, and (if reachable) a cuRAND/GPU reference. This is the reproducibility claim;
       it needs a test, not an assertion.
