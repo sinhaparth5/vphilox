@@ -60,8 +60,8 @@ machine. Lower is faster.
 The two Cascade Lake columns are the same part — family 6, model 85, stepping 7
 — in a four-vCPU slice of a shared socket and on a whole two-socket host. They
 are listed separately because cycles/byte does not transfer between machines,
-and these behave as two machines: see
-[`avx512-cascade-lake-2026-08-25.md`](avx512-cascade-lake-2026-08-25.md).
+and these behave as two machines: the 78% AVX-512 width conversion belongs to
+the shared 4-vCPU slice, while the same stepping on a whole host converts 92%.
 
 Three things this figure is for.
 
@@ -114,18 +114,15 @@ loses 35%. The dashed 4 MiB lines bend earlier and track footprint *per socket*
 against the 33 MiB L3 rather than thread count. Frequency was measured directly
 and is flat across the whole range, so none of the movement is turbo.
 
-[`scaling-cascade-lake-2026-08-25.md`](scaling-cascade-lake-2026-08-25.md) is
-the write-up. The short version for callers: **size a Philox thread pool by
+The short version for callers: **size a Philox thread pool by
 physical cores, not by `hardware_concurrency()`.**
 
 Two later studies on a bare-metal Tiger Lake laptop close the mechanism out, and
 neither adds a figure — both are single contrasts, not curves.
-[`icache-placement-tigerlake-2026-08-25.md`](icache-placement-tigerlake-2026-08-25.md)
-rules out instruction supply: co-location costs 59% more per byte while i-cache
+The first rules out instruction supply: co-location costs 59% more per byte while i-cache
 MPKI *falls* 36%, so the sibling threads are contending for execution ports and
 not for the instruction cache.
-[`openmp-runtime-tigerlake-2026-08-25.md`](openmp-runtime-tigerlake-2026-08-25.md)
-re-runs the whole comparison under libgomp and finds it flat to one thread per
+The second re-runs the whole comparison under libgomp and finds it flat to one thread per
 physical core where this project's own pool is not — so the flat result belongs
 to the generator, not to `bench_scaling.cpp`.
 
@@ -199,8 +196,17 @@ was still a stub — so the CPU does not tell you what ran. Those runs carry a
 curated backend in `publish_results.py`; everything recorded from here on is
 derived from the JSON.
 
-## The dated write-ups
+## Where the per-run write-ups went
 
-The files beside this one are records of individual runs, kept at the date they
-were taken rather than revised. Where a later result superseded one, the page
-says so at the top instead of being edited to agree.
+Each measurement used to have a dated page beside this one. They were removed
+once the results they carried had been folded into this file, the paper, and
+`CLAUDE.md`, and they remain in git history if a number ever needs its original
+context back:
+
+```bash
+git log --diff-filter=D --name-only -- 'docs/benchmarks/*.md'
+git show <commit>^:docs/benchmarks/<name>.md
+```
+
+The data itself did not go anywhere. `raw/` and `results/` hold every archived
+run, and `publish_results.py` regenerates this directory from them.

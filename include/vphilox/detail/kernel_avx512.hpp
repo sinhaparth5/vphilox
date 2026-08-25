@@ -5,7 +5,7 @@
 //
 // AVX-512 Philox4x32-R over sixteen interleaved counters.
 //
-// LANE LAYOUT (issue #12, docs/benchmarks/simd-lane-layout.md)
+// LANE LAYOUT (issue #12)
 //
 // The same structure of arrays the AVX2 kernel uses, at twice the width: four
 // __m512i, one per counter word, with 32-bit lane j carrying block base + j.
