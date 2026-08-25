@@ -38,6 +38,16 @@
 // on a machine without a pinned clock part of any movement in cycles/byte is
 // the frequency changing underneath the measurement rather than contention.
 // Run this under the performance governor.
+//
+// A second caveat, learned on a 16-core x86 host. This benchmark is unpinned
+// by design -- pinning every worker to one core would measure a context-switch
+// storm -- but that leaves thread *placement* to the scheduler, and above one
+// thread per physical core the placement is most of the result. Two workers on
+// one core's hyperthread siblings cost 35% each, so a curve that bends past
+// eight threads on a 8C/16T socket is reporting where the threads landed as
+// much as how the generator scales, which is also why the CV jumps there.
+// Attributing a knee needs the placement fixed by hand; see
+// docs/benchmarks/scaling-cascade-lake-2026-08-25.md for how that was done.
 
 #include <benchmark/benchmark.h>
 

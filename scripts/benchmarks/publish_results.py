@@ -70,13 +70,36 @@ RUNS = {
     "sapphire-rapids-matrix":        ("Sapphire Rapids",   "avx512", "cloud; dedicated vCPU"),
     "sapphire-rapids-float-convert": ("Sapphire Rapids",   "avx512", "cloud; dedicated vCPU"),
     "skylake-sp-matrix":             ("Skylake-SP",        "avx512", "cloud; dedicated vCPU"),
-    "cascadelake-matrix":            ("Cascade Lake",      "avx512", "cloud; dedicated vCPU"),
+    "cascadelake-matrix":            ("Cascade Lake 4v",   "avx512", "cloud; dedicated vCPU"),
     # The three pinned-backend runs behind issue #27. Same binary, same CPU,
     # VPHILOX_BACKEND forced -- so they are one measurement in three files and
     # belong in a comparison, not on the cross-machine figures.
-    "cascadelake-scalar":            ("Cascade Lake",      "scalar", "cloud; dedicated vCPU"),
-    "cascadelake-avx2":              ("Cascade Lake",      "avx2",   "cloud; dedicated vCPU"),
-    "cascadelake-avx512":            ("Cascade Lake",      "avx512", "cloud; dedicated vCPU"),
+    "cascadelake-scalar":            ("Cascade Lake 4v",   "scalar", "cloud; dedicated vCPU"),
+    "cascadelake-avx2":              ("Cascade Lake 4v",   "avx2",   "cloud; dedicated vCPU"),
+    "cascadelake-avx512":            ("Cascade Lake 4v",   "avx512", "cloud; dedicated vCPU"),
+    # A second Cascade Lake, two sockets and sixteen physical cores. Same part
+    # (family 6 model 85 stepping 7, 2.80 GHz nominal) but a whole-socket
+    # instance rather than two cores of a shared one, which is why it gets its
+    # own label: cycles/byte does not transfer between them, and the AVX-512
+    # width conversion measured here disagrees with the 4-vCPU host.
+    "cascadelake-32v-avx512-matrix": ("Cascade Lake 32v",  "avx512", "cloud; whole 2-socket host"),
+    "cascadelake-32v-avx2-matrix":   ("Cascade Lake 32v",  "avx2",   "cloud; whole 2-socket host"),
+    "cascadelake-32v-scalar-matrix": ("Cascade Lake 32v",  "scalar", "cloud; whole 2-socket host"),
+    # Thread scaling. The unpinned run follows the documented protocol and is
+    # the one to quote for the curve shape; its high CV above eight threads is
+    # itself the finding, because the scheduler is free to land two workers on
+    # one core's hyperthread siblings. The placement runs below fix that
+    # placement by hand, which is what identifies the knee (issue #51).
+    "cascadelake-32v-scaling":              ("Cascade Lake 32v", "avx512",
+                                             "cloud; unpinned by design"),
+    "cascadelake-32v-placement-phys-2socket": ("Cascade Lake 32v", "avx512",
+                                             "cloud; one thread per physical core; 2 sockets"),
+    "cascadelake-32v-placement-phys-1socket": ("Cascade Lake 32v", "avx512",
+                                             "cloud; one thread per physical core; 1 socket"),
+    "cascadelake-32v-placement-ht-1socket":   ("Cascade Lake 32v", "avx512",
+                                             "cloud; hyperthread siblings; 1 socket"),
+    "cascadelake-32v-placement-ht-2socket":   ("Cascade Lake 32v", "avx512",
+                                             "cloud; every logical CPU"),
     "avx2-baseline":                 ("Tiger Lake / AVX2", "avx2",   "harness validation: unpinned governor"),
     "bulk-generate-baseline":        ("Tiger Lake / AVX2", "avx2",   "harness validation: unpinned governor"),
     "avx512-baseline":               ("Ice Lake SP",       "scalar", "harness validation: 2-vCPU cloud VM"),
@@ -306,7 +329,8 @@ def legend(svg, x, y, entries, size=12):
 
 def plot_matrix_relative(runs, outdir):
     """Cycles/byte relative to std::mt19937, per machine. Lower is faster."""
-    tags = ["pi5-matrix", "sapphire-rapids-matrix", "skylake-sp-matrix", "cascadelake-matrix"]
+    tags = ["pi5-matrix", "sapphire-rapids-matrix", "skylake-sp-matrix", "cascadelake-matrix",
+            "cascadelake-32v-avx512-matrix"]
     tags = [t for t in tags if t in runs and t in PUBLISHABLE]
 
     series = []
@@ -373,7 +397,8 @@ def plot_generate_n_sweep(runs, outdir):
     """The refill-buffer crossover: cost per call size, relative to bulk."""
     # bulk-generate-baseline has the richest sweep but an unpinned governor, so
     # it is deliberately not here -- see the quality column in machines.csv.
-    tags = ["pi5-matrix", "sapphire-rapids-matrix", "skylake-sp-matrix", "cascadelake-matrix"]
+    tags = ["pi5-matrix", "sapphire-rapids-matrix", "skylake-sp-matrix", "cascadelake-matrix",
+            "cascadelake-32v-avx512-matrix"]
     tags = [t for t in tags if t in runs and t in PUBLISHABLE]
 
     series = []
@@ -609,6 +634,104 @@ def plot_float_conversion(runs, outdir):
     svg.save(os.path.join(outdir, PLOT_OUT, "float-conversion-widths.svg"))
 
 
+def plot_scaling_placement(runs, outdir):
+    """Where the threads sit, on one machine, at a fixed thread count.
+
+    The unpinned curve conflates three separate limits because the scheduler
+    picks the placement. Fixing the placement by hand separates them: with one
+    thread per physical core the cost per byte is flat to sixteen cores, and
+    the knee only appears when two workers share a core's hyperthread siblings
+    or when one socket's memory controllers have to feed eight of them.
+    """
+    variants = [
+        ("cascadelake-32v-placement-phys-2socket", 65536,
+         "1/core, 2 sockets \u2014 256 KiB", [1, 2, 4, 8, 16]),
+        ("cascadelake-32v-placement-phys-2socket", 1048576,
+         "1/core, 2 sockets \u2014 4 MiB", [1, 2, 4, 8, 16]),
+        ("cascadelake-32v-placement-phys-1socket", 65536,
+         "1/core, 1 socket \u2014 256 KiB", [1, 2, 4, 8]),
+        ("cascadelake-32v-placement-phys-1socket", 1048576,
+         "1/core, 1 socket \u2014 4 MiB", [1, 2, 4, 8]),
+        ("cascadelake-32v-placement-ht-1socket", 65536,
+         "hyperthreads, 1 socket \u2014 256 KiB", [8, 16]),
+        ("cascadelake-32v-placement-ht-1socket", 1048576,
+         "hyperthreads, 1 socket \u2014 4 MiB", [8, 16]),
+    ]
+    series = []
+    for tag, ws, name, threads in variants:
+        run = runs.get(tag)
+        if not run:
+            continue
+        pts = []
+        for t in threads:
+            r = run["rows"].get(f"BM_thread_scaling_bulk/{t}/{ws}/real_time", {})
+            if r.get("median"):
+                pts.append((t, r["median"]))
+        if pts:
+            series.append((name, pts))
+    if not series:
+        return
+
+    width, height = 900, 460
+    left, right, top, bottom = 78, 268, 84, 62
+    plot_w, plot_h = width - left - right, height - top - bottom
+
+    vals = [v for _, pts in series for _, v in pts]
+    ymax = math.ceil(max(vals) * 1.2 * 10) / 10.0
+    ymin = 0.0
+
+    ticks = [1, 2, 4, 8, 16]
+    x0, x1 = 0.0, math.log2(ticks[-1])
+    pad = 16.0
+
+    def xpos(t):
+        return left + pad + (math.log2(t) - x0) / (x1 - x0) * (plot_w - 2 * pad)
+
+    def ypos(v):
+        return top + plot_h - (v - ymin) / (ymax - ymin) * plot_h
+
+    svg = Svg(width, height, "Where the scaling knee comes from")
+    svg.text(left - 60, 28,
+             "Thread placement, not thread count \u2014 Cascade Lake, 2 sockets, 16 cores",
+             size=15, weight="bold")
+    svg.text(left - 60, 48,
+             "generate_n, aggregate cost per byte. Flat is linear scaling. One thread per "
+             "physical core stays flat to 16; sharing a core costs ~35%.",
+             size=11, fill="#555555")
+
+    step = 0.1
+    v = ymin
+    while v <= ymax + 1e-9:
+        svg.line(left, ypos(v), left + plot_w, ypos(v), GRID)
+        svg.text(left - 8, ypos(v) + 4, f"{v:g}", size=11, anchor="end", fill="#555555")
+        v += step
+    svg.text(left - 58, top - 14, "cycles/byte", size=11, fill="#555555")
+
+    for t in ticks:
+        svg.text(xpos(t), top + plot_h + 22, str(t), size=11, anchor="middle", fill="#555555")
+    svg.text(left + plot_w / 2, top + plot_h + 44, "threads", size=12, anchor="middle")
+
+    # The single-thread cost is the reference every line should sit on if the
+    # generator scales; drawing it makes the departures readable without
+    # comparing two numbers by eye.
+    base = series[0][1][0][1]
+    svg.line(left, ypos(base), left + plot_w, ypos(base), "#999999", 1.2, dash="4 3")
+    svg.text(left + 6, ypos(base) - 6, f"single thread, {base:.3f}", size=10, fill="#777777")
+
+    for i, (name, pts) in enumerate(series):
+        colour = PALETTE[i]
+        svg.polyline([(xpos(t), ypos(v)) for t, v in pts], colour,
+                     dash="6 4" if "4 MiB" in name else None)
+        for t, v in pts:
+            svg.dot(xpos(t), ypos(v), colour)
+
+    legend(svg, left + plot_w + 24, top + 12,
+           [(nm, PALETTE[i]) for i, (nm, _) in enumerate(series)])
+    svg.text(left + plot_w + 24, top + 12 + len(series) * 19 + 18,
+             "dashed line = 4 MiB working set", size=10, fill="#777777")
+    svg.save(os.path.join(outdir, PLOT_OUT, "scaling-placement.svg"))
+
+
 # ---------------------------------------------------------------- driver
 
 def generate(outdir):
@@ -617,6 +740,7 @@ def generate(outdir):
     plot_matrix_relative(runs, outdir)
     plot_generate_n_sweep(runs, outdir)
     plot_thread_scaling(runs, outdir)
+    plot_scaling_placement(runs, outdir)
     plot_float_conversion(runs, outdir)
     return runs
 

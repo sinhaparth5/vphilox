@@ -20,7 +20,7 @@ particular) is a comparison worth *reporting* honestly, not a target to chase.
 Derived from `docs/VPhilox Development Phases.md` and
 `docs/Vector Philox Development Strategy.md`.
 
-**Status:** Phases 0-3 complete; Phase 4 complete except the pinned x86 columns.
+**Status:** Phases 0-3 complete; Phase 4 complete except OpenMP and libpfm.
 Current version
 `2026.08.0` (see [VERSIONING.md](VERSIONING.md)).
 
@@ -341,7 +341,7 @@ and whose state can be written on one platform and read on another.
         (`sknuth_MaxOft` chi2, p=0.9993) carries TestU01's suspect marker; it is not among the
         160 scored statistics, and over 254 computed p-values the expected count outside the
         band is 0.51, so one is unremarkable.
-- [~] **Throughput matrix**
+- [x] **Throughput matrix**
   - [x] `std::mt19937`, scalar Philox4x32, xoshiro256++, PCG64, vphilox (each backend, pinned
         with `VPHILOX_BACKEND`) — all wired into `bench_engines.cpp`. Every row generates the
         same 256 KiB rather than the same number of calls, so the 64-bit generators are not
@@ -353,7 +353,7 @@ and whose state can be written on one platform and read on another.
           matrix or for one generator per thread) — pinned to the vendored C by a
           side-by-side test rather than trusted
   - [x] Report GB/s **and** cycles/byte — every row reports both through `report_metrics`
-  - [~] Run the matrix on frequency-pinned hardware and write it up, via
+  - [x] Run the matrix on frequency-pinned hardware and write it up, via
         `scripts/benchmarks/run_matrix.sh`, which pins the governor, records provenance, and
         refuses a run that lost the cycle counter or came in above 1% CV
     - [x] **AArch64 — Raspberry Pi 5**, run twice. The pre-NEON column is
@@ -368,8 +368,15 @@ and whose state can be written on one platform and read on another.
           established still holds: the refill buffer costs 25.2% of bulk throughput and
           `generate_n` recovers 100.0% of the kernel, the x86 bulk-path result from #37
           reproducing on a second architecture
-    - [ ] **x86-64 AVX2** — the laptop run that validated the harness sits at 4-10% CV, so
-          this column still needs a pinned host
+    - [x] **x86-64, all three backends** — the laptop run that validated the harness sat
+          at 4-10% CV, so the column was taken again on a quiet whole-socket Cascade Lake
+          (GCP `n2-standard-32`, one pinned core, every row 0.04-0.46% CV). Same binary,
+          `VPHILOX_BACKEND` forced, so scalar, AVX2 and AVX-512 are one measurement in
+          three files: `generate_n` is **2.2883 / 0.8740 / 0.4747 cycles/byte**, against
+          `std::mt19937` at 1.4210, xoshiro256++ at 0.4135 and PCG64 at 0.7469. The AVX-512
+          column is 2.99x `std::mt19937` and 1.84x AVX2, and the refill buffer costs
+          1.19x / 1.60x / 2.03x bulk as the kernel gets faster. Written up in
+          [`avx512-cascade-lake-2026-08-25.md`](docs/benchmarks/avx512-cascade-lake-2026-08-25.md)
 - [~] **Scaling** — `benchmarks/bench_scaling.cpp` at 1/2/4/8/16/32 threads
   - [x] Harness rebuilt to be interpretable: aggregate cycles/byte (flat = linear scaling),
         a `generate_n` arm beside the buffered one, the working set as a second axis so an
@@ -387,14 +394,33 @@ and whose state can be written on one platform and read on another.
           from 2 threads; on a pinned clock with no SMT both arms scale within 0.24%. RDTSC
           counts reference cycles, so a moving turbo ceiling landed in the column, and 8
           threads on 4C/8T is hyperthreading rather than scaling
-  - [~] Investigate the knee (memory bandwidth vs false sharing)
+  - [x] Investigate the knee (memory bandwidth vs false sharing)
     - [x] No knee on ARM, and that is about the kernel not the memory system: 3.19
           cycles/byte over 4 cores is ~3 GB/s, far under what LPDDR4X supplies, so the 4 MiB
           arm could not provoke one. Coffee Lake with AVX2 degrades 6.66x by 32 threads at
           the same working set. With NEON landed the ARM kernel is now 1.47 cycles/byte,
           roughly 6.5 GB/s over 4 cores — still under what LPDDR4X supplies, so this axis
           needs the x86 host below rather than another Pi run
-    - [ ] Locate the knee on a pinned x86 host with the AVX2 kernel
+    - [x] **Located on x86, and it is not memory** — 16 physical cores of a two-socket
+          Cascade Lake, in
+          [`scaling-cascade-lake-2026-08-25.md`](docs/benchmarks/scaling-cascade-lake-2026-08-25.md).
+          With one thread per *physical* core, aggregate cycles/byte on the L2-resident arm
+          is flat from 1 to 16 threads (0.4750 → 0.4833, +1.7%) at 29.25 GiB/s. The first
+          knee is **hyperthread co-location**: the same sixteen workers on eight cores plus
+          their siblings cost 0.6536, a 35% loss, because the kernel is execution-port-bound
+          on the integer multipliers and a sibling has nothing idle to use. Memory is the
+          *second* limit and tracks footprint per socket against the 33 MiB L3, not thread
+          count — 16 MiB/socket is flat, 32 MiB/socket costs 1.36x whether it arrives as 8
+          threads on one socket or 16 across two, and 64 MiB/socket costs 2.00x. False
+          sharing is excluded by the flat L2 arm, NUMA by `numactl --membind` moving
+          nothing, and frequency by direct measurement
+    - [x] **Frequency excluded by measurement, not argument.** RDTSC counts reference
+          cycles, so a turbo ceiling moving with thread count is indistinguishable from
+          contention, and GCP exposes no vPMU. `scripts/benchmarks/freq_probe.cpp` times a
+          dependent `addq` chain of known length against both a wall clock and RDTSC to
+          recover the real core clock: 3.371 → 3.366 GHz from 1 to 16 active cores, and
+          identical under scalar, AVX2 and AVX-512 load. That also settles #27's open
+          hypothesis — Philox's AVX-512 kernel triggers no measurable licence drop
   - [ ] OpenMP variant alongside the `std::thread` one
   - [ ] Instruction-cache miss rates via libpfm
 - [~] **Cross-platform bit parity** — same key and counter produce identical output on x86-64,

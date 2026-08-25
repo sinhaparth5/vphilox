@@ -1,0 +1,36 @@
+# Frequency probe for issue #51 -- see docs write-up.
+# git-sha: 35e08afe59f3dabf1add5b56b990fc1074282382
+# host: vphilox-cl-scaling  Model name: Intel(R) Xeon(R) CPU @ 2.80GHz
+# Probe pinned to CPU 2; every load thread pinned to its own logical CPU.
+# A dependent add chain of known length gives core GHz; RDTSC gives ref GHz.
+
+### load backend: avx512
+backend: avx512
+
+  active       core GHz        ref GHz     core/ref
+       1          3.371          2.800        1.204
+       4          3.366          2.800        1.202
+       8          3.368          2.800        1.203
+      16          3.366          2.800        1.202
+      32          3.158          2.800        1.128
+
+### load backend: avx2
+backend: avx2
+
+  active       core GHz        ref GHz     core/ref
+       1          3.371          2.800        1.204
+       4          3.367          2.800        1.203
+       8          3.369          2.800        1.203
+      16          3.368          2.800        1.203
+      32          3.358          2.800        1.199
+
+### load backend: scalar
+backend: scalar
+
+  active       core GHz        ref GHz     core/ref
+       1          3.371          2.800        1.204
+       4          3.368          2.800        1.203
+       8          3.370          2.800        1.204
+      16          3.369          2.800        1.203
+      32          3.151          2.800        1.125
+
