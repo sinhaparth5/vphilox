@@ -10,6 +10,7 @@
 
 #include <benchmark/benchmark.h>
 
+#include <algorithm>
 #include <random>
 #include <span>
 #include <vector>
@@ -127,11 +128,31 @@ BENCHMARK(BM_u32_bulk_ceiling);
 // The working set is the second axis, and it is the one that decides the
 // answer. Conversion reads four bytes and writes four for every element, so a
 // wider register only helps while the loads and stores are not themselves the
-// limit. 2048 words keeps source and destination inside L1; 65536 puts them in
-// L2; 4M is past every cache on the hosts measured here.
-constexpr std::size_t kL1Words   = 2048;
-constexpr std::size_t kL2Words   = 65536;
-constexpr std::size_t kDramWords = 4u << 20;
+// limit.
+//
+// Each row touches two buffers of `words * 4` bytes, source and destination,
+// so the footprint is eight bytes per element: 16 KiB, 512 KiB and 32 MiB. The
+// first two sit in L1 and L2 on every host measured here. The third does not
+// have one name -- it is past L3 on Coffee Lake (8 MiB) and on a Pi 5 (2 MiB),
+// but comfortably inside Sapphire Rapids' 105 MiB L3 -- so it is named for its
+// size and the write-up says where it landed on each machine.
+// 256 words is not a cache tier -- it is vphilox::float_tile_words, the chunk
+// generate_n actually converts. Whatever this row says is what a real caller
+// gets; the cache-tier rows below say why.
+constexpr std::size_t kTileWords   = 256;
+constexpr std::size_t kInL1Words   = 2048;
+constexpr std::size_t kInL2Words   = 65536;
+constexpr std::size_t kPastL2Words = 4u << 20;
+
+/// Convert at least this many words inside one timed region.
+///
+/// A 256-word call runs in tens of nanoseconds, which is the same order as the
+/// RDTSC pair and the benchmark loop around it -- timing one of those measures
+/// the instrument. Repeating the call until the region is big enough puts the
+/// overhead back in the noise. The first attempt at these rows did not do this
+/// and produced 10-14% CVs at the small sizes, which no amount of repetitions
+/// fixed because the variance was in the harness, not the CPU.
+constexpr std::size_t kMinWordsPerSample = 1u << 16;
 
 void report_convert(benchmark::State& state, const cycle_counter& counter, std::size_t words) {
     const auto bytes = static_cast<std::int64_t>(state.iterations() * words * 4);
@@ -162,22 +183,24 @@ std::vector<vphilox::u32> filled_source(std::size_t words) {
 /// matches that.
 void run_convert(benchmark::State& state, vphilox::detail::float_convert_fn convert) {
     const auto words                    = static_cast<std::size_t>(state.range(0));
+    const std::size_t reps              = std::max<std::size_t>(1, kMinWordsPerSample / words);
     const std::vector<vphilox::u32> src = filled_source(words);
     std::vector<float> out(words);
     benchmark::DoNotOptimize(convert);
     cycle_counter cycles;
     for (auto _ : state) {
         cycles.start();
-        convert(src.data(), out.data(), words);
+        for (std::size_t r = 0; r < reps; ++r) convert(src.data(), out.data(), words);
         cycles.stop();
         benchmark::DoNotOptimize(out.data());
         benchmark::ClobberMemory();
     }
-    report_convert(state, cycles, words);
+    report_convert(state, cycles, words * reps);
 }
 
 void add_sizes(benchmark::internal::Benchmark* b) {
-    for (std::size_t w : {kL1Words, kL2Words, kDramWords}) b->Arg(static_cast<std::int64_t>(w));
+    for (std::size_t w : {kTileWords, kInL1Words, kInL2Words, kPastL2Words})
+        b->Arg(static_cast<std::int64_t>(w));
 }
 
 void BM_convert_baseline(benchmark::State& state) {

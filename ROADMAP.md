@@ -211,9 +211,19 @@ the copy now takes 53% of that path, up from 35%. Callers get the ARM win throug
   - [x] The converter is now **derived from the resolved backend** instead of repeating the
         CPU probe, so the two cannot disagree. That also fixed a latent inconsistency:
         `VPHILOX_BACKEND=neon` on x86 gave the AVX2 kernel and the *baseline* converter
-  - [ ] Measure it. Correctness is settled — bit-identical to baseline by construction and
-        by test — but whether sixteen lanes beat eight on an elementwise pass over memory is
-        unmeasured, and needs a Sapphire Rapids or Skylake-SP host
+  - [x] Measured on Sapphire Rapids
+        ([`float-conversion-widths-2026-08-25.md`](docs/benchmarks/float-conversion-widths-2026-08-25.md)).
+        At `float_tile_words` — the 256-word chunk `generate_n` actually converts — AVX-512
+        is **1.89x** the baseline conversion and 1.68x AVX2; at a 32 MiB footprint, 3.19x
+        and 1.76x. In between, at a 512 KiB L2-resident footprint, all three sit within 8%:
+        that regime is bandwidth-bound and the width is irrelevant there
+    - [x] The conversion is a small term either way — 0.039 cycles/byte against an AVX-512
+          kernel at roughly 0.25. The case for the variant is that it costs one attribute
+          and a branch already being taken, not that it moves the headline
+    - [x] A GCC 12 consumer at `-O2` gets **scalar** conversion from every variant: the
+          target attribute pins the ISA but not the vectoriser, and GCC 12's `-O2` cost
+          model rejects this loop. `-O3` gives `%ymm`/`%zmm` as intended, and GCC 15
+          vectorises at `-O2`. Header-only means the consumer's flags decide
   - [ ] Decide whether to fuse conversion into the kernels and remove the second pass.
         Needs a frequency-pinned host: this laptop put the cost anywhere between 10% and 26%
 - [x] MSVC CPU detection (`__cpuidex` leaf 7 + `XGETBV` OS-state check) — no longer stubbed to `false`.
