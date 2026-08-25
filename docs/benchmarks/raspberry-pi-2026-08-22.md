@@ -36,8 +36,12 @@ Lake result, this supports treating that slowdown as external context rather
 than a project result. An AVX-512 measurement is still needed to complete
 issue #9.
 
-The source artifact is
-[`results/pi-arm-baseline.json`](../../results/pi-arm-baseline.json). This run
-predates `run_matrix.sh`, so no environment file was captured beside it; the
-environment table above is the whole provenance record. Every archived run from
-`pi-arm-matrix` onwards has a `-environment.txt` next to its JSON.
+The source artifacts are
+[`results/pi-arm-baseline.json`](../../results/pi-arm-baseline.json) and
+[`results/pi-arm-baseline-environment.txt`](../../results/pi-arm-baseline-environment.txt).
+
+The environment file was archived late. This run predates `run_matrix.sh`, and
+its capture landed in the scratch directory `gcloud compute scp` writes into
+rather than beside the JSON, so only the JSON was committed at the time. The
+file was recovered in full and it is what fills the `arch` and `cpu` columns for
+this row in `machines.csv`, which were blank before.

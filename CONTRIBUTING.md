@@ -125,6 +125,23 @@ not algorithmic, and the CV check is there to catch it.
 measured inside each machine, and why a cloud VM is fine for correctness but not
 for throughput.
 
+## Before deleting anything
+
+```bash
+python3 scripts/maintenance/find_unreferenced.py
+```
+
+It reports tracked files that no other tracked file names, so "is this still
+needed" is answered from the reference graph rather than from a file's age. Most
+of `docs/benchmarks/` looks like history and is not: `paper/README.md` maps every
+table and figure in the paper to a write-up or a CSV under it, and the claim that
+each number traces to an archived run is only true while those files exist.
+
+The report is a list to review, never a list to delete. A file can be reached by
+a glob, a CMake variable or a shell loop that no textual scan resolves, so the
+script keeps a list of those blind spots and prints them separately. Add to that
+list rather than deleting something it flagged wrongly.
+
 ## Versioning
 
 CalVer, `YYYY.0M.MICRO`, driven by the `VERSION` file. See
