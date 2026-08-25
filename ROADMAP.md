@@ -23,7 +23,12 @@ Derived from `docs/VPhilox Development Phases.md` and
 **Status:** Phases 0-3 complete; **Phase 4 complete.** The instruction-cache
 study is measured — a bare-metal Tiger Lake laptop cleared the co-location gate
 that no earlier host could — and the cuRAND cross-check is done without needing
-a GPU at all.
+a GPU at all. **Phase 5 is under way:** the paper in `paper/` is a complete
+draft with every Phase 4 result folded in, and the changelog covers Phases 2
+through 4. What is left needs things this repository cannot produce on its own —
+the XGBoost thread URL, an affiliation, a Zenodo DOI, an arXiv submission, a
+tag, and vcpkg/Conan packaging.
+
 Current version
 `2026.08.0` (see [VERSIONING.md](VERSIONING.md)).
 
@@ -570,41 +575,79 @@ and whose state can be written on one platform and read on another.
 
 ## Phase 5 — Paper & release
 
-- [ ] **Paper** (LaTeX, ACM template) — working title *Portable, Seekable Random Streams for
+- [~] **Paper** (LaTeX) — working title *Portable, Seekable Random Streams for
       Parallel CPU Simulation*, retitled from *vPhilox: SIMD-Accelerated Counter-Based
       Pseudo-Random Number Generation for Parallel CPU Systems*.
 
+      **Full draft in `paper/vphilox.tex`; see `paper/README.md` for what is still open.**
+      Twelve sections, five figures, six tables, every number traced to an archived run.
+      **Two `\todo` markers remain**, and the one that blocks publication is the citation
+      for the upstream XGBoost discussion: the paper quotes its 10x figure and spends its
+      evaluation rebutting it, so it cannot go out without the thread URL. The other is
+      the Zenodo DOI. A third gap is a red placeholder rather than a `\todo`: the
+      affiliation line in the author block.
+
+      All four Phase 4 results are now folded in. §8.3 reports the instruction-supply
+      measurement (#53), §8.4 the OpenMP runtime contrast (#52), §9.1 the cuRAND
+      cross-check (#54), and the machines table carries the bare-metal Tiger Lake host
+      those studies needed. §10 no longer lists any measurement as pending hardware.
+
+      Written against `IEEEtran` in the Computer Society journal format, which is what
+      TPDS, TC and TSE use; a conference submission is a class-option change. Builds
+      clean at 12 pages — no errors, no overfull boxes, no undefined references — and
+      **CI now builds it**, so that is verified rather than asserted. The `paper builds`
+      job also uploads the PDF as a run artifact, and warns when `vphilox.tex` was
+      committed more recently than the tracked `vphilox.pdf`.
+
       The original title names the method, not the contribution, and it invites exactly the
-      comparison the measurements lose: xoshiro256++ is faster on three of the four parts
+      comparison the measurements lose: xoshiro256++ is faster on four of the five machines
       tested. Speed is the *objection this work removes*, not the result it reports. Lead with
       what no competing generator offers — a checkpoint that survives a change of standard
       library, O(1) seek, and results independent of thread count — and use the throughput
       figures to show those properties are free.
-  - [ ] **The portability failure** — the motivating problem, and currently missing from the
-        outline entirely. `std::mt19937`'s serialized state is not portable: format flags
-        differ (libstdc++ has `operator<<` force `dec`; the MSVC STL does not) and so does the
-        layout (624 words raw plus a position, against 624 rotated with none). A checkpoint
-        written on Linux fails on Windows and loads *silently wrong* on macOS. Counter-based
-        state — a key and a position — cannot fail this way
-  - [ ] **Reproducibility under parallelism** — identical output regardless of thread count and
-        scheduling, with the measured scaling behind it (3.95x on 4 cores, 98.8% efficiency,
-        aggregate cycles/byte flat to 0.063% from 1 to 32 threads)
-  - [ ] Scalar wide-multiply bottleneck analysis — and the finding that the reported ~10x
-        penalty against `std::mt19937` did **not** reproduce on any of five CPUs measured
-        (0.61-0.87x, not 0.10x)
-  - [ ] AVX2/AVX-512/NEON lane interleaving theory, including why AVX-512 shows no
-        downclocking penalty here: Philox's inner loop is entirely light-tier integer work
-  - [ ] IEEE-754 mantissa injection math
-  - [ ] Benchmark figures from Phase 4, reported honestly — including the two results that cut
-        against us, that xoshiro256++ leads on three of four parts and that NEON leaves vphilox
-        behind `std::mt19937` on ARM
+  - [x] **The portability failure** — §1 and §3. `std::mt19937`'s serialized state is not
+        portable: format flags differ (libstdc++ has `operator<<` force `dec`; the MSVC STL
+        does not) and so does the layout (624 words raw plus a position, against 624 rotated
+        with none). A checkpoint written on Linux fails on Windows and loads *silently wrong*
+        on macOS. Counter-based state — a key and a position — cannot fail this way
+  - [x] **Reproducibility under parallelism** — §8. Identical output regardless of thread count
+        and scheduling, with the measured scaling behind it (3.95x on 4 cores, 98.8%
+        efficiency, aggregate cycles/byte flat to 0.063% from 1 to 32 threads), plus the
+        placement result: the first knee is hyperthread co-location at 35%/worker, not memory.
+        §8.3 and §8.4 then close out both alternative explanations by measurement: instruction
+        supply *improves* 36% under co-location while the penalty is +59%, and libgomp
+        reproduces the flat curve to 0.3% where the `std::thread` pool drifts to 1.220x
+  - [x] Scalar wide-multiply bottleneck analysis — §4.2 and §7.2, with the finding that the
+        reported ~10x penalty against `std::mt19937` did **not** reproduce on any of five CPUs
+        measured (1.10-1.65x cost per byte, not 10x)
+  - [x] AVX2/AVX-512/NEON lane interleaving theory — §4 and §7.4, including why the AVX-512
+        downclocking penalty stays small here (Philox's inner loop is entirely light-tier
+        integer work). §7.4 reports all four pinned-backend runs and separates the two Cascade
+        Lake instances: the 78% width conversion belongs to the shared 4-vCPU slice, the same
+        stepping on a whole host converts 92%, and the scalar kernel is slower there too, which
+        no licence can explain
+  - [x] IEEE-754 mantissa injection math — §5, including exactness by Sterbenz's lemma and why
+        the exhaustive round trip catches what no distributional test can
+  - [x] Benchmark figures from Phase 4, reported honestly — §10 carries both results that cut
+        against us, that xoshiro256++ leads on four of five machines and that NEON leaves the
+        buffered engine behind `std::mt19937` on ARM. The two Phase 4 results added since are
+        tables rather than figures on purpose: both are two-arm contrasts of four numbers,
+        which a plot makes harder to read, and adding them to `publish_results.py` would put
+        two more byte-reproducible SVG/PDF pairs under CI's `--check` for no gain
+  - [x] **Portable-state analysis** — §1, §3 and §9.1. The failure mode, the counter-based
+        answer, and now an external check that the answer interoperates: 16/16 cases identical
+        against NVIDIA cuRAND, with the seeding mapping documented in `docs/curand-parity.md`
 - [ ] arXiv preprint (cs.PF / cs.MS)
 - [ ] Zenodo DOI for the repository
 - [ ] Tag and publish `sinhaparth5/vphilox`
 - [x] `CITATION.cff` for one-click BibTeX
 - [ ] Update `CITATION.cff` with the DOI once Zenodo assigns one
 - [ ] Package for vcpkg and Conan
-- [ ] Release notes in `CHANGELOG.md`
+- [x] Release notes in `CHANGELOG.md` — `[Unreleased]` now covers the whole of Phases 2
+      through 4: the serialized state, all three SIMD kernels, the cuRAND cross-check, the
+      per-worker counters and placement gate, the figure pipeline, the cross-platform
+      parity digest, and the four measured results worth not re-deriving. It still needs a
+      release heading rather than `[Unreleased]` when the tag goes out
 
 ---
 

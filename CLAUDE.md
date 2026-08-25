@@ -25,7 +25,8 @@ it: the ~10x penalty did not reproduce on any of five CPUs (0.61-0.87x, not
 `std::mt19937` and 4.1-5.3x unspecialised Philox.
 
 The practical consequence: **do not optimise toward xoshiro256++.** It is faster
-here on three of the four parts benchmarked, it is a latency-bound scalar chain
+here on four of the five parts benchmarked — every one but Skylake-SP, where the
+bulk path costs 0.4210 cycles/byte against 0.4703 — it is a latency-bound scalar chain
 that a wider kernel does not catch, and it offers none of the properties this
 library is for — portable state, O(1) seek, identical output regardless of
 thread count. Report the comparison honestly; do not chase it. Speed only has to
@@ -382,3 +383,27 @@ reproduces it at 1.000/1.000/1.003x to one thread per physical core, where the
 once the workers own every core
 (`docs/benchmarks/openmp-runtime-tigerlake-2026-08-25.md`). Do not re-run either
 on a VM; both needed the co-location gate to pass first.
+
+## The paper
+
+Phase 5's deliverable is `paper/vphilox.tex`, an IEEEtran Computer Society
+journal draft with every number traced to an archived run — `paper/README.md`
+maps each table and figure to its source and lists what is still open.
+
+Two things to know before touching it. **`paper/vphilox.pdf` is tracked**, so
+`paper/build.sh` pins `SOURCE_DATE_EPOCH` to keep rebuilds byte-identical;
+without that every build churns 300 KB of binary diff. And the source is
+checked, but the tracked PDF cannot be: CI's `paper builds` job runs
+`paper/build.sh --strict`, which fails on an overfull box or an undefined
+reference, and uploads the result as a run artifact — but two TeX distributions
+do not agree byte for byte, so it cannot gate the tracked file the way
+`publish_results.py --check` gates the figures. It warns instead when
+`vphilox.tex` was committed more recently than `vphilox.pdf`. **If you have no
+TeX install, do not commit a `.tex` edit and leave the PDF alone** — take the
+artifact from the CI run and commit that.
+
+The remaining blockers are not writing. The paper quotes the upstream XGBoost
+10x figure and spends its evaluation rebutting it, so it cannot go out without
+that thread URL; do not paraphrase the number to route around the missing
+citation. The rest — affiliation, Zenodo DOI, arXiv, the tag, vcpkg/Conan — are
+accounts and identifiers rather than repository work.

@@ -1,0 +1,1154 @@
+\documentclass[10pt,journal,compsoc]{IEEEtran}
+% IEEE Computer Society journal format, which is what TPDS, TC and TSE use.
+% For a conference submission the only change is the class options:
+%   \documentclass[conference]{IEEEtran}
+% and dropping the \IEEEcompsoc* commands in the author block below.
+
+% ---------------------------------------------------------------
+% Core mathematics packages
+% ---------------------------------------------------------------
+\usepackage{amsmath, amssymb, amsthm, mathtools}
+\usepackage{bm}
+
+% ---------------------------------------------------------------
+% Algorithms
+% ---------------------------------------------------------------
+\usepackage[ruled,vlined,linesnumbered]{algorithm2e}
+
+% ---------------------------------------------------------------
+% Graphics, figures, and plots
+% ---------------------------------------------------------------
+\usepackage{graphicx}
+\graphicspath{{figures/}{../docs/benchmarks/plots/}}
+\usepackage{adjustbox}
+
+% ---------------------------------------------------------------
+% Tables
+% ---------------------------------------------------------------
+\usepackage{booktabs}
+\usepackage{tabularx}
+
+% ---------------------------------------------------------------
+% Cross-referencing and citations
+% ---------------------------------------------------------------
+% cite.sty rather than natbib: IEEE numbers its references and sorts and
+% compresses runs of them, which is what this gives and what IEEEtran.bst
+% expects. natbib's author-year machinery has nothing to do here.
+\usepackage{cite}
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
+\usepackage[capitalise,noabbrev]{cleveref}
+
+% ---------------------------------------------------------------
+% Typography
+% ---------------------------------------------------------------
+\usepackage{microtype}
+% No geometry and no parskip here: IEEEtran fixes the page geometry to the
+% IEEE specification, and IEEE paragraphs are indented rather than spaced.
+% Loading either would silently produce a document that is not the format.
+
+% ---------------------------------------------------------------
+% Miscellaneous
+% ---------------------------------------------------------------
+\usepackage{xcolor}
+\usepackage{todonotes}
+\usepackage{listings}
+\lstset{basicstyle=\ttfamily\footnotesize, columns=fullflexible,
+        breaklines=true, frame=single, framesep=3pt, xleftmargin=0pt,
+        showstringspaces=false, aboveskip=6pt, belowskip=6pt}
+
+% ---------------------------------------------------------------
+% Theorem environments (amsthm)
+% ---------------------------------------------------------------
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+% ---------------------------------------------------------------
+% Notation macros
+% ---------------------------------------------------------------
+\newcommand{\bigO}[1]{\mathcal{O}\!\left(#1\right)}
+\newcommand{\ctr}{\mathbf{c}}
+\newcommand{\key}{\mathbf{k}}
+\newcommand{\code}[1]{\texttt{#1}}
+
+\begin{document}
+
+\title{Portable, Seekable Random Streams for\\Parallel CPU Simulation}
+
+\author{Parth~Sinha%
+  \IEEEcompsocitemizethanks{%
+    \IEEEcompsocthanksitem P. Sinha is with
+      \textcolor{red}{[Affiliation: department, institution, city, country.]}\protect\\
+      E-mail: sinhaparth555@gmail.com
+    \IEEEcompsocthanksitem Source, measurement data and the scripts that
+      regenerate every figure in this paper:
+      \url{https://github.com/sinhaparth5/vphilox}}%
+  \thanks{Manuscript prepared \today.}}
+
+\markboth{IEEE Transactions on Parallel and Distributed Systems}%
+         {Sinha: Portable, Seekable Random Streams for Parallel CPU Simulation}
+
+\IEEEtitleabstractindextext{%
+\begin{abstract}
+A long simulation that checkpoints its random generator and resumes on a
+different machine is relying on a property that \code{std::mt19937} does not
+have. The C++ standard fixes the text format of an engine's stream operators
+only partially, and the three major standard libraries disagree on both the
+numeric base of the digits and the order of the 624 state words. A checkpoint
+written under libstdc++ fails to load under the MSVC standard library, and
+loads without any diagnostic, at the wrong position, under libc++. This paper
+describes vphilox, a header-only C++20 library that removes the failure by
+changing what is stored. The generator is Philox4x32-10, a counter-based
+construction whose entire state is a key and a position, so a checkpoint is
+six 32-bit integers and a word offset rather than a snapshot of engine
+internals. The same property gives constant-time seek and gives each worker an
+independent substream with no coordination, so results do not depend on thread
+count or scheduling. The cost of those properties is the question the design
+has to answer, because the earlier attempt to adopt Philox in a production
+machine-learning library was rejected on the grounds that scalar Philox runs at
+one tenth the speed of the Mersenne Twister. We report that the tenfold penalty
+did not reproduce on any of five processors measured, and that interleaving
+independent counters across SIMD lanes brings the generator to between
+$0.22\times$ and $0.75\times$ the cost per byte of \code{std::mt19937} on the
+bulk path. Aggregate cost per byte is flat across thread counts, and the first
+parallel limit we find is hyperthread co-location rather than the generator.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Random number generation, counter-based generators, Philox, SIMD, AVX-512,
+ARM NEON, reproducibility, checkpoint and restart, parallel simulation, C++.
+\end{IEEEkeywords}}
+
+\maketitle
+\IEEEdisplaynontitleabstractindextext
+\IEEEpeerreviewmaketitle
+
+\section{Introduction}\label{sec:intro}
+
+\IEEEPARstart{C}{onsider} a Monte Carlo simulation that runs for a week, writes a checkpoint
+every hour, and is restarted after a node failure onto whatever hardware the
+scheduler has free. For the restart to be scientifically meaningful, the random
+number generator must resume at exactly the position where it stopped. In C++
+the standard mechanism for this is the stream insertion and extraction
+operators on the engine, and for \code{std::mt19937} that mechanism does not
+survive a change of standard library.
+
+Two independent defects combine. The first concerns the numeric base. The
+standard specifies that the insertion operator sets the decimal flag on the
+stream, and libstdc++ implements this by overriding a caller's \code{std::hex};
+the Microsoft standard library does not, so a caller who has set hexadecimal
+formatting obtains hexadecimal digits there and decimal digits under libstdc++.
+Each library then reads the other library's digits in the wrong base. The
+second concerns the layout. libstdc++ writes the 624 state words in raw
+internal order followed by a position index; libc++ and the Microsoft standard
+library write the same 624 words rotated into canonical order and write no
+position at all. The word counts agree, which is what makes the failure
+dangerous: a reader that accepts 624 integers has no way to detect that it has
+been handed a differently ordered array, so the restore succeeds and the
+simulation continues from a state that is not the one that was saved.
+
+The failure is a consequence of serializing an implementation rather than a
+position. A Mersenne Twister state is a large array plus an index into it, and
+the array has no canonical form. A counter-based generator has no such array.
+Following Salmon et al.~\cite{salmon2011}, the $n$th output block of Philox is
+a stateless bijection applied to the integer $n$ under a key, so the complete
+state of a stream is the key and the value of $n$. Writing that down is
+unambiguous, and reading it back cannot silently land somewhere else.
+
+The same structure gives two further properties without additional machinery.
+Advancing a stream by $N$ blocks is an addition on a 128-bit integer, so
+\code{discard} runs in $\bigO{1}$ rather than time proportional to $N$. Two
+disjoint counter ranges are two independent substreams, so a work-partitioned
+program produces the same numbers regardless of how many threads it runs on or
+in what order they are scheduled.
+
+These properties are not new; they are the reason counter-based generators were
+proposed. What has kept them out of some CPU codebases is a performance
+objection. When Philox was proposed for the random number path of a widely used
+gradient boosting library, the proposal was declined with the observation that
+its throughput was one tenth that of \code{std::mt19937}, attributed to the
+absence of specialisation for wide integer multiplication on
+CPUs.\todo[inline]{Insert the citation for the upstream discussion: project,
+thread URL, and access date. Do not paraphrase the quoted figure without it.}
+That objection is the thing this work has to remove, and it sets the shape of
+the evaluation: the target is not to be the fastest generator available, but to
+make the portability properties cost nothing.
+
+This paper makes four contributions.
+
+\begin{enumerate}
+  \item A portable serialized state for a counter-based engine
+        (\cref{sec:state}), which records a position rather than engine
+        internals, refuses malformed input rather than interpreting it, and
+        does not consult the locale. A format change in the engine's internal
+        buffer size, from 8 blocks to 16, left previously written states
+        readable, which is the property being claimed.
+  \item Counter-interleaved SIMD kernels for AVX2, AVX-512 and ARM NEON
+        (\cref{sec:simd}) that produce output identical to the scalar
+        reference, bit for bit, independent of how a request is chunked.
+  \item A measurement of the wide-multiply objection (\cref{sec:single}). On
+        five processors, unspecialised scalar Philox costs between $1.10\times$
+        and $1.65\times$ per byte what \code{std::mt19937} costs, not
+        $10\times$. With the multiplies specialised the bulk path costs
+        between $0.22\times$ and $0.75\times$.
+  \item A parallel characterisation (\cref{sec:parallel}) in which aggregate
+        cost per byte is flat with thread count, and the first limit reached on
+        a 16-core host is hyperthread co-location, at a cost of 35\% per
+        worker, rather than memory bandwidth.
+\end{enumerate}
+
+We also report two results that go against the library, in
+\cref{sec:limitations}: xoshiro256++ is faster on four of the five machines
+measured, and on ARM the buffered engine interface remains slower than
+\code{std::mt19937} even though the NEON kernel beneath it is faster.
+
+\section{Background}\label{sec:background}
+
+\subsection{Counter-based generation}
+
+A conventional generator holds internal state $s$ and computes
+$(s_{i+1}, x_i) = f(s_i)$, so obtaining $x_n$ requires $n$ applications of $f$.
+A counter-based generator instead defines
+\begin{equation}\label{eq:cbrng}
+  x_n = b(\ctr_0 + n, \key),
+\end{equation}
+where $b$ is a keyed bijection, $\ctr_0$ is a starting counter and $\key$ is a
+key. Nothing carries between successive outputs. The three properties used
+throughout this paper follow directly from \cref{eq:cbrng}: the state is
+$(\key, n)$ and nothing else, evaluating $x_n$ for arbitrary $n$ costs the same
+as evaluating $x_0$, and disjoint ranges of $n$ are independent.
+
+\subsection{Philox4x32-10}
+
+Philox4x32 takes a 128-bit counter, held as four 32-bit words
+$\ctr = (c_0, c_1, c_2, c_3)$, and a 64-bit key $\key = (k_0, k_1)$. One round
+performs two $32 \times 32 \to 64$ multiplications, splits each product into
+its high and low halves, and permutes the words:
+\begin{align}
+  (h_0, l_0) &= \mathrm{mulhilo}(M_0,\, c_0), \label{eq:mul0}\\
+  (h_1, l_1) &= \mathrm{mulhilo}(M_1,\, c_2), \label{eq:mul1}\\
+  \ctr' &= \bigl(h_1 \oplus c_1 \oplus k_0,\; l_1,\;
+                 h_0 \oplus c_3 \oplus k_1,\; l_0\bigr), \label{eq:round}
+\end{align}
+with $M_0 = \mathtt{0xD2511F53}$ and $M_1 = \mathtt{0xCD9E8D57}$. Between
+rounds the key advances by a Weyl sequence,
+$k_0 \mathrel{+}= \mathtt{0x9E3779B9}$ and
+$k_1 \mathrel{+}= \mathtt{0xBB67AE85}$, which breaks the symmetry that would
+otherwise make every round identical. Ten rounds are applied; seven already
+pass BigCrush~\cite{salmon2011}, so the standard variant carries a margin.
+
+The whole construction is integer multiply, exclusive or, addition and word
+permutation. It contains no floating-point instruction, a fact that becomes
+relevant in \cref{sec:avx512}.
+
+\subsection{The one invariant}
+
+Every design decision below is subordinate to a single rule: for a given key
+and counter, vphilox produces exactly the bytes that the Random123 reference
+implementation produces, across compilers, architectures and library versions.
+This is enforced in two ways. The published test vectors of
+Salmon et al.~\cite{salmon2011} are checked directly, and an 8191-block stream
+is folded into an FNV-1a digest compared against a constant fixed in the test
+source. The digest run covers what the published vectors cannot: SIMD tail
+handling, the refill buffer, chunked bulk calls, the counter carry chain and
+floating-point conversion. A change that moves the digest is a different
+generator rather than a new version of this one.
+
+\section{Portable serialized state}\label{sec:state}
+
+\subsection{What is written}
+
+The serialized form records a position, defined as the key, the counter of the
+block containing the next output, and the index of the word within that block:
+
+\begin{lstlisting}
+vphilox1 <k0> <k1> <c0> <c1> <c2> <c3> <word>
+\end{lstlisting}
+
+Seven decimal integers and a version tag. Every field is an unsigned 32-bit
+value except the final word index, which lies in $[0, 4)$.
+
+The distinction between this and the engine's internal variables is the point
+of the design. The engine generates into a buffer of \code{refill\_blocks}
+blocks at a time and hands out words from it, so its internal counter runs
+ahead of the caller-visible position by however much remains buffered.
+Serializing the internal counter and buffer cursor would embed
+\code{refill\_blocks} in the file format. That constant changed from 8 to 16
+when the AVX-512 kernel landed, because a refill must not be split across a
+kernel invocation. States written before the change remain readable after it,
+which is the property a checkpoint format has to have and the one
+\code{std::mt19937} lacks.
+
+Recovering the caller-visible position requires the inverse of the counter
+advance, since the internal counter must be retreated by the number of blocks
+still buffered. This is the reason the 128-bit counter arithmetic in the
+library implements subtraction as well as addition.
+
+\subsection{Two rules the writer follows}
+
+\textbf{The locale is never consulted.} Integer extraction through
+\code{std::istream} routes through the \code{num\_get} facet of the global
+locale, which may be imbued with digit grouping. The library formats and parses
+digits by hand; the only stream operations performed are on characters. A
+program that has imbued a grouping locale for its user interface therefore
+cannot corrupt its own checkpoints.
+
+\textbf{Unrecognised input is refused, not interpreted.} Parsing fails on a
+wrong version tag, a wrong field count, a value exceeding $2^{32}-1$, a word
+index outside a block, or trailing characters. The contrast with the
+\code{std::mt19937} case is exact: there, a valid-looking array of 624 integers
+in the wrong order is accepted, and the generator resumes at a position nobody
+chose. Here, a state that cannot be read produces an error the caller can
+observe.
+
+\subsection{Constant-time seek}
+
+Because block $n$ is $b(\ctr_0 + n, \key)$, advancing the stream by $N$ blocks
+is the addition $\ctr \mathrel{+}= N$ on a 128-bit little-endian integer. The
+implementation propagates carries across four 32-bit words, so
+\code{discard(N)} costs the same for $N = 1$ and for $N = 2^{40}$. The
+corresponding operation on a Mersenne Twister requires either $N$ state
+transitions or a jump polynomial computed offline.
+
+\begin{remark}
+The engine exposes both \code{counter()} and \code{state()}, and they are not
+interchangeable. Constructing an engine from \code{key()} and \code{counter()}
+skips whatever the buffer still holds, because \code{counter()} is the counter
+of the \emph{next refill}. Only \code{state()} and \code{set\_state()} form an
+exact round trip, and a test asserts that the other route skips, so the
+difference is recorded as behaviour rather than left as a trap.
+\end{remark}
+
+\section{Vectorization by counter interleaving}\label{sec:simd}
+
+\subsection{The kernel contract}
+
+Every backend implements one function, and \cref{alg:contract} states its
+obligation.
+
+\begin{algorithm}[t]
+\caption{Kernel contract, shared by all four backends}\label{alg:contract}
+\KwIn{Base counter $\ctr_0$, key $\key$, output pointer \code{out}, block count $B$}
+\KwOut{$4B$ unsigned 32-bit words written to \code{out}}
+\For{$i \leftarrow 0$ \KwTo $B - 1$}{
+  Write $\mathrm{philox4x32}_{10}(\ctr_0 + i,\, \key)$ to \code{out}$[4i \ldots 4i+3]$\;
+}
+\Return{}\;
+\end{algorithm}
+
+Two requirements attach to it. Output must not depend on how the caller divides
+a request, so generating $B$ blocks in one call and in several calls of
+summed length $B$ must produce identical bytes. And the kernel handles its own
+tail, since \code{out} carries no alignment or length guarantee. The first
+requirement is what makes cross-backend parity testing meaningful, and it is
+what allows the engine to choose any refill size.
+
+Each backend also advertises \code{preferred\_blocks}, the block count at which
+it runs without a tail. \Cref{tab:widths} lists the four.
+
+\begin{table*}[t]
+\centering
+\caption{Interleaving width per backend. On x86 the width is one counter per
+32-bit lane. NEON carries four lanes per register but two independent groups
+per iteration, for the reason given in \cref{sec:neon}.}\label{tab:widths}
+\begin{tabular}{lrl}
+\toprule
+Backend & \code{preferred\_blocks} & Layout \\
+\midrule
+scalar   & 1  & reference implementation, fully \code{constexpr} \\
+AVX2     & 8  & 8 counters per \code{\_\_m256i} \\
+AVX-512  & 16 & 16 counters per \code{\_\_m512i} \\
+NEON     & 8  & 4 counters per \code{uint32x4\_t}, 2 groups interleaved \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{Why the multiplies are the difficulty}
+
+\Cref{eq:mul0,eq:mul1} require the full 64-bit product of two 32-bit values.
+Scalar code obtains this from a single widening multiply instruction. Vector
+instruction sets do not offer a 32-lane widening multiply that keeps both
+halves in place; on x86, \code{vpmuludq} multiplies the even 32-bit lanes of
+its operands and writes 64-bit results. Producing $W$ independent 64-bit
+products from $2W$ packed 32-bit values therefore takes two multiplies, one on
+the even lanes and one on the odd lanes after a shift, followed by a repack.
+
+The consequence is that a naive vectorization at four counters per 256-bit
+register leaves half the lanes idle during the exclusive-or, key broadcast and
+permutation steps of \cref{eq:round}, while still paying for the lane
+management. Filling all eight 32-bit lanes and paying the extra even/odd
+multiply amortises that management across twice as many counters. A direct
+comparison of the two layouts on an Intel Core i5-11300H measured the
+eight-counter layout 21.1\% faster, and it is the layout used. The AVX-512
+kernel applies the same reasoning at 16 counters per register.
+
+\subsection{NEON is latency-bound, not width-bound}\label{sec:neon}
+
+The first NEON kernel used one group of four counters per iteration and reached
+2.2035 cycles per byte on a Cortex-A76, which is $1.46\times$ the scalar kernel
+but only $0.89\times$ \code{std::mt19937}. Width was not the constraint. The
+ten rounds of Philox form a serial dependency chain, and one four-lane group
+issues its multiplies faster than their latency retires them, so the pipeline
+drains between rounds.
+
+Carrying two independent groups per iteration and alternating their rounds
+fills that latency with the other group's work. The result is 1.4652 cycles per
+byte, a speedup of $1.504\times$ over the single-group kernel, which places
+vphilox ahead of both \code{std::mt19937} ($1.33\times$) and PCG64
+($1.11\times$) on that machine. This is why \code{preferred\_blocks} for NEON
+is 8 rather than 4: the advertised width reflects the work per iteration, not
+the register width.
+
+\subsection{Dispatch}
+
+A backend is selected only if it was compiled in, is marked implemented, and is
+supported by the running processor. Feature detection uses a direct
+\code{CPUID} and \code{XGETBV} probe written once per compiler rather than a
+compiler builtin, so the Linux and macOS builds exercise the same detection
+path that the Microsoft build depends on. Resolution happens once per round
+count on first use.
+
+Instruction set flags are never applied to the whole build. Kernels carry
+per-function target attributes, so one binary starts and runs correctly on a
+processor lacking the instructions and falls back at run time. This matters for
+the distribution model: a header-only library that required an
+\code{-mavx512f} build would push the portability problem from the checkpoint
+file to the binary.
+
+\section{Floating-point conversion}\label{sec:float}
+
+The obvious conversion from a random word to a value in $[0,1)$ divides by
+$2^{32}$, which costs a conversion instruction and a division. The library
+instead constructs the result bit pattern directly. For single precision,
+setting the sign bit to zero and the exponent field to 127 and placing 23
+random bits in the mantissa yields a value uniform on $[1, 2)$; subtracting one
+maps it to $[0, 1)$:
+\begin{equation}\label{eq:tofloat}
+  \mathrm{to\_float01}(u) =
+    \mathrm{bitcast}\bigl(\mathtt{0x3F800000} \mathbin{|} (u \gg 9)\bigr) - 1.0f.
+\end{equation}
+The double precision form is identical with exponent 1023 and 52 mantissa bits.
+On the vector path this is a bitwise or followed by a subtract.
+
+The cost is resolution rather than correctness. The injection fills the 23
+stored mantissa bits, so outputs are uniform on a grid of spacing $2^{-23}$ and
+9 of the 32 random bits are discarded. A float carries 24 significand bits, but
+the 24th is the implicit leading one, which the fixed exponent pins and which
+therefore carries no entropy. Callers who need all 32 bits should take the
+integers.
+
+How much a vector form of \cref{eq:tofloat} is worth depends on where the
+conversion loop is bound, and \cref{fig:floatwidths} separates the two regimes
+on one machine. The three instruction-set variants of the conversion loop
+separate at small working sets, where AVX-512 is $1.89\times$ the scalar loop
+at the 256-word tile the library converts in; they converge at 512~KiB, where
+the loop is bandwidth-bound and width buys nothing; and they separate again at
+32~MiB, reaching $3.19\times$. The width is therefore worth having at the tile
+size that matters, which is the case for moving the conversion onto the vector
+path.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.92\textwidth]{float-conversion-widths.pdf}
+\caption{Cost per byte of the $u32 \to$ float conversion loop against working
+set, Sapphire Rapids, logarithmic on both axes. One machine, so absolute cycles
+per byte is meaningful here.}\label{fig:floatwidths}
+\end{figure*}
+
+Both steps of \cref{eq:tofloat} are exact. The subtraction is exact by
+Sterbenz's lemma, since the operands lie within a factor of two of each other,
+and adding the value back is exact because $k \cdot 2^{-23}$ needs only 23
+significant bits. Every injected bit therefore survives a round trip, and this
+is verified exhaustively over all $2^{23}$ representable outputs rather than by
+sampling.
+
+
+\section{Experimental method}\label{sec:method}
+
+\subsection{What is measured, and in what unit}
+
+Results are reported first in cycles per byte and second in bytes per second.
+Cycles are read from the timestamp counter on x86 and through
+\code{perf\_event\_open} on Linux ARM. The unit choice removes the clock from
+the comparison between generators on one machine, which is what most of the
+questions here are about.
+
+It does not remove the clock from comparisons \emph{between} machines. The x86
+timestamp counter increments at a fixed reference frequency rather than the
+core frequency, and the ARM counter is a different counter entirely. Cycles per
+byte is therefore compared only within a single host. Any figure spanning
+several machines plots a ratio formed inside each machine, which is
+dimensionless and does transfer. Absolute values appear only in tables that
+carry the machine name beside them.
+
+\subsection{The measurement protocol}
+
+Runs are driven by a script rather than by hand, for reasons each learned by
+getting the measurement wrong first.
+
+The build is unconditional. A stale build directory will run a months-old
+binary and print a plausible table, and nothing in the output identifies it as
+stale. The script also asserts that the expected benchmark rows exist before
+accepting a run.
+
+The frequency governor is pinned for the run and restored on exit, and the
+resolved backend, compiler, processor model, commit hash and verbatim command
+are recorded next to the numbers. The backend in particular cannot be recovered
+after the fact: three early archived runs were taken on AVX-512 hardware while
+the AVX-512 kernel was still a stub, so the processor model does not determine
+what executed. Every benchmark binary now stamps the resolved backend into its
+JSON output.
+
+A run is rejected if the cycle counter did not report or if any row exceeds a
+coefficient of variation of 1\% in cycles per byte. Every archived run also
+carries a quality label, and four runs in the archive do not meet the bar; they
+are excluded from every figure and are kept because they built the harness.
+Cloud instances are treated as suitable for correctness and for throughput only
+when the instance has dedicated virtual CPUs and the run still clears the
+variation bar, in which case the write-up says so.
+
+\begin{remark}[Virtual machines cannot place threads]
+A guest publishes a correct-looking sibling map and accepts every affinity
+mask, while the hypervisor schedules virtual CPUs onto host cores on its own.
+The mask then fixes virtual identifiers and nothing physical. Under WSL2 we
+measured two workers on one core's siblings as \emph{faster} than two on
+separate cores (0.63 against 0.63 to 0.77 cycles per byte, and stable against a
+20\% spread), which is impossible for an execution-port-bound kernel under real
+co-location. The placement study in \cref{sec:placement} therefore runs on bare
+metal and gates itself on a measured co-location penalty before it will report
+anything.
+\end{remark}
+
+\subsection{Machines}
+
+\Cref{tab:machines} lists the six hosts. The two Cascade Lake entries are the
+same processor, family 6 model 85 stepping 7, in a four-vCPU slice of a shared
+socket and on a whole two-socket host. They are reported as separate machines
+because cycles per byte does not transfer between hosts and these two behave as
+two hosts.
+
+Five hosts carry the throughput results in \cref{sec:single}. The sixth, a Tiger
+Lake laptop, carries only the two studies that need physical thread placement
+rather than absolute throughput, for the reason stated in the remark above: it
+is the one multi-core host on record that is both bare metal and
+simultaneously exposes a working performance monitoring unit. Its own throughput
+matrix is archived as harness validation and is quoted nowhere, because a
+four-core machine running a full desktop cannot hold the variation bar across a
+whole sweep.
+
+\begin{table*}[t]
+\centering
+\caption{Measurement hosts. Two are bare metal; the remaining four are cloud
+instances with dedicated virtual CPUs.}\label{tab:machines}
+\footnotesize
+\begin{tabularx}{\linewidth}{lXrll}
+\toprule
+Label & Processor & MHz & Backend & Used for \\
+\midrule
+Pi 5 / NEON       & Raspberry Pi 5, 4-core Cortex-A76, bare metal & 2400 & \code{neon}   & throughput, scaling \\
+Sapphire Rapids   & Intel Xeon Platinum 8481C, dedicated vCPU     & 2700 & \code{avx512} & throughput \\
+Skylake-SP        & Intel Xeon, dedicated vCPU                    & 2000 & \code{avx512} & throughput \\
+Cascade Lake 4v   & Intel Xeon, 4 dedicated vCPU                  & 2800 & \code{avx512} & throughput \\
+Cascade Lake 32v  & Intel Xeon, whole 2-socket host, 16 cores     & 2800 & \code{avx512} & throughput, placement \\
+Tiger Lake        & Intel Core i5-11300H, 4 cores $\times$ 2 threads, bare metal, no turbo & 3100 & \code{avx512} & placement mechanism \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+Turbo is disabled on the Tiger Lake host so that reference cycles and core
+cycles coincide: the timestamp counter ticks at that part's base clock, so with
+boost off cycles per byte is a true core-cycle count and a moving turbo ceiling
+cannot land in the column. The cost is that its absolute numbers are
+approximately $1.4\times$ the same machine's boosted numbers and are comparable
+only within that host, which is all either study asks of them.
+
+\subsection{Reproducibility of the figures}
+
+Every table and figure in this paper is generated from archived JSON by one
+script that uses only the Python standard library. Continuous integration runs
+the script in checking mode, so a run archived without regenerating the derived
+files fails the build. The script writes its own scalable vector graphics and
+its own PDF as fixed-precision text, which makes both byte-reproducible and
+therefore checkable; the raster versions are the one output excluded from the
+check, because no two renderers agree byte for byte.
+
+\section{Single-threaded throughput}\label{sec:single}
+
+\subsection{The comparison matrix}
+
+\Cref{fig:matrix} and \cref{tab:matrix} give cost per byte for each generator
+divided by \code{std::mt19937} on the same machine. Lower is faster.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.92\textwidth]{matrix-relative.pdf}
+\caption{Cost per byte relative to \code{std::mt19937}, measured within each
+machine. Five hosts, seven generators.}\label{fig:matrix}
+\end{figure*}
+
+\begin{table*}[t]
+\centering
+\caption{Cost per byte relative to \code{std::mt19937} on the same machine.
+Bold marks the lowest cost achieved by vphilox in each column.}\label{tab:matrix}
+\begin{tabular}{lrrrrr}
+\toprule
+ & Pi 5 & Sapphire & Skylake- & Cascade & Cascade \\
+ & NEON & Rapids   & SP       & Lake 4v & Lake 32v \\
+\midrule
+xoshiro256++            & 0.28 & 0.30 & 0.24 & 0.17 & 0.29 \\
+PCG64                   & 0.83 & 0.59 & 0.33 & 0.32 & 0.53 \\
+\code{std::mt19937}     & 1.00 & 1.00 & 1.00 & 1.00 & 1.00 \\
+Philox, unspecialised   & 1.65 & 1.55 & 1.15 & 1.10 & 1.62 \\
+vphilox, \code{operator()} & 1.15 & 0.79 & 0.51 & 0.58 & 0.68 \\
+vphilox, \code{generate\_n} & \textbf{0.75} & \textbf{0.38} & \textbf{0.22} & \textbf{0.24} & \textbf{0.33} \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{The wide-multiply objection}
+
+The row that answers the objection in \cref{sec:intro} is the fourth. Scalar
+Philox without specialised wide multiplies costs between $1.10\times$ and
+$1.65\times$ per byte what \code{std::mt19937} costs. The reported figure was
+$10\times$. It did not reproduce on any of the five machines, and on the
+four-vCPU Cascade Lake it is within 10\% of parity.
+
+We do not claim the original measurement was wrong, only that it does not
+describe the comparison as made here. A plausible explanation is that the
+measurement went through a heavier abstraction layer than the generator itself,
+which is a property of the integration rather than of Philox.
+
+With the multiplies specialised, the bulk path costs between $0.22\times$ and
+$0.75\times$. The objection is removed twice over: once by measuring the
+unspecialised case honestly, and once by specialising it.
+
+\subsection{The refill buffer is the remaining cost}
+
+The gap between the two vphilox rows in \cref{tab:matrix} is the refill buffer.
+The engine satisfies \code{std::uniform\_random\_bit\_generator}, which requires
+a per-call interface, so it generates into an aligned 64-word buffer and hands
+out words. The bulk entry points run the kernel straight into the caller's
+buffer and skip the copy.
+
+That gap widens as the kernel gets
+faster: $1.53\times$ on the Pi, $2.03\times$ on Cascade Lake 32v, $2.09\times$
+on Sapphire Rapids, $2.37\times$ on Skylake-SP and $2.42\times$ on Cascade Lake
+4v. A second pass over every byte has a fixed cost per byte, so the faster the
+kernel becomes, the larger the fraction of total time that drain represents.
+Expressed the other way, the buffer costs approximately 109\% of bulk
+throughput on AVX-512, 42\% on AVX2 and 10\% on x86 scalar.
+
+\Cref{fig:sweep} shows the practical form of this. A bulk call of eight words
+costs $1.4\times$ to $1.9\times$ the raw kernel; by 256 words the remainder is
+a few percent, and by 65536 words it has gone. The two fastest kernels pay the
+most for a call too small to amortise the setup, which is the same effect seen
+from the other direction.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.92\textwidth]{generate-n-sweep.pdf}
+\caption{Cost of a bulk call relative to the raw kernel on the same machine,
+against call size in words. The dashed line per machine is the per-call
+interface through the refill buffer.}\label{fig:sweep}
+\end{figure*}
+
+\subsection{AVX-512 and the frequency licence}\label{sec:avx512}
+
+Intel processors reduce core frequency when executing 512-bit instructions, and
+on Skylake-SP that reduction was large enough to make AVX-512 a net loss for
+some workloads. The concern applies directly here, since dispatch prefers the
+widest available kernel.
+
+It does not appear. \Cref{tab:avx512} gives bulk cost per byte with the backend
+pinned, same binary in each row.
+
+\begin{table*}[t]
+\centering
+\caption{Bulk kernel cost per byte by pinned backend, cycles per byte, same
+binary in every row. Width conversion is the AVX-512 speedup as a fraction of
+the doubled lane width, so 100\% would be perfect scaling with
+register width.}\label{tab:avx512}
+\begin{tabular}{lrrrrr}
+\toprule
+Machine & scalar & AVX2 & AVX-512 & vs AVX2 & width conv. \\
+\midrule
+Skylake-SP        & 2.1753 & 0.7698 & \textbf{0.4202} & $1.83\times$ & 92\% \\
+Sapphire Rapids   & 1.9311 & 0.8462 & \textbf{0.4712} & $1.80\times$ & 90\% \\
+Cascade Lake 32v  & 2.2883 & 0.8740 & \textbf{0.4747} & $1.84\times$ & 92\% \\
+Cascade Lake 4v   & 2.4142 & 0.8537 & \textbf{0.5466} & $1.56\times$ & 78\% \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+The reason is structural rather than a matter of tuning. Intel's frequency
+licences are tiered by the kind of 512-bit instruction executing, not by width
+alone: heavy floating-point and fused multiply-add work drops the core to the
+lowest licence, while light integer, logical and shuffle work stays at or near
+the AVX2 licence. As noted in \cref{sec:background}, the Philox inner loop is
+\code{vpmuludq}, \code{vpaddd}, \code{vpxord}, \code{vpsrlq} and lane shuffles,
+with no floating-point instruction anywhere in it. Counter-based generators
+built on integer multiplication are therefore unusually good candidates for
+512-bit vectorization, because they never enter the licence tier that makes it
+a bad trade.
+
+One row of \cref{tab:avx512} is worth reading carefully, because it looks at
+first like the penalty and is not. A four-vCPU slice of a Cascade Lake socket
+converts 78\% of the doubled width, against 90\% to 92\% everywhere else. That
+is a property of the instance rather than of the part. The same stepping on a
+whole two-socket host converts 92\%, and on the shared slice the \emph{scalar}
+kernel is slower as well, at 2.4142 against 2.2883 cycles per byte for code
+containing no 512-bit instruction at all. No frequency licence can produce a
+scalar slowdown. The consistent explanation is that other tenants on the shared
+socket move the package turbo budget underneath a measurement that the
+timestamp counter reports in reference cycles, which is the risk described in
+\cref{sec:method} rather than a property of the generator.
+
+We do not claim that reading is confirmed, and the 4-vCPU figure is reported
+rather than discarded. What the two hosts jointly support is narrower and
+sufficient: AVX-512 beats AVX2 on every part measured, by $1.56\times$ at worst
+and $1.84\times$ at best, so the dispatch preference stands. On a part whose
+cores are not shared, the Philox AVX-512 kernel triggers no measurable
+frequency reduction, and that is measured rather than argued. A probe records
+core frequency alongside the benchmark and it is flat across the range in
+question.
+
+\section{Parallel behaviour}\label{sec:parallel}
+
+\subsection{Cost per byte does not move with thread count}
+
+Counter-based generation partitions with no shared state, so aggregate cost per
+byte should be independent of the number of workers. On the Raspberry Pi 5,
+across 1 to 32 threads and two working set sizes, bulk cost per byte spans
+0.063\%, from 3.1934 to 3.1954 cycles per byte. Four threads on four cores give
+$3.95\times$ the throughput of one, an efficiency of 98.8\%. Beyond four
+threads throughput plateaus while cost per byte still does not move, which is
+what exhausting the cores looks like rather than a limit in the generator.
+\Cref{fig:scaling} draws both working sets across the range.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.92\textwidth]{thread-scaling.pdf}
+\caption{Aggregate cost per byte against thread count on the Raspberry Pi 5.
+Four series are drawn and two are visible, because each working set lands on
+the other.}\label{fig:scaling}
+\end{figure*}
+
+Four cores are too few to reach a knee, which is why the placement study
+exists.
+
+\subsection{The first limit is hyperthread co-location}\label{sec:placement}
+
+On a two-socket, sixteen-core Cascade Lake host the curve does bend, and
+\cref{fig:placement} separates the cause from the correlate. With one worker
+per physical core, aggregate cost per byte is flat from 1 to 16 cores, moving
+from 0.4750 to 0.4833 cycles per byte, a rise of 1.7\%. Placing two workers on
+one core's hyperthread siblings costs 0.6536 cycles per byte, approximately
+35\% per worker.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.92\textwidth]{scaling-placement.pdf}
+\caption{Aggregate cost per byte against thread placement, Cascade Lake, two
+sockets, sixteen physical cores. Dashed lines are the 4~MiB working
+set.}\label{fig:placement}
+\end{figure*}
+
+The mechanism is that the kernel is execution-port-bound. Two hardware threads
+sharing one core's multiply ports do not have two cores' worth of issue
+capacity, and Philox spends its time in exactly the ports they contend for.
+Memory enters as a second and later limit, and it tracks footprint per socket
+against the 33~MiB last-level cache rather than tracking thread count. Frequency
+is flat across the whole range.
+
+\subsection{Instruction supply is not part of the penalty}\label{sec:icache}
+
+Sibling threads share one first-level instruction cache as well as the
+execution ports, which makes instruction supply a competing explanation for the
+same penalty. \Cref{tab:icache} separates them. Four workers run the identical
+job twice, changing only placement, with retired-instruction and level-one
+instruction-cache read-miss counters attached to each worker.
+
+\begin{table}[t]
+\centering
+\caption{Four workers under two placements, Tiger Lake, turbo disabled.
+Instruction supply improves where the penalty appears.}\label{tab:icache}
+\footnotesize
+\begin{tabular}{lrrr}
+\toprule
+Placement & Cyc./byte & i\$ MPKI & Instr./byte \\
+\midrule
+One per physical core & 0.5160 & 0.2108 & 0.958554 \\
+Packed onto siblings  & 0.8204 & 0.1356 & 0.958554 \\
+\midrule
+Change & $+59.0\%$ & $-35.7\%$ & $\pm 0.000000$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Co-location costs 59\% more cycles per byte while instruction-cache misses per
+thousand instructions \emph{fall} by 36\%. Instruction supply moves in the
+opposite direction to the penalty, which excludes it as the mechanism and leaves
+port contention standing. The direction is not an anomaly: both siblings execute
+the same kernel over disjoint counter ranges, so sharing one instruction cache
+between two threads running the same loop is constructive, and the second thread
+finds the code already resident. A workload whose threads ran different code
+would not get that for free.
+
+The third column is the check that the counters were attached to the correct
+threads. Instructions per byte is a property of the kernel and cannot move with
+placement, and it reads identically to six decimal places in both arms at zero
+variation across fifteen repetitions. This matters because the obvious
+instrumentation is wrong here: a benchmark framework that starts and stops
+counters on the thread running the benchmark loop would have counted the
+dispatcher, which blocks on a condition variable while the workers execute every
+instruction. Misses per thousand instructions is also a per-instruction ratio
+and therefore clock-independent, and it agrees to about 1\% between the
+turbo-enabled and turbo-disabled runs, across a 42\% change in clock.
+
+Two further guards are worth stating because the measurement fails silently
+without them. The study refuses to run on a host where two workers on one core's
+siblings do not cost at least 15\% more than two workers on separate cores,
+since the absence of that penalty means the affinity mask never moved anything;
+this host cleared the gate at 35.6\% to 40.6\% across three invocations, and
+that figure agrees with the 35\% measured on the unrelated Cascade Lake part.
+The co-located arm's variation, 2.22\%, exceeds this paper's 1\% bar and is
+reported rather than hidden. Its median reproduces to 0.04\% across two
+independent runs, and the finding is a direction rather than a threshold, so a
+2\% error bar does not reach a 36\% effect.
+
+\subsection{The scaling result is the generator, not the harness}\label{sec:runtime}
+
+Every number above is measured through one persistent worker pool built on
+\code{std::thread}, and a benchmark cannot distinguish a property of the
+generator from a property of its own scaffolding. Running the identical job
+under a second, independent threading runtime does distinguish them.
+\Cref{tab:runtimes} repeats the sweep under OpenMP, with persistent teams on
+both sides so that neither column carries thread creation cost, and normalises
+each runtime to its own single-worker result.
+
+\begin{table}[t]
+\centering
+\caption{Aggregate cost per byte by threading runtime, Tiger Lake, 256~KiB per
+worker. The $\times$ columns are normalised within each
+runtime.}\label{tab:runtimes}
+\footnotesize
+\begin{tabular}{rrrrr}
+\toprule
+Workers & \code{std::thread} & $\times$ & OpenMP & $\times$ \\
+\midrule
+1 & 0.5084 & 1.000 & 0.5086 & 1.000 \\
+2 & 0.5165 & 1.016 & 0.5086 & 1.000 \\
+4 & 0.6205 & 1.220 & 0.5102 & 1.003 \\
+8 & 0.8076 & 1.588 & 0.9126 & 1.794 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The two runtimes are indistinguishable while cores are free: 0.5084 against
+0.5086 at one worker, with both coefficients of variation at or below 0.14\%.
+At one worker per physical core OpenMP is flat to 0.3\%, which reproduces the
+sixteen-core result of \cref{sec:placement} on a completely different part and
+a different runtime. At eight workers both runtimes show the hyperthread knee,
+so the knee belongs to the hardware rather than to either implementation.
+
+The one row where they disagree is four workers, and the deviation belongs to
+the pool rather than to the generator. On the OpenMP path the team master is
+itself a worker, so four workers are four runnable threads on four cores. On the
+pool path the dispatcher is a separate thread that must be woken once per
+iteration to collect results, so four workers are five threads on four cores.
+That costs nothing until the workers have claimed every core, which is why the
+pool measures flat on the sixteen-core host and flat here at one and two
+workers. This explanation is an inference consistent with the data rather than a
+separate measurement, and the direct test would need a three-worker row that the
+benchmark does not register.
+
+A second-order result falls out of the same sweep and is recorded because it is
+actionable. OpenMP spins before sleeping at the end of a parallel region.
+Forcing it to sleep instead costs 9.0\% at one worker per physical core, where
+the spin is free, and saves 4.0\% at two workers per core, where every spin
+steals issue capacity from a sibling that is still working. Callers who run one
+worker per physical core should leave the default alone; callers who
+oversubscribe to every hardware thread should measure a passive wait policy.
+
+The practical guidance that follows is short: size a Philox thread pool by
+physical cores, not by the value \code{std::thread::hardware\_concurrency}
+returns.
+
+\subsection{Reproducibility across thread counts}
+
+The property that motivates the parallel work is not throughput. Because worker
+$j$ of $P$ takes a fixed counter range determined by the partition rather than
+by the order in which threads happen to run, the concatenated output of a
+partitioned run is identical for every $P$ and every scheduling. Two runs of the
+same simulation on four threads and on sixty-four threads consume the same
+random numbers in the same positions. A generator with shared state cannot offer
+this without either locking or accepting a different stream per configuration.
+
+\section{Statistical validation}\label{sec:stat}
+
+Philox4x32-10 is a published and analysed construction, so the question here is
+whether this implementation reproduces it, not whether the algorithm is sound.
+Both were checked.
+
+\textbf{PractRand to 1~TB.} A raw 32-bit stream at seed 0 through the AVX2
+backend was tested to $2^{40}$ bytes, reporting no anomalies in 304 results
+over 4173 seconds. Across the whole run exactly one test was flagged, at the
+4~GB checkpoint, at PractRand's mildest severity. It did not recur at 8, 16, 32,
+64, 128, 256 or 512~GB, nor at 1~TB. That non-recurrence is the substantive
+evidence rather than the count: PractRand's checkpoints are not independent
+draws, since each re-runs the same tests over the accumulated stream, so genuine
+structure strengthens with more data and keeps flagging. A single flag at 4~GB
+that is absent at 256 times the data is a fluctuation.
+
+\textbf{Backend equivalence.} The backends do not produce similar streams, they
+produce identical ones, and this is a design invariant rather than an
+observation. A direct byte comparison over the same $2^{40}$ bytes the battery
+consumed confirms it for the scalar and AVX2 kernels. The comparison is a byte
+comparison rather than a digest comparison, so it requires no collision
+argument, with digests recorded alongside for third-party spot checks. For
+AVX-512 and NEON the same conclusion rests one layer down, on a parity matrix
+that sweeps carrying counters, edge keys and every block count straddling a
+plausible SIMD width, plus the cross-platform digest test described in
+\cref{sec:background}. A kernel that reproduces the scalar stream bit for bit
+cannot fail a battery the scalar stream passes.
+
+\textbf{TestU01 BigCrush.} All 160 statistics pass, in 2 hours 31 minutes of
+processor time. The battery is driven through the engine rather than through a
+byte stream, so the refill buffer and run-time dispatch are under test as well
+as the kernel.
+
+\textbf{The float32 stream is deliberately not tested this way.} Running the
+converted float bits through a bit-level battery measures the IEEE-754 format,
+not the generator. The subtraction in \cref{eq:tofloat} renormalises, so the
+sign bit is always clear, the exponent field is geometrically skewed with half
+of all outputs sharing one exponent, and low mantissa bits are frequently zero
+because renormalising a small result shifts zeros in from the right. vphilox
+duly fails 114 tests, with the lowest bit of each word reporting
+$p = 2 \times 10^{-1994}$, exactly as the mechanism predicts. Every correct
+float generator fails this test; the bits of a uniform float are not uniform
+bits. That log is archived rather than discarded, so the next person to attempt
+it finds the explanation.
+
+What the conversion does have to guarantee is tested directly: an exhaustive
+round trip over all $2^{23}$ representable outputs, a chi-squared test over 1024
+bins bounded five standard deviations in \emph{both} directions, and a
+Kolmogorov-Smirnov test against the uniform distribution. The two-sided bound on
+the chi-squared statistic is deliberate, because a value far below the degrees
+of freedom indicates counts tracking expectation more closely than chance
+allows, which is what a silently coarsened grid looks like. Mutation testing
+confirms the tests are not redundant: a stuck low mantissa bit passes
+chi-squared and Kolmogorov-Smirnov and is caught only by the exact round trip,
+since halving the grid resolution leaves values uniform at any coarser scale.
+
+\subsection{Agreement with an independent implementation}\label{sec:curand}
+
+Everything above establishes that vphilox agrees with itself across four kernels
+and two architectures, and that the core function reproduces the published test
+vectors. Neither addresses the layer at which Philox implementations actually
+diverge. The round function is fixed by the specification; the mapping from a
+user-facing seed onto a counter and a key is not, and it is where two conforming
+implementations produce different streams from the same arguments.
+
+We therefore cross-check against NVIDIA's cuRAND~\cite{curand}, which seeds with
+a triple of seed, subsequence and offset where vphilox seeds with a key and a
+counter. Sixteen cases were compared over 4096 words each, under all three x86
+backends, and every case is identical. The cases were chosen to exercise the
+seeding arithmetic rather than the round function: offsets that are not block
+aligned, subsequence and offset values straddling $2^{32}$ so that a carry
+crosses the counter's low words, the maximum subsequence, and edge keys
+including all zeros and all ones.
+
+Each case asserts two independent things, and the separation is the point. The
+first feeds vphilox the counter and key that cuRAND reports for itself after
+seeding, which tests the round function and the counter increment order while
+assuming nothing about seeding. The second requires that the counter and key
+cuRAND derived equal what the documented mapping predicts from the seed triple.
+The first check would pass even if the mapping were entirely wrong, because it
+takes cuRAND's word for the state; the second is the interoperability claim, and
+it is the half that could plausibly have failed.
+
+The mapping it confirms is that cuRAND's subsequence occupies the counter's high
+64 bits, that its offset divided by four occupies the low 64 bits, and that the
+remainder of that division is a word index into the resulting block. The
+asymmetry worth stating is that a cuRAND offset counts words where a vphilox
+counter counts blocks of four. A practical consequence follows: cuRAND reserves
+the entire high half of the counter for stream selection, placing its
+subsequences $2^{66}$ values apart, so a program that partitions across GPU
+threads the cuRAND way and across CPU threads the vphilox way obtains identical
+non-overlapping streams provided both use the same convention.
+
+This comparison requires neither a GPU nor a device compiler. cuRAND guards its
+function decoration behind a macro, so defining that macro before including the
+header compiles NVIDIA's own reference implementation as host code. The
+arithmetic is unchanged by construction: the only target-dependent line in the
+generator computes the high half of a 32-by-32-bit product, and the host and
+device branches compute the same product by different instructions. What is
+verified is therefore NVIDIA's reference implementation rather than NVIDIA's
+device code generation, and the gap between the two is a hypothetical
+instruction-selection defect rather than anything concerning Philox.
+
+\section{Limitations and results that go against the design}\label{sec:limitations}
+
+\textbf{xoshiro256++ is faster on four of five machines.} It leads on the Pi, on
+Sapphire Rapids and on both Cascade Lake hosts. On Skylake-SP the vphilox bulk
+path costs 0.4210 cycles per byte against 0.4703, so vphilox wins one part on
+one machine. That is a result rather than a trend. We report it and do not
+optimise toward it: xoshiro256++ is a latency-bound scalar chain that a wider
+kernel does not catch, and it offers none of the properties in
+\cref{sec:intro}. Speed here has to be good enough that the objection cannot be
+raised again, and no more than that.
+
+\textbf{The buffered engine is still behind \code{std::mt19937} on ARM.} The
+NEON kernel leads it at $1.33\times$, but the per-call interface costs
+$1.15\times$ \code{std::mt19937} per byte because the refill drain now costs
+more than the kernel does. Callers who use the bulk path get the full benefit
+on that platform; callers who use \code{operator()} do not.
+
+\textbf{Vector floating-point conversion is not yet implemented.} The
+conversion in \cref{sec:float} is scalar. The intended form operates on a whole
+kernel output block so values never leave vector registers, and until that
+lands, a caller requesting floats pays a per-value cost that the integer path
+does not.
+
+\textbf{The instruction-supply result rests on one four-core host.} The
+measurement in \cref{sec:icache} needs simultaneous access to symmetric
+multithreading, a working performance monitoring unit and real control over
+thread placement, and exactly one machine on record provides all three. Its
+co-located arm exceeds the variation bar, as \cref{sec:icache} states. The
+elimination of instruction supply is a direction reproduced across four runs and
+two clock regimes rather than a threshold, and it would be stronger on a host
+with more cores; the same is true of the runtime contrast in
+\cref{sec:runtime}, whose four-worker row is the row that matters and is
+measured where four workers exhaust the machine.
+
+\textbf{The cuRAND comparison is against host-compiled reference code.} As
+\cref{sec:curand} states, what is verified is NVIDIA's reference implementation
+rather than code generated for a device. The residual gap is one line computing
+the high half of a 32-bit product.
+
+\textbf{Cloud measurement.} Four of the six hosts are cloud instances with
+dedicated virtual CPUs. Steal time is invisible on such a host, and the
+mitigation applied is the variation bar plus the quality label rather than
+elimination of the risk. One of the two bare-metal hosts, the Raspberry Pi 5, is
+also the machine on which the flattest and most reproducible scaling curve was
+measured, which is consistent with the concern being real. The other bare-metal
+host is the four-core laptop just discussed, so the archive has no machine that
+is simultaneously bare metal and large.
+
+\section{Related work}\label{sec:related}
+
+Salmon et al.~\cite{salmon2011} introduced the Philox and Threefry families and
+the argument that a counter-based generator makes parallel random number
+generation a matter of partitioning integers. The reference implementation,
+Random123, is the source of the test vectors used here. This work differs in
+what it targets: portable serialized state as the deliverable, with
+vectorization as the means of making that state free rather than as the result.
+
+The Mersenne Twister~\cite{matsumoto1998} remains the default engine in the C++
+standard library, and its state is the object of the portability failure in
+\cref{sec:intro}. PCG~\cite{oneill2014} and
+xoshiro/xoroshiro~\cite{blackman2021} are modern stateful generators with small
+states and strong statistical results; both appear in the comparison matrix, and
+both are faster than vphilox on most parts measured. Neither offers a
+standard-library-independent serialized state, constant-time seek or thread-count
+independence, which is the trade this paper is about.
+
+TestU01~\cite{lecuyer2007} and PractRand~\cite{practrand} supply the
+statistical batteries in \cref{sec:stat}. Vectorized generator implementations
+are available in vendor libraries, including Intel's Vector Statistics Library
+and NVIDIA's cuRAND~\cite{curand}, both of which include Philox variants; the
+distinction here is the header-only, dependency-free distribution model and the
+run-time dispatch that lets one binary select its kernel on the host it lands
+on.
+
+\section{Conclusion}\label{sec:conclusion}
+
+Checkpointing a \code{std::mt19937} and restoring it on a different standard
+library is not reliable, and the failure mode on macOS is silent. Storing a
+position instead of an implementation removes the failure by construction, and
+the position of a counter-based stream is a key and an integer.
+
+The reason that substitution has not always been made on CPUs is a performance
+objection, and the measurements here address it in two parts. The objection's
+stated magnitude, a tenfold penalty against \code{std::mt19937}, did not
+reproduce on any of five processors; the measured range is $1.10\times$ to
+$1.65\times$. Interleaving independent counters across SIMD lanes then brings
+the bulk path to between $0.22\times$ and $0.75\times$ the cost per byte of
+\code{std::mt19937}, and the vectorization avoids the AVX-512 frequency licence
+trap by construction, because Philox contains no floating-point instruction.
+Aggregate cost per byte does not move with thread count, and the first parallel
+limit on a sixteen-core host is hyperthread co-location rather than the
+generator or the memory system. Both alternative explanations for that limit are
+excluded by measurement rather than by argument: instruction supply improves
+under co-location even as the penalty appears, and a second threading runtime
+reproduces the flat result to within 0.3\%, so it is a property of the generator
+and not of the worker pool used to measure it.
+
+Two directions follow. The refill buffer is now the dominant remaining cost on
+the fastest kernels, at roughly 109\% of bulk throughput on AVX-512, so removing
+the second pass over every byte is worth more than further widening the kernel.
+And the floating-point conversion should be moved onto the vector path, so that
+a caller asking for floats keeps the throughput a caller asking for integers
+already has.
+
+\section*{Availability}
+
+vphilox is released under MIT or Apache-2.0 at
+\url{https://github.com/sinhaparth5/vphilox}. Every benchmark in this paper is
+reproducible from the archived JSON and the scripts in that repository, and the
+derived tables and figures are regenerated by a single command that continuous
+integration verifies.
+\todo[inline]{Add the Zenodo DOI once assigned, and update \code{CITATION.cff}
+to match.}
+
+% ---------------------------------------------------------------
+% References
+% ---------------------------------------------------------------
+\begin{thebibliography}{10}
+
+\bibitem{salmon2011}
+J.~K.~Salmon, M.~A.~Moraes, R.~O.~Dror, and D.~E.~Shaw,
+``Parallel random numbers: As easy as 1, 2, 3,''
+in \textit{Proceedings of the International Conference for High Performance
+Computing, Networking, Storage and Analysis (SC'11)},
+Seattle, WA, USA, 2011, pp.~16:1--16:12.
+
+\bibitem{matsumoto1998}
+M.~Matsumoto and T.~Nishimura,
+``Mersenne twister: A 623-dimensionally equidistributed uniform pseudo-random
+number generator,''
+\textit{ACM Transactions on Modeling and Computer Simulation},
+vol.~8, no.~1, pp.~3--30, 1998.
+
+\bibitem{oneill2014}
+M.~E.~O'Neill,
+``PCG: A family of simple fast space-efficient statistically good algorithms
+for random number generation,''
+Tech.\ Rep.\ HMC-CS-2014-0905, Harvey Mudd College, Claremont, CA, USA, 2014.
+
+\bibitem{blackman2021}
+D.~Blackman and S.~Vigna,
+``Scrambled linear pseudorandom number generators,''
+\textit{ACM Transactions on Mathematical Software},
+vol.~47, no.~4, pp.~36:1--36:32, 2021.
+
+\bibitem{lecuyer2007}
+P.~L'Ecuyer and R.~Simard,
+``TestU01: A C library for empirical testing of random number generators,''
+\textit{ACM Transactions on Mathematical Software},
+vol.~33, no.~4, pp.~22:1--22:40, 2007.
+
+\bibitem{practrand}
+C.~Doty-Humphrey,
+``PractRand: Practically random, C++ library of statistical tests for RNGs,''
+release PractRand-pre0.95, which reports its own version as 0.95.
+[Online]. Available: \url{https://sourceforge.net/projects/pracrand/}
+
+\bibitem{curand}
+NVIDIA Corporation,
+\textit{cuRAND Library Programming Guide},
+cuRAND 10.4.1, CUDA Toolkit 13.1.
+[Online]. Available: \url{https://docs.nvidia.com/cuda/curand/}
+
+\end{thebibliography}
+
+\end{document}
