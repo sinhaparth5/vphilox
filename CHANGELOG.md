@@ -7,6 +7,14 @@ Any entry that would change it would be a new algorithm, not a release.
 
 ## [Unreleased]
 
+## [2026.08.1] — 2026-08-26
+
+First tagged release. `2026.08.0` was written into `VERSION` during the Phase 0
+scaffold and never tagged, so this is the first version a consumer can pin.
+Covers Phases 2 through 5: all three SIMD kernels implemented and verified on
+hardware, portable serialized state, statistical validation, and the archived
+paper. Software archive: [doi:10.5281/zenodo.22103483](https://doi.org/10.5281/zenodo.22103483).
+
 ### Added
 - **Portable serialized state** (`include/vphilox/serialize.hpp`), which is the
   problem the library was built around. `engine_state` records a *position* —

@@ -3,7 +3,7 @@
 vphilox uses **CalVer** in the form `YYYY.0M.MICRO`.
 
 ```
-2026.08.0
+2026.08.1
 │    │  └── MICRO: patch counter, resets to 0 on every new YYYY.0M
 │    └───── 0M:    zero-padded release month (01-12)
 └────────── YYYY:  four-digit release year
@@ -52,7 +52,11 @@ not a legal octal digit).
    it, then open a fresh empty `[Unreleased]` above it.
 4. Update `version` and `date-released` in `CITATION.cff`, and the version
    badge in `README.md`.
-5. Commit, then tag as `v<VERSION>` (e.g. `v2026.08.1`).
+5. Reserve the Zenodo DOI for the release before tagging, put it in
+   `CITATION.cff`, `README.md` and the paper's Availability section, and rebuild
+   `paper/vphilox.pdf` so the tracked PDF carries it. A DOI added after the tag
+   is a DOI the archived snapshot does not contain.
+6. Commit, then tag as `v<VERSION>` (e.g. `v2026.08.1`).
 
 Same year and month as the last release? Bump MICRO. New month? New
 `YYYY.0M.0`. Months with no release are simply skipped — there is no
@@ -65,11 +69,12 @@ content in it, or if `paper/vphilox.tex` still holds a `\todo` marker or the
 affiliation placeholder. Those are all cheap to fix beforehand and awkward
 afterwards, because a tag is what Zenodo mints a DOI against.
 
-**`2026.08.0` was never tagged.** It has a dated `CHANGELOG.md` section and it
-is what `VERSION` still says, but no `v2026.08.0` exists in the repository and
-that section describes the Phase 0/1 scaffold, down to a *Known limitations*
-entry reading "SIMD kernels fall back to scalar; there is no speedup yet". The
-first real tag therefore bumps MICRO rather than reusing that number.
+**`2026.08.0` was never tagged.** It has a dated `CHANGELOG.md` section, but no
+`v2026.08.0` exists in the repository and that section describes the Phase 0/1
+scaffold, down to a *Known limitations* entry reading "SIMD kernels fall back to
+scalar; there is no speedup yet". The first real tag therefore bumped MICRO
+rather than reusing that number, which is why the release series opens at
+`2026.08.1`.
 
 `docs/publishing-guide.md` picks up from the tag: Zenodo archives the release,
 TechRxiv hosts the paper, arXiv follows.
@@ -98,17 +103,17 @@ The installed package version file uses `SameMinorVersion`, so a request for
 `2026.08` is satisfied by any `2026.08.x` but not by `2026.09.0`. CalVer months
 are not assumed compatible with each other; ask for what you tested against.
 
-To pin exactly, request the full `2026.08.0` and add `EXACT`.
+To pin exactly, request the full `2026.08.1` and add `EXACT`.
 
 ## Checking the version in C++
 
 ```cpp
 #include <vphilox/version.hpp>
 
-static_assert(VPHILOX_VERSION >= VPHILOX_VERSION_NUMBER(2026, 8, 0),
-              "vphilox 2026.08.0 or newer required");
+static_assert(VPHILOX_VERSION >= VPHILOX_VERSION_NUMBER(2026, 8, 1),
+              "vphilox 2026.08.1 or newer required");
 
-std::cout << vphilox::version_string;  // "2026.08.0"
+std::cout << vphilox::version_string;  // "2026.08.1"
 ```
 
 `VPHILOX_VERSION` is `YYYY*10000 + MM*100 + MICRO`, so it compares

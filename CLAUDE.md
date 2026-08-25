@@ -405,10 +405,14 @@ comment declined, and dmlc/xgboost#12459 is cited as an unrelated user's report
 of the same portability failure in the field. Keep the quote verbatim; the
 evaluation exists to answer it, and paraphrasing it weakens both.
 
-The rest — affiliation, ORCID, Zenodo DOI, TechRxiv, arXiv, the tag,
-vcpkg/Conan — are accounts and identifiers rather than repository work, and
-`docs/publishing-guide.md` gives the order they have to happen in. Note the tag
-bumps MICRO to `2026.08.1`: `2026.08.0` was never tagged but already has a dated
+Affiliation, ORCID and the Zenodo DOI are now filled in: Oxford, United Kingdom,
+ORCID `0009-0002-3120-9301`, and
+[doi:10.5281/zenodo.22103483](https://doi.org/10.5281/zenodo.22103483) in the
+Availability section, `CITATION.cff`, `README.md` and `CHANGELOG.md`. What is
+left is accounts and identifiers rather than repository work, in the order
+`docs/publishing-guide.md` sets out: a knowledgeable reader for the manuscript,
+then TechRxiv, then arXiv, then vcpkg/Conan. The release series opens at
+`2026.08.1` because `2026.08.0` was never tagged but already had a dated
 changelog section describing the Phase 0/1 scaffold. CI's `release readiness`
 job runs only on a `v*` tag and fails it if the changelog has not been rolled
 over or the paper still holds placeholders.
