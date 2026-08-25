@@ -1,74 +1,111 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="880" height="470" viewBox="0 0 880 470" font-family="DejaVu Sans, Verdana, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="530" viewBox="0 0 980 530" font-family="Helvetica, Arial, 'Liberation Sans', sans-serif" font-variant-numeric="tabular-nums" role="img" aria-label="Cost per generate_n call size">
 <title>Cost per generate_n call size</title>
-<rect width="880" height="470" fill="#ffffff"/>
-<text x="18" y="28" font-size="15" text-anchor="start" fill="#222222" font-weight="bold">What a small generate_n call costs, relative to the bulk path</text>
-<text x="18" y="48" font-size="11" text-anchor="start" fill="#555555" font-weight="normal">1.0x is the raw kernel. Ratios within each machine, so the curves are comparable even though the cycles are not.</text>
-<line x1="78" y1="404" x2="630" y2="404" stroke="#d8d8d8" stroke-width="1"/>
-<text x="70" y="408" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">1.00x</text>
-<line x1="78" y1="350.67" x2="630" y2="350.67" stroke="#d8d8d8" stroke-width="1"/>
-<text x="70" y="354.67" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">1.25x</text>
-<line x1="78" y1="297.33" x2="630" y2="297.33" stroke="#d8d8d8" stroke-width="1"/>
-<text x="70" y="301.33" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">1.50x</text>
-<line x1="78" y1="244" x2="630" y2="244" stroke="#d8d8d8" stroke-width="1"/>
-<text x="70" y="248" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">1.75x</text>
-<line x1="78" y1="190.67" x2="630" y2="190.67" stroke="#d8d8d8" stroke-width="1"/>
-<text x="70" y="194.67" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">2.00x</text>
-<line x1="78" y1="137.33" x2="630" y2="137.33" stroke="#d8d8d8" stroke-width="1"/>
-<text x="70" y="141.33" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">2.25x</text>
-<line x1="78" y1="84" x2="630" y2="84" stroke="#d8d8d8" stroke-width="1"/>
-<text x="70" y="88" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">2.50x</text>
-<line x1="78" y1="404" x2="630" y2="404" stroke="#999999" stroke-width="1.5"/>
-<text x="92" y="426" font-size="11" text-anchor="middle" fill="#555555" font-weight="normal">8</text>
-<text x="172.62" y="426" font-size="11" text-anchor="middle" fill="#555555" font-weight="normal">32</text>
-<text x="293.54" y="426" font-size="11" text-anchor="middle" fill="#555555" font-weight="normal">256</text>
-<text x="374.15" y="426" font-size="11" text-anchor="middle" fill="#555555" font-weight="normal">1024</text>
-<text x="616" y="426" font-size="11" text-anchor="middle" fill="#555555" font-weight="normal">65536</text>
-<text x="354" y="450" font-size="12" text-anchor="middle" fill="#222222" font-weight="normal">words per generate_n call</text>
-<polyline points="92,323.04 172.62,355.63 293.54,398.1 374.15,401.83 616,403.98" fill="none" stroke="#1f4e79" stroke-width="2" stroke-linejoin="round"/>
-<circle cx="92" cy="323.04" r="3" fill="#1f4e79"/>
-<circle cx="172.62" cy="355.63" r="3" fill="#1f4e79"/>
-<circle cx="293.54" cy="398.1" r="3" fill="#1f4e79"/>
-<circle cx="374.15" cy="401.83" r="3" fill="#1f4e79"/>
-<circle cx="616" cy="403.98" r="3" fill="#1f4e79"/>
-<line x1="78" y1="290.88" x2="630" y2="290.88" stroke="#1f4e79" stroke-width="1" stroke-dasharray="5 4"/>
-<polyline points="92,253.65 172.62,348.24 293.54,389.74 374.15,400.08 616,403.86" fill="none" stroke="#c0504d" stroke-width="2" stroke-linejoin="round"/>
-<circle cx="92" cy="253.65" r="3" fill="#c0504d"/>
-<circle cx="172.62" cy="348.24" r="3" fill="#c0504d"/>
-<circle cx="293.54" cy="389.74" r="3" fill="#c0504d"/>
-<circle cx="374.15" cy="400.08" r="3" fill="#c0504d"/>
-<circle cx="616" cy="403.86" r="3" fill="#c0504d"/>
-<line x1="78" y1="172.35" x2="630" y2="172.35" stroke="#c0504d" stroke-width="1" stroke-dasharray="5 4"/>
-<polyline points="92,208.33 172.62,327.54 293.54,385.92 374.15,399.53 616,405.13" fill="none" stroke="#3f8f4f" stroke-width="2" stroke-linejoin="round"/>
-<circle cx="92" cy="208.33" r="3" fill="#3f8f4f"/>
-<circle cx="172.62" cy="327.54" r="3" fill="#3f8f4f"/>
-<circle cx="293.54" cy="385.92" r="3" fill="#3f8f4f"/>
-<circle cx="374.15" cy="399.53" r="3" fill="#3f8f4f"/>
-<circle cx="616" cy="405.13" r="3" fill="#3f8f4f"/>
-<line x1="78" y1="111.83" x2="630" y2="111.83" stroke="#3f8f4f" stroke-width="1" stroke-dasharray="5 4"/>
-<polyline points="92,207.26 172.62,318.03 293.54,385.58 374.15,399.13 616,404.3" fill="none" stroke="#8064a2" stroke-width="2" stroke-linejoin="round"/>
-<circle cx="92" cy="207.26" r="3" fill="#8064a2"/>
-<circle cx="172.62" cy="318.03" r="3" fill="#8064a2"/>
-<circle cx="293.54" cy="385.58" r="3" fill="#8064a2"/>
-<circle cx="374.15" cy="399.13" r="3" fill="#8064a2"/>
-<circle cx="616" cy="404.3" r="3" fill="#8064a2"/>
-<line x1="78" y1="102" x2="630" y2="102" stroke="#8064a2" stroke-width="1" stroke-dasharray="5 4"/>
-<polyline points="92,236.95 172.62,319.26 293.54,383.73 374.15,398.96 616,403.83" fill="none" stroke="#e08214" stroke-width="2" stroke-linejoin="round"/>
-<circle cx="92" cy="236.95" r="3" fill="#e08214"/>
-<circle cx="172.62" cy="319.26" r="3" fill="#e08214"/>
-<circle cx="293.54" cy="383.73" r="3" fill="#e08214"/>
-<circle cx="374.15" cy="398.96" r="3" fill="#e08214"/>
-<circle cx="616" cy="403.83" r="3" fill="#e08214"/>
-<line x1="78" y1="184.82" x2="630" y2="184.82" stroke="#e08214" stroke-width="1" stroke-dasharray="5 4"/>
-<rect x="654" y="87" width="9" height="9" fill="#1f4e79" fill-opacity="1"/>
-<text x="669" y="96" font-size="12" text-anchor="start" fill="#222222" font-weight="normal">Pi 5 / NEON</text>
-<rect x="654" y="106" width="9" height="9" fill="#c0504d" fill-opacity="1"/>
-<text x="669" y="115" font-size="12" text-anchor="start" fill="#222222" font-weight="normal">Sapphire Rapids</text>
-<rect x="654" y="125" width="9" height="9" fill="#3f8f4f" fill-opacity="1"/>
-<text x="669" y="134" font-size="12" text-anchor="start" fill="#222222" font-weight="normal">Skylake-SP</text>
-<rect x="654" y="144" width="9" height="9" fill="#8064a2" fill-opacity="1"/>
-<text x="669" y="153" font-size="12" text-anchor="start" fill="#222222" font-weight="normal">Cascade Lake 4v</text>
-<rect x="654" y="163" width="9" height="9" fill="#e08214" fill-opacity="1"/>
-<text x="669" y="172" font-size="12" text-anchor="start" fill="#222222" font-weight="normal">Cascade Lake 32v</text>
-<text x="654" y="207" font-size="10" text-anchor="start" fill="#555555" font-weight="normal">dashed: operator() through</text>
-<text x="654" y="221" font-size="10" text-anchor="start" fill="#555555" font-weight="normal">the refill buffer</text>
+<rect width="980" height="530" fill="#FFFFFF"/>
+<text x="32" y="28" font-size="17" fill="#16191D" font-weight="600">What a short generate_n call costs, against the bulk path</text>
+<text x="32" y="48" font-size="12" fill="#454B54">1.00x is the raw kernel writing straight into the caller's buffer. A short call cannot amortise the refill, so the cost climbs to the left; the dashed line per machine is</text>
+<text x="32" y="65" font-size="12" fill="#454B54">where operator() sits. Ratios within each machine.</text>
+<line x1="32" y1="86" x2="948" y2="86" stroke="#E6E9ED" stroke-width="1" stroke-linecap="round"/>
+<line x1="32" y1="97.92" x2="58" y2="97.92" stroke="#0072B2" stroke-width="2.4" stroke-linecap="round"/>
+<circle cx="45" cy="97.92" r="5.8" fill="#FFFFFF"/>
+<circle cx="45" cy="97.92" r="4.2" fill="#0072B2"/>
+<text x="65" y="102" font-size="12" fill="#454B54">Pi 5 / NEON</text>
+<line x1="154.35" y1="97.92" x2="180.35" y2="97.92" stroke="#D55E00" stroke-width="2.4" stroke-linecap="round"/>
+<polygon points="162.25,92.82 172.46,92.82 172.46,103.02 162.25,103.02" fill="#FFFFFF"/>
+<polygon points="163.66,94.22 171.05,94.22 171.05,101.62 163.66,101.62" fill="#D55E00"/>
+<text x="187.35" y="102" font-size="12" fill="#454B54">Sapphire Rapids</text>
+<line x1="300.06" y1="97.92" x2="326.06" y2="97.92" stroke="#009E73" stroke-width="2.4" stroke-linecap="round"/>
+<polygon points="313.06,91.19 319.25,102.76 306.87,102.76" fill="#FFFFFF"/>
+<polygon points="313.06,93.05 317.54,101.43 308.57,101.43" fill="#009E73"/>
+<text x="333.06" y="102" font-size="12" fill="#454B54">Skylake-SP</text>
+<line x1="419.07" y1="97.92" x2="445.07" y2="97.92" stroke="#7B52AB" stroke-width="2.4" stroke-linecap="round"/>
+<polygon points="432.07,90.84 439.15,97.92 432.07,105 425,97.92" fill="#FFFFFF"/>
+<polygon points="432.07,92.8 437.2,97.92 432.07,103.04 426.95,97.92" fill="#7B52AB"/>
+<text x="452.07" y="102" font-size="12" fill="#454B54">Cascade Lake 4v</text>
+<line x1="568.78" y1="97.92" x2="594.78" y2="97.92" stroke="#B07A00" stroke-width="2.4" stroke-linecap="round"/>
+<polygon points="581.78,104.65 587.97,93.08 575.59,93.08" fill="#FFFFFF"/>
+<polygon points="581.78,102.79 586.27,94.41 577.3,94.41" fill="#B07A00"/>
+<text x="601.78" y="102" font-size="12" fill="#454B54">Cascade Lake 32v</text>
+<line x1="92" y1="478" x2="948" y2="478" stroke="#E6E9ED" stroke-width="1" stroke-linecap="round"/>
+<text x="55.87" y="482.14" font-size="11.5" fill="#6B7280">1.00x</text>
+<line x1="92" y1="421.33" x2="948" y2="421.33" stroke="#E6E9ED" stroke-width="1" stroke-linecap="round"/>
+<text x="55.87" y="425.47" font-size="11.5" fill="#6B7280">1.25x</text>
+<line x1="92" y1="364.67" x2="948" y2="364.67" stroke="#E6E9ED" stroke-width="1" stroke-linecap="round"/>
+<text x="55.87" y="368.81" font-size="11.5" fill="#6B7280">1.50x</text>
+<line x1="92" y1="308" x2="948" y2="308" stroke="#E6E9ED" stroke-width="1" stroke-linecap="round"/>
+<text x="55.87" y="312.14" font-size="11.5" fill="#6B7280">1.75x</text>
+<line x1="92" y1="251.33" x2="948" y2="251.33" stroke="#E6E9ED" stroke-width="1" stroke-linecap="round"/>
+<text x="55.87" y="255.47" font-size="11.5" fill="#6B7280">2.00x</text>
+<line x1="92" y1="194.67" x2="948" y2="194.67" stroke="#E6E9ED" stroke-width="1" stroke-linecap="round"/>
+<text x="55.87" y="198.81" font-size="11.5" fill="#6B7280">2.25x</text>
+<line x1="92" y1="138" x2="948" y2="138" stroke="#E6E9ED" stroke-width="1" stroke-linecap="round"/>
+<text x="55.87" y="142.14" font-size="11.5" fill="#6B7280">2.50x</text>
+<text x="120.8" y="498" font-size="11.5" fill="#6B7280">8</text>
+<text x="239.45" y="498" font-size="11.5" fill="#6B7280">32</text>
+<text x="419.02" y="498" font-size="11.5" fill="#6B7280">256</text>
+<text x="536.08" y="498" font-size="11.5" fill="#6B7280">1,024</text>
+<text x="898.42" y="498" font-size="11.5" fill="#6B7280">65,536</text>
+<line x1="92" y1="478" x2="948" y2="478" stroke="#B9BFC7" stroke-width="1.2" stroke-linecap="round"/>
+<text x="450.97" y="518" font-size="12" fill="#454B54">words per generate_n call</text>
+<text x="44" y="424.21" font-size="12" fill="#454B54" transform="rotate(-90 44 424.21)">cost ÷ bulk kernel — 1.00x is the raw kernel</text>
+<line x1="92" y1="357.81" x2="948" y2="357.81" stroke="#0072B2" stroke-width="1.3" stroke-linecap="round" stroke-dasharray="2 4"/>
+<polyline points="124,391.99 245.85,426.61 428.62,471.73 550.46,475.7 916,477.98" fill="none" stroke="#0072B2" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="124" cy="391.99" r="5.8" fill="#FFFFFF"/>
+<circle cx="124" cy="391.99" r="4.2" fill="#0072B2"/>
+<circle cx="245.85" cy="426.61" r="5.8" fill="#FFFFFF"/>
+<circle cx="245.85" cy="426.61" r="4.2" fill="#0072B2"/>
+<circle cx="428.62" cy="471.73" r="5.8" fill="#FFFFFF"/>
+<circle cx="428.62" cy="471.73" r="4.2" fill="#0072B2"/>
+<circle cx="550.46" cy="475.7" r="5.8" fill="#FFFFFF"/>
+<circle cx="550.46" cy="475.7" r="4.2" fill="#0072B2"/>
+<circle cx="916" cy="477.98" r="5.8" fill="#FFFFFF"/>
+<circle cx="916" cy="477.98" r="4.2" fill="#0072B2"/>
+<line x1="92" y1="231.87" x2="948" y2="231.87" stroke="#D55E00" stroke-width="1.3" stroke-linecap="round" stroke-dasharray="2 4"/>
+<polyline points="124,318.25 245.85,418.76 428.62,462.84 550.46,473.84 916,477.86" fill="none" stroke="#D55E00" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+<polygon points="118.9,313.14 129.1,313.14 129.1,323.35 118.9,323.35" fill="#FFFFFF"/>
+<polygon points="120.3,314.55 127.7,314.55 127.7,321.94 120.3,321.94" fill="#D55E00"/>
+<polygon points="240.74,413.66 250.95,413.66 250.95,423.86 240.74,423.86" fill="#FFFFFF"/>
+<polygon points="242.15,415.06 249.54,415.06 249.54,422.46 242.15,422.46" fill="#D55E00"/>
+<polygon points="423.51,457.74 433.72,457.74 433.72,467.95 423.51,467.95" fill="#FFFFFF"/>
+<polygon points="424.92,459.15 432.31,459.15 432.31,466.54 424.92,466.54" fill="#D55E00"/>
+<polygon points="545.36,468.73 555.57,468.73 555.57,478.94 545.36,478.94" fill="#FFFFFF"/>
+<polygon points="546.77,470.14 554.16,470.14 554.16,477.53 546.77,477.53" fill="#D55E00"/>
+<polygon points="910.9,472.75 921.1,472.75 921.1,482.96 910.9,482.96" fill="#FFFFFF"/>
+<polygon points="912.3,474.16 919.7,474.16 919.7,481.55 912.3,481.55" fill="#D55E00"/>
+<line x1="92" y1="167.57" x2="948" y2="167.57" stroke="#009E73" stroke-width="1.3" stroke-linecap="round" stroke-dasharray="2 4"/>
+<polyline points="124,270.1 245.85,396.76 428.62,458.79 550.46,473.25 916,479.21" fill="none" stroke="#009E73" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+<polygon points="124,263.37 130.19,274.94 117.81,274.94" fill="#FFFFFF"/>
+<polygon points="124,265.23 128.48,273.61 119.52,273.61" fill="#009E73"/>
+<polygon points="245.85,390.03 252.04,401.6 239.66,401.6" fill="#FFFFFF"/>
+<polygon points="245.85,391.89 250.33,400.27 241.36,400.27" fill="#009E73"/>
+<polygon points="428.62,452.06 434.81,463.64 422.43,463.64" fill="#FFFFFF"/>
+<polygon points="428.62,453.92 433.1,462.3 424.13,462.3" fill="#009E73"/>
+<polygon points="550.46,466.52 556.65,478.1 544.27,478.1" fill="#FFFFFF"/>
+<polygon points="550.46,468.38 554.94,476.76 545.98,476.76" fill="#009E73"/>
+<polygon points="916,472.48 922.19,484.05 909.81,484.05" fill="#FFFFFF"/>
+<polygon points="916,474.33 920.48,482.71 911.52,482.71" fill="#009E73"/>
+<line x1="92" y1="157.12" x2="948" y2="157.12" stroke="#7B52AB" stroke-width="1.3" stroke-linecap="round" stroke-dasharray="2 4"/>
+<polyline points="124,268.97 245.85,386.66 428.62,458.42 550.46,472.83 916,478.32" fill="none" stroke="#7B52AB" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+<polygon points="124,261.89 131.08,268.97 124,276.04 116.92,268.97" fill="#FFFFFF"/>
+<polygon points="124,263.84 129.12,268.97 124,274.09 118.88,268.97" fill="#7B52AB"/>
+<polygon points="245.85,379.58 252.92,386.66 245.85,393.74 238.77,386.66" fill="#FFFFFF"/>
+<polygon points="245.85,381.54 250.97,386.66 245.85,391.78 240.72,386.66" fill="#7B52AB"/>
+<polygon points="428.62,451.35 435.69,458.42 428.62,465.5 421.54,458.42" fill="#FFFFFF"/>
+<polygon points="428.62,453.3 433.74,458.42 428.62,463.55 423.49,458.42" fill="#7B52AB"/>
+<polygon points="550.46,465.75 557.54,472.83 550.46,479.9 543.39,472.83" fill="#FFFFFF"/>
+<polygon points="550.46,467.7 555.59,472.83 550.46,477.95 545.34,472.83" fill="#7B52AB"/>
+<polygon points="916,471.25 923.08,478.32 916,485.4 908.92,478.32" fill="#FFFFFF"/>
+<polygon points="916,473.2 921.12,478.32 916,483.45 910.88,478.32" fill="#7B52AB"/>
+<line x1="92" y1="245.13" x2="948" y2="245.13" stroke="#B07A00" stroke-width="1.3" stroke-linecap="round" stroke-dasharray="2 4"/>
+<polyline points="124,300.51 245.85,387.97 428.62,456.46 550.46,472.65 916,477.82" fill="none" stroke="#B07A00" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+<polygon points="124,307.24 130.19,295.67 117.81,295.67" fill="#FFFFFF"/>
+<polygon points="124,305.39 128.48,297.01 119.52,297.01" fill="#B07A00"/>
+<polygon points="245.85,394.7 252.04,383.12 239.66,383.12" fill="#FFFFFF"/>
+<polygon points="245.85,392.84 250.33,384.46 241.36,384.46" fill="#B07A00"/>
+<polygon points="428.62,463.19 434.81,451.62 422.43,451.62" fill="#FFFFFF"/>
+<polygon points="428.62,461.33 433.1,452.96 424.13,452.96" fill="#B07A00"/>
+<polygon points="550.46,479.38 556.65,467.8 544.27,467.8" fill="#FFFFFF"/>
+<polygon points="550.46,477.52 554.94,469.14 545.98,469.14" fill="#B07A00"/>
+<polygon points="916,484.55 922.19,472.98 909.81,472.98" fill="#FFFFFF"/>
+<polygon points="916,482.7 920.48,474.32 911.52,474.32" fill="#B07A00"/>
+<text x="100" y="150.8" font-size="10.5" fill="#6B7280">dotted: operator() through the refill buffer</text>
 </svg>

@@ -1,0 +1,190 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<</Type/Catalog/Pages 2 0 R>>
+endobj
+2 0 obj
+<</Type/Pages/Kids[3 0 R]/Count 1>>
+endobj
+3 0 obj
+<</Type/Page/Parent 2 0 R/MediaBox[0 0 980 890]/Resources<</Font<</F1 5 0 R/F2 6 0 R>>>>/Contents 4 0 R>>
+endobj
+4 0 obj
+<</Length 5958>>
+stream
+q 1 w 1 J 1 j
+BT /F2 17 Tf 0.09 0.1 0.11 rg 1 0 0 1 32 862 Tm (Cost per byte, relative to std::mt19937 on the same machine) Tj ET
+BT /F1 12 Tf 0.27 0.29 0.33 rg 1 0 0 1 32 842 Tm (Lower is faster. Every bar is a ratio measured inside one machine, never a raw cycles/byte: RDTSC counts reference cycles, so the absolute unit does not carry) Tj ET
+BT /F1 12 Tf 0.27 0.29 0.33 rg 1 0 0 1 32 825 Tm (across hosts. The dashed rule is std::mt19937 itself.) Tj ET
+q 0.9 0.91 0.93 RG 1 w [] 0 d
+32 804 m 948 804 l S Q
+q 0 0.45 0.7 rg
+32 787.08 22 10 re f Q
+BT /F1 12 Tf 0.27 0.29 0.33 rg 1 0 0 1 61 788 Tm (Pi 5 / NEON) Tj ET
+q 0.84 0.37 0 rg
+150.35 787.08 22 10 re f Q
+BT /F1 12 Tf 0.27 0.29 0.33 rg 1 0 0 1 179.35 788 Tm (Sapphire Rapids) Tj ET
+q 0 0.62 0.45 rg
+292.06 787.08 22 10 re f Q
+BT /F1 12 Tf 0.27 0.29 0.33 rg 1 0 0 1 321.06 788 Tm (Skylake-SP) Tj ET
+q 0.48 0.32 0.67 rg
+407.07 787.08 22 10 re f Q
+BT /F1 12 Tf 0.27 0.29 0.33 rg 1 0 0 1 436.07 788 Tm (Cascade Lake 4v) Tj ET
+q 0.69 0.48 0 rg
+552.78 787.08 22 10 re f Q
+BT /F1 12 Tf 0.27 0.29 0.33 rg 1 0 0 1 581.78 788 Tm (Cascade Lake 32v) Tj ET
+q 0.9 0.91 0.93 RG 1 w [] 0 d
+224 756 m 224 60 l S Q
+BT /F1 11.5 Tf 0.42 0.45 0.5 rg 1 0 0 1 217.93 40 Tm (0x) Tj ET
+q 0.9 0.91 0.93 RG 1 w [] 0 d
+395 756 m 395 60 l S Q
+BT /F1 11.5 Tf 0.42 0.45 0.5 rg 1 0 0 1 384.13 40 Tm (0.5x) Tj ET
+q 0.9 0.91 0.93 RG 1 w [] 0 d
+566 756 m 566 60 l S Q
+BT /F1 11.5 Tf 0.42 0.45 0.5 rg 1 0 0 1 559.93 40 Tm (1x) Tj ET
+q 0.9 0.91 0.93 RG 1 w [] 0 d
+737 756 m 737 60 l S Q
+BT /F1 11.5 Tf 0.42 0.45 0.5 rg 1 0 0 1 726.13 40 Tm (1.5x) Tj ET
+q 0.9 0.91 0.93 RG 1 w [] 0 d
+908 756 m 908 60 l S Q
+BT /F1 11.5 Tf 0.42 0.45 0.5 rg 1 0 0 1 901.93 40 Tm (2x) Tj ET
+q 0.73 0.75 0.78 RG 1.2 w [] 0 d
+224 60 m 908 60 l S Q
+BT /F1 12 Tf 0.27 0.29 0.33 rg 1 0 0 1 379.09 20 Tm (cycles per byte \367 std::mt19937 on the same machine \227 lower is faster) Tj ET
+q 0.98 0.98 0.99 rg
+32 653 916 106 re f Q
+BT /F1 12 Tf 0.27 0.29 0.33 rg 1 0 0 1 139.29 701.68 Tm (xoshiro256++) Tj ET
+q 0 0.45 0.7 rg
+224 739 96.08 14 re f Q
+BT /F1 11 Tf 0.42 0.45 0.5 rg 1 0 0 1 326.08 742 Tm (0.28x) Tj ET
+q 0.84 0.37 0 rg
+224 719 101.57 14 re f Q
+BT /F1 11 Tf 0.42 0.45 0.5 rg 1 0 0 1 331.57 722 Tm (0.30x) Tj ET
+q 0 0.62 0.45 rg
+224 699 82.55 14 re f Q
+BT /F1 11 Tf 0.42 0.45 0.5 rg 1 0 0 1 312.55 702 Tm (0.24x) Tj ET
+q 0.48 0.32 0.67 rg
+224 679 59.25 14 re f Q
+BT /F1 11 Tf 0.42 0.45 0.5 rg 1 0 0 1 289.25 682 Tm (0.17x) Tj ET
+q 0.69 0.48 0 rg
+224 659 99.52 14 re f Q
+BT /F1 11 Tf 0.42 0.45 0.5 rg 1 0 0 1 329.52 662 Tm (0.29x) Tj ET
+q 0.98 0.98 0.99 rg
+32 537 916 106 re f Q
+BT /F1 12 Tf 0.27 0.29 0.33 rg 1 0 0 1 172.65 585.68 Tm (PCG64) Tj ET
+q 0 0.45 0.7 rg
+224 623 285.37 14 re f Q
+BT /F1 11 Tf 0.42 0.45 0.5 rg 1 0 0 1 515.37 626 Tm (0.83x) Tj ET
+q 0.84 0.37 0 rg
+224 603 201.81 14 re f Q
+BT /F1 11 Tf 0.42 0.45 0.5 rg 1 0 0 1 431.81 606 Tm (0.59x) Tj ET
+q 0 0.62 0.45 rg
+224 583 113.4 14 re f Q
+BT /F1 11 Tf 0.42 0.45 0.5 rg 1 0 0 1 343.4 586 Tm (0.33x) Tj ET
+q 0.48 0.32 0.67 rg
+224 563 108.48 14 re f Q
+BT /F1 11 Tf 0.42 0.45 0.5 rg 1 0 0 1 338.48 566 Tm (0.32x) Tj ET
+q 0.69 0.48 0 rg
+224 543 179.76 14 re f Q
+BT /F1 11 Tf 0.42 0.45 0.5 rg 1 0 0 1 409.76 546 Tm (0.53x) Tj ET
+q 0.98 0.98 0.99 rg
+32 421 916 106 re f Q
+BT /F1 12 Tf 0.27 0.29 0.33 rg 1 0 0 1 142.63 469.68 Tm (std::mt19937) Tj ET
+q 0 0.45 0.7 rg
+224 507 342 14 re f Q
+BT /F1 11 Tf 0.42 0.45 0.5 rg 1 0 0 1 572 510 Tm (1.00x) Tj ET
+q 0.84 0.37 0 rg
+224 487 342 14 re f Q
+BT /F1 11 Tf 0.42 0.45 0.5 rg 1 0 0 1 572 490 Tm (1.00x) Tj ET
+q 0 0.62 0.45 rg
+224 467 342 14 re f Q
+BT /F1 11 Tf 0.42 0.45 0.5 rg 1 0 0 1 572 470 Tm (1.00x) Tj ET
+q 0.48 0.32 0.67 rg
+224 447 342 14 re f Q
+BT /F1 11 Tf 0.42 0.45 0.5 rg 1 0 0 1 572 450 Tm (1.00x) Tj ET
+q 0.69 0.48 0 rg
+224 427 342 14 re f Q
+BT /F1 11 Tf 0.42 0.45 0.5 rg 1 0 0 1 572 430 Tm (1.00x) Tj ET
+q 0.98 0.98 0.99 rg
+32 305 916 106 re f Q
+BT /F1 12 Tf 0.27 0.29 0.33 rg 1 0 0 1 95.3 353.68 Tm (Philox \(unspecialised\)) Tj ET
+q 0 0.45 0.7 rg
+224 391 563.68 14 re f Q
+BT /F1 11 Tf 0.42 0.45 0.5 rg 1 0 0 1 793.68 394 Tm (1.65x) Tj ET
+q 0.84 0.37 0 rg
+224 371 531.44 14 re f Q
+BT /F1 11 Tf 0.42 0.45 0.5 rg 1 0 0 1 761.44 374 Tm (1.55x) Tj ET
+q 0 0.62 0.45 rg
+224 351 391.84 14 re f Q
+BT /F1 11 Tf 0.42 0.45 0.5 rg 1 0 0 1 621.84 354 Tm (1.15x) Tj ET
+q 0.48 0.32 0.67 rg
+224 331 375.08 14 re f Q
+BT /F1 11 Tf 0.42 0.45 0.5 rg 1 0 0 1 605.08 334 Tm (1.10x) Tj ET
+q 0.69 0.48 0 rg
+224 311 555.46 14 re f Q
+BT /F1 11 Tf 0.42 0.45 0.5 rg 1 0 0 1 785.46 314 Tm (1.62x) Tj ET
+q 0.96 0.97 0.98 rg
+32 189 916 106 re f Q
+q 0.45 0.69 0.84 rg
+32 189 3 106 re f Q
+BT /F2 12 Tf 0.09 0.1 0.11 rg 1 0 0 1 110.66 237.68 Tm (vphilox \(buffered\)) Tj ET
+q 0 0.45 0.7 rg
+224 275 393.71 14 re f Q
+BT /F1 11 Tf 0.42 0.45 0.5 rg 1 0 0 1 623.71 278 Tm (1.15x) Tj ET
+q 0.84 0.37 0 rg
+224 255 270.01 14 re f Q
+BT /F1 11 Tf 0.42 0.45 0.5 rg 1 0 0 1 500.01 258 Tm (0.79x) Tj ET
+q 0 0.62 0.45 rg
+224 235 175.11 14 re f Q
+BT /F1 11 Tf 0.42 0.45 0.5 rg 1 0 0 1 405.11 238 Tm (0.51x) Tj ET
+q 0.48 0.32 0.67 rg
+224 215 199.97 14 re f Q
+BT /F1 11 Tf 0.42 0.45 0.5 rg 1 0 0 1 429.97 218 Tm (0.58x) Tj ET
+q 0.69 0.48 0 rg
+224 195 231.64 14 re f Q
+BT /F1 11 Tf 0.42 0.45 0.5 rg 1 0 0 1 461.64 198 Tm (0.68x) Tj ET
+q 0.96 0.97 0.98 rg
+32 73 916 106 re f Q
+q 0.45 0.69 0.84 rg
+32 73 3 106 re f Q
+BT /F2 12 Tf 0.09 0.1 0.11 rg 1 0 0 1 94.64 121.68 Tm (vphilox \(generate_n\)) Tj ET
+q 0 0.45 0.7 rg
+224 159 257.28 14 re f Q
+BT /F1 11 Tf 0.42 0.45 0.5 rg 1 0 0 1 487.28 162 Tm (0.75x) Tj ET
+q 0.84 0.37 0 rg
+224 139 129.45 14 re f Q
+BT /F1 11 Tf 0.42 0.45 0.5 rg 1 0 0 1 359.45 142 Tm (0.38x) Tj ET
+q 0 0.62 0.45 rg
+224 119 73.9 14 re f Q
+BT /F1 11 Tf 0.42 0.45 0.5 rg 1 0 0 1 303.9 122 Tm (0.22x) Tj ET
+q 0.48 0.32 0.67 rg
+224 99 82.78 14 re f Q
+BT /F1 11 Tf 0.42 0.45 0.5 rg 1 0 0 1 312.78 102 Tm (0.24x) Tj ET
+q 0.69 0.48 0 rg
+224 79 114.25 14 re f Q
+BT /F1 11 Tf 0.42 0.45 0.5 rg 1 0 0 1 344.25 82 Tm (0.33x) Tj ET
+q 0.54 0.56 0.6 RG 1.4 w [5 4] 0 d
+566 756 m 566 60 l S Q
+Q
+endstream
+endobj
+5 0 obj
+<</Type/Font/Subtype/Type1/BaseFont/Helvetica/Encoding/WinAnsiEncoding>>
+endobj
+6 0 obj
+<</Type/Font/Subtype/Type1/BaseFont/Helvetica-Bold/Encoding/WinAnsiEncoding>>
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000015 00000 n 
+0000000060 00000 n 
+0000000111 00000 n 
+0000000232 00000 n 
+0000006240 00000 n 
+0000006328 00000 n 
+trailer
+<</Size 7/Root 1 0 R/ID[<434A7A5E37DFF8F0CFE3516C99F1C010><434A7A5E37DFF8F0CFE3516C99F1C010>]>>
+startxref
+6421
+%%EOF

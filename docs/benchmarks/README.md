@@ -8,12 +8,24 @@ python3 scripts/benchmarks/publish_results.py           # regenerate
 python3 scripts/benchmarks/publish_results.py --check   # fail if stale
 ```
 
-Standard library only — no matplotlib, no pip install. The SVGs are emitted as
-sorted, fixed-precision text, so regenerating with unchanged inputs produces an
-empty diff and `--check` is safe to run in CI.
+Standard library only — no matplotlib, no pip install. Each figure is written
+three times, because the three formats have three jobs:
 
-Do not edit `raw/*.csv` or `plots/*.svg` by hand. Add a run to `results/` and
-re-run the script.
+| File | For |
+|---|---|
+| `plots/<name>.png` | what you see below; GitHub renders it everywhere, no fonts needed |
+| `plots/<name>.pdf` | the paper — `\includegraphics` takes PDF natively, and cannot take an SVG without `--shell-escape` and an Inkscape round trip |
+| `plots/<name>.svg` | the source both of the above come from, and what `--check` polices |
+
+The SVG and the PDF are both emitted as fixed-precision text by the script
+itself, so regenerating with unchanged inputs produces an empty diff and
+`--check` is safe to run in CI. The PNG is a rasterisation of the SVG, at 2x,
+by whichever of `rsvg-convert`, Inkscape or Pillow is installed; it is the one
+output `--check` ignores, because those renderers do not agree byte-for-byte
+with each other or across their own versions.
+
+Do not edit anything under `raw/` or `plots/` by hand. Add a run to `results/`
+and re-run the script.
 
 ## The rule these figures follow
 
@@ -25,13 +37,13 @@ nominal frequencies.
 So any figure spanning several machines plots a **ratio measured inside each
 machine**, which is dimensionless and does transfer. Absolute cycles/byte
 appears only in the CSVs, where the machine column travels beside it, and in
-the two single-machine figures.
+the three single-machine figures.
 
 ## Figures
 
-### Throughput matrix — [`plots/matrix-relative.svg`](plots/matrix-relative.svg)
+### Throughput matrix — [`plots/matrix-relative.png`](plots/matrix-relative.png) · [PDF](plots/matrix-relative.pdf)
 
-![Cost per byte relative to std::mt19937](plots/matrix-relative.svg)
+![Cost per byte relative to std::mt19937](plots/matrix-relative.png)
 
 Cost per byte for each generator, divided by `std::mt19937` on the same
 machine. Lower is faster.
@@ -74,9 +86,9 @@ the refill drain, and it widens as the kernel gets faster: 1.53x on the Pi,
 on Cascade Lake 4v. The faster the kernel, the more the second pass over every
 byte dominates.
 
-### `generate_n` call size — [`plots/generate-n-sweep.svg`](plots/generate-n-sweep.svg)
+### `generate_n` call size — [`plots/generate-n-sweep.png`](plots/generate-n-sweep.png) · [PDF](plots/generate-n-sweep.pdf)
 
-![Cost per generate_n call size](plots/generate-n-sweep.svg)
+![Cost per generate_n call size](plots/generate-n-sweep.png)
 
 What a small bulk call costs relative to the raw kernel on the same machine.
 Eight words a call is 1.4-1.9x the kernel; by 256 words the remainder is a few
@@ -90,9 +102,9 @@ This is the practical form of the buffer result above: `generate_n` recovers
 essentially all of it, but only once the call is large enough to amortise the
 setup.
 
-### Thread placement — [`plots/scaling-placement.svg`](plots/scaling-placement.svg)
+### Thread placement — [`plots/scaling-placement.png`](plots/scaling-placement.png) · [PDF](plots/scaling-placement.pdf)
 
-![Aggregate cost per byte against thread placement](plots/scaling-placement.svg)
+![Aggregate cost per byte against thread placement](plots/scaling-placement.png)
 
 Cascade Lake, two sockets, sixteen physical cores — one machine, so cycles/byte
 again. Where the threads sit matters more than how many there are. With one
@@ -106,9 +118,9 @@ and is flat across the whole range, so none of the movement is turbo.
 the write-up. The short version for callers: **size a Philox thread pool by
 physical cores, not by `hardware_concurrency()`.**
 
-### Thread scaling — [`plots/thread-scaling.svg`](plots/thread-scaling.svg)
+### Thread scaling — [`plots/thread-scaling.png`](plots/thread-scaling.png) · [PDF](plots/thread-scaling.pdf)
 
-![Aggregate cost per byte against thread count](plots/thread-scaling.svg)
+![Aggregate cost per byte against thread count](plots/thread-scaling.png)
 
 Pi 5, four cores, one machine — so this one plots cycles/byte directly. Flat is
 the claim: counter-based generation partitions with no shared state, so cost
@@ -124,9 +136,9 @@ exists. The unpinned x86 curve in the same protocol does bend, but its CV rises
 from under 1% to 3-5% at the same point — a scheduler result as much as a
 generator one.
 
-### Float conversion widths — [`plots/float-conversion-widths.svg`](plots/float-conversion-widths.svg)
+### Float conversion widths — [`plots/float-conversion-widths.png`](plots/float-conversion-widths.png) · [PDF](plots/float-conversion-widths.pdf)
 
-![Float conversion cost against working set](plots/float-conversion-widths.svg)
+![Float conversion cost against working set](plots/float-conversion-widths.png)
 
 Sapphire Rapids, one machine, log axes. The three ISA clones of the `u32 →
 float` loop separate at 2 KiB (1.89x for AVX-512 at the 256-word tile the

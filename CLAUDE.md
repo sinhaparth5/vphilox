@@ -67,7 +67,15 @@ The CSVs and figures under `docs/benchmarks/raw/` and `docs/benchmarks/plots/`
 are **generated, not hand-written** — `scripts/benchmarks/publish_results.py`
 derives them from `results/*.json`, and CI runs it with `--check`. Archive a run
 and re-run the script; never edit the output. It is standard library only on
-purpose. Cross-machine figures plot ratios measured within each machine, since
+purpose, which is also why it writes its own SVG *and* its own PDF rather than
+shelling out to a converter: both are byte-reproducible text, so `--check` can
+police them. Each figure ships three ways — `.png` for the docs, `.pdf` for the
+paper (`\includegraphics` cannot read an SVG without `--shell-escape`), `.svg`
+as the checked source. The PNG is the exception `--check` skips: it is a
+rasterisation of the SVG by whichever of `rsvg-convert`, Inkscape or Pillow is
+installed, and those do not agree byte-for-byte. **ImageMagick is not one of
+them** — without librsvg it renders every gridline black and drops `<path>`
+entirely, so it publishes a wrong figure rather than failing. Cross-machine figures plot ratios measured within each machine, since
 cycles/byte does not transfer across hosts, and `machines.csv` carries a
 `quality` column so a harness-validation run cannot be quoted as a result.
 Every benchmark binary stamps the resolved backend into the JSON `context`

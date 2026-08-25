@@ -39,3 +39,7 @@ bench_results_*.json
 # Temporary directory produced by `gcloud compute scp`; curated files are
 # copied into results/ before committing.
 avx512-results/
+
+# Python bytecode from the benchmark publishing script
+__pycache__/
+*.pyc

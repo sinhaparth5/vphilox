@@ -1,82 +1,117 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="900" height="460" viewBox="0 0 900 460" font-family="DejaVu Sans, Verdana, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="554" viewBox="0 0 980 554" font-family="Helvetica, Arial, 'Liberation Sans', sans-serif" font-variant-numeric="tabular-nums" role="img" aria-label="Where the scaling knee comes from">
 <title>Where the scaling knee comes from</title>
-<rect width="900" height="460" fill="#ffffff"/>
-<text x="18" y="28" font-size="15" text-anchor="start" fill="#222222" font-weight="bold">Thread placement, not thread count — Cascade Lake, 2 sockets, 16 cores</text>
-<text x="18" y="48" font-size="11" text-anchor="start" fill="#555555" font-weight="normal">generate_n, aggregate cost per byte. Flat is linear scaling. One thread per physical core stays flat to 16; sharing a core costs ~35%.</text>
-<line x1="78" y1="398" x2="632" y2="398" stroke="#d8d8d8" stroke-width="1"/>
-<text x="70" y="402" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">0</text>
-<line x1="78" y1="371.83" x2="632" y2="371.83" stroke="#d8d8d8" stroke-width="1"/>
-<text x="70" y="375.83" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">0.1</text>
-<line x1="78" y1="345.67" x2="632" y2="345.67" stroke="#d8d8d8" stroke-width="1"/>
-<text x="70" y="349.67" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">0.2</text>
-<line x1="78" y1="319.5" x2="632" y2="319.5" stroke="#d8d8d8" stroke-width="1"/>
-<text x="70" y="323.5" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">0.3</text>
-<line x1="78" y1="293.33" x2="632" y2="293.33" stroke="#d8d8d8" stroke-width="1"/>
-<text x="70" y="297.33" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">0.4</text>
-<line x1="78" y1="267.17" x2="632" y2="267.17" stroke="#d8d8d8" stroke-width="1"/>
-<text x="70" y="271.17" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">0.5</text>
-<line x1="78" y1="241" x2="632" y2="241" stroke="#d8d8d8" stroke-width="1"/>
-<text x="70" y="245" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">0.6</text>
-<line x1="78" y1="214.83" x2="632" y2="214.83" stroke="#d8d8d8" stroke-width="1"/>
-<text x="70" y="218.83" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">0.7</text>
-<line x1="78" y1="188.67" x2="632" y2="188.67" stroke="#d8d8d8" stroke-width="1"/>
-<text x="70" y="192.67" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">0.8</text>
-<line x1="78" y1="162.5" x2="632" y2="162.5" stroke="#d8d8d8" stroke-width="1"/>
-<text x="70" y="166.5" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">0.9</text>
-<line x1="78" y1="136.33" x2="632" y2="136.33" stroke="#d8d8d8" stroke-width="1"/>
-<text x="70" y="140.33" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">1</text>
-<line x1="78" y1="110.17" x2="632" y2="110.17" stroke="#d8d8d8" stroke-width="1"/>
-<text x="70" y="114.17" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">1.1</text>
-<line x1="78" y1="84" x2="632" y2="84" stroke="#d8d8d8" stroke-width="1"/>
-<text x="70" y="88" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">1.2</text>
-<text x="20" y="70" font-size="11" text-anchor="start" fill="#555555" font-weight="normal">cycles/byte</text>
-<text x="94" y="420" font-size="11" text-anchor="middle" fill="#555555" font-weight="normal">1</text>
-<text x="224.5" y="420" font-size="11" text-anchor="middle" fill="#555555" font-weight="normal">2</text>
-<text x="355" y="420" font-size="11" text-anchor="middle" fill="#555555" font-weight="normal">4</text>
-<text x="485.5" y="420" font-size="11" text-anchor="middle" fill="#555555" font-weight="normal">8</text>
-<text x="616" y="420" font-size="11" text-anchor="middle" fill="#555555" font-weight="normal">16</text>
-<text x="355" y="442" font-size="12" text-anchor="middle" fill="#222222" font-weight="normal">threads</text>
-<line x1="78" y1="273.72" x2="632" y2="273.72" stroke="#999999" stroke-width="1.2" stroke-dasharray="4 3"/>
-<text x="84" y="267.72" font-size="10" text-anchor="start" fill="#777777" font-weight="normal">single thread, 0.475</text>
-<polyline points="94,273.72 224.5,273.61 355,273.81 485.5,271.6 616,271.53" fill="none" stroke="#1f4e79" stroke-width="2" stroke-linejoin="round"/>
-<circle cx="94" cy="273.72" r="3" fill="#1f4e79"/>
-<circle cx="224.5" cy="273.61" r="3" fill="#1f4e79"/>
-<circle cx="355" cy="273.81" r="3" fill="#1f4e79"/>
-<circle cx="485.5" cy="271.6" r="3" fill="#1f4e79"/>
-<circle cx="616" cy="271.53" r="3" fill="#1f4e79"/>
-<polyline points="94,273.2 224.5,273.33 355,273.47 485.5,272.92 616,228.04" fill="none" stroke="#c0504d" stroke-width="2" stroke-linejoin="round" stroke-dasharray="6 4"/>
-<circle cx="94" cy="273.2" r="3" fill="#c0504d"/>
-<circle cx="224.5" cy="273.33" r="3" fill="#c0504d"/>
-<circle cx="355" cy="273.47" r="3" fill="#c0504d"/>
-<circle cx="485.5" cy="272.92" r="3" fill="#c0504d"/>
-<circle cx="616" cy="228.04" r="3" fill="#c0504d"/>
-<polyline points="94,273.74 224.5,273.64 355,273.74 485.5,266.63" fill="none" stroke="#3f8f4f" stroke-width="2" stroke-linejoin="round"/>
-<circle cx="94" cy="273.74" r="3" fill="#3f8f4f"/>
-<circle cx="224.5" cy="273.64" r="3" fill="#3f8f4f"/>
-<circle cx="355" cy="273.74" r="3" fill="#3f8f4f"/>
-<circle cx="485.5" cy="266.63" r="3" fill="#3f8f4f"/>
-<polyline points="94,273.17 224.5,273.38 355,273.39 485.5,228.35" fill="none" stroke="#8064a2" stroke-width="2" stroke-linejoin="round" stroke-dasharray="6 4"/>
-<circle cx="94" cy="273.17" r="3" fill="#8064a2"/>
-<circle cx="224.5" cy="273.38" r="3" fill="#8064a2"/>
-<circle cx="355" cy="273.39" r="3" fill="#8064a2"/>
-<circle cx="485.5" cy="228.35" r="3" fill="#8064a2"/>
-<polyline points="485.5,269.45 616,226.98" fill="none" stroke="#e08214" stroke-width="2" stroke-linejoin="round"/>
-<circle cx="485.5" cy="269.45" r="3" fill="#e08214"/>
-<circle cx="616" cy="226.98" r="3" fill="#e08214"/>
-<polyline points="485.5,272.29 616,148.69" fill="none" stroke="#4f81bd" stroke-width="2" stroke-linejoin="round" stroke-dasharray="6 4"/>
-<circle cx="485.5" cy="272.29" r="3" fill="#4f81bd"/>
-<circle cx="616" cy="148.69" r="3" fill="#4f81bd"/>
-<rect x="656" y="87" width="9" height="9" fill="#1f4e79" fill-opacity="1"/>
-<text x="671" y="96" font-size="12" text-anchor="start" fill="#222222" font-weight="normal">1/core, 2 sockets — 256 KiB</text>
-<rect x="656" y="106" width="9" height="9" fill="#c0504d" fill-opacity="1"/>
-<text x="671" y="115" font-size="12" text-anchor="start" fill="#222222" font-weight="normal">1/core, 2 sockets — 4 MiB</text>
-<rect x="656" y="125" width="9" height="9" fill="#3f8f4f" fill-opacity="1"/>
-<text x="671" y="134" font-size="12" text-anchor="start" fill="#222222" font-weight="normal">1/core, 1 socket — 256 KiB</text>
-<rect x="656" y="144" width="9" height="9" fill="#8064a2" fill-opacity="1"/>
-<text x="671" y="153" font-size="12" text-anchor="start" fill="#222222" font-weight="normal">1/core, 1 socket — 4 MiB</text>
-<rect x="656" y="163" width="9" height="9" fill="#e08214" fill-opacity="1"/>
-<text x="671" y="172" font-size="12" text-anchor="start" fill="#222222" font-weight="normal">hyperthreads, 1 socket — 256 KiB</text>
-<rect x="656" y="182" width="9" height="9" fill="#4f81bd" fill-opacity="1"/>
-<text x="671" y="191" font-size="12" text-anchor="start" fill="#222222" font-weight="normal">hyperthreads, 1 socket — 4 MiB</text>
-<text x="656" y="228" font-size="10" text-anchor="start" fill="#777777" font-weight="normal">dashed line = 4 MiB working set</text>
+<rect width="980" height="554" fill="#FFFFFF"/>
+<text x="32" y="28" font-size="17" fill="#16191D" font-weight="600">Thread placement, not thread count — Cascade Lake, 2 sockets, 16 cores</text>
+<text x="32" y="48" font-size="12" fill="#454B54">generate_n, aggregate cost per byte. One thread per physical core stays flat all the way to sixteen; putting the same sixteen workers on eight cores' hyperthread</text>
+<text x="32" y="65" font-size="12" fill="#454B54">siblings costs about 35% each. Dashed lines are the 4 MiB working set.</text>
+<line x1="32" y1="86" x2="948" y2="86" stroke="#E6E9ED" stroke-width="1" stroke-linecap="round"/>
+<line x1="32" y1="97.92" x2="58" y2="97.92" stroke="#0072B2" stroke-width="2.4" stroke-linecap="round"/>
+<circle cx="45" cy="97.92" r="5.8" fill="#FFFFFF"/>
+<circle cx="45" cy="97.92" r="4.2" fill="#0072B2"/>
+<text x="65" y="102" font-size="12" fill="#454B54">1/core, 2 sockets — 256 KiB</text>
+<line x1="240.4" y1="97.92" x2="266.4" y2="97.92" stroke="#D55E00" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="7 4"/>
+<polygon points="248.3,92.82 258.51,92.82 258.51,103.02 248.3,103.02" fill="#FFFFFF"/>
+<polygon points="249.71,94.22 257.1,94.22 257.1,101.62 249.71,101.62" fill="#D55E00"/>
+<text x="273.4" y="102" font-size="12" fill="#454B54">1/core, 2 sockets — 4 MiB</text>
+<line x1="437.46" y1="97.92" x2="463.46" y2="97.92" stroke="#009E73" stroke-width="2.4" stroke-linecap="round"/>
+<polygon points="450.46,91.19 456.65,102.76 444.27,102.76" fill="#FFFFFF"/>
+<polygon points="450.46,93.05 454.94,101.43 445.97,101.43" fill="#009E73"/>
+<text x="470.46" y="102" font-size="12" fill="#454B54">1/core, 1 socket — 256 KiB</text>
+<line x1="639.86" y1="97.92" x2="665.86" y2="97.92" stroke="#7B52AB" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="7 4"/>
+<polygon points="652.86,90.84 659.94,97.92 652.86,105 645.78,97.92" fill="#FFFFFF"/>
+<polygon points="652.86,92.8 657.98,97.92 652.86,103.04 647.74,97.92" fill="#7B52AB"/>
+<text x="672.86" y="102" font-size="12" fill="#454B54">1/core, 1 socket — 4 MiB</text>
+<line x1="32" y1="121.92" x2="58" y2="121.92" stroke="#B07A00" stroke-width="2.4" stroke-linecap="round"/>
+<polygon points="45,128.65 51.19,117.08 38.81,117.08" fill="#FFFFFF"/>
+<polygon points="45,126.79 49.48,118.41 40.52,118.41" fill="#B07A00"/>
+<text x="65" y="126" font-size="12" fill="#454B54">hyperthread siblings — 256 KiB</text>
+<line x1="257.07" y1="121.92" x2="283.07" y2="121.92" stroke="#1F8A9E" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="7 4"/>
+<polygon points="267.87,115.25 272.28,115.25 272.28,119.72 276.74,119.72 276.74,124.12 272.28,124.12 272.28,128.59 267.87,128.59 267.87,124.12 263.4,124.12 263.4,119.72 267.87,119.72" fill="#FFFFFF"/>
+<polygon points="268.48,117.09 271.67,117.09 271.67,120.32 274.9,120.32 274.9,123.52 271.67,123.52 271.67,126.75 268.48,126.75 268.48,123.52 265.24,123.52 265.24,120.32 268.48,120.32" fill="#1F8A9E"/>
+<text x="290.07" y="126" font-size="12" fill="#454B54">hyperthread siblings — 4 MiB</text>
+<line x1="92" y1="502" x2="948" y2="502" stroke="#E6E9ED" stroke-width="1" stroke-linecap="round"/>
+<text x="68.02" y="506.14" font-size="11.5" fill="#6B7280">0.0</text>
+<line x1="92" y1="471.09" x2="948" y2="471.09" stroke="#E6E9ED" stroke-width="1" stroke-linecap="round"/>
+<text x="68.02" y="475.23" font-size="11.5" fill="#6B7280">0.1</text>
+<line x1="92" y1="440.18" x2="948" y2="440.18" stroke="#E6E9ED" stroke-width="1" stroke-linecap="round"/>
+<text x="68.02" y="444.32" font-size="11.5" fill="#6B7280">0.2</text>
+<line x1="92" y1="409.27" x2="948" y2="409.27" stroke="#E6E9ED" stroke-width="1" stroke-linecap="round"/>
+<text x="68.02" y="413.41" font-size="11.5" fill="#6B7280">0.3</text>
+<line x1="92" y1="378.36" x2="948" y2="378.36" stroke="#E6E9ED" stroke-width="1" stroke-linecap="round"/>
+<text x="68.02" y="382.5" font-size="11.5" fill="#6B7280">0.4</text>
+<line x1="92" y1="347.45" x2="948" y2="347.45" stroke="#E6E9ED" stroke-width="1" stroke-linecap="round"/>
+<text x="68.02" y="351.59" font-size="11.5" fill="#6B7280">0.5</text>
+<line x1="92" y1="316.55" x2="948" y2="316.55" stroke="#E6E9ED" stroke-width="1" stroke-linecap="round"/>
+<text x="68.02" y="320.69" font-size="11.5" fill="#6B7280">0.6</text>
+<line x1="92" y1="285.64" x2="948" y2="285.64" stroke="#E6E9ED" stroke-width="1" stroke-linecap="round"/>
+<text x="68.02" y="289.78" font-size="11.5" fill="#6B7280">0.7</text>
+<line x1="92" y1="254.73" x2="948" y2="254.73" stroke="#E6E9ED" stroke-width="1" stroke-linecap="round"/>
+<text x="68.02" y="258.87" font-size="11.5" fill="#6B7280">0.8</text>
+<line x1="92" y1="223.82" x2="948" y2="223.82" stroke="#E6E9ED" stroke-width="1" stroke-linecap="round"/>
+<text x="68.02" y="227.96" font-size="11.5" fill="#6B7280">0.9</text>
+<line x1="92" y1="192.91" x2="948" y2="192.91" stroke="#E6E9ED" stroke-width="1" stroke-linecap="round"/>
+<text x="68.02" y="197.05" font-size="11.5" fill="#6B7280">1.0</text>
+<line x1="92" y1="162" x2="948" y2="162" stroke="#E6E9ED" stroke-width="1" stroke-linecap="round"/>
+<text x="68.02" y="166.14" font-size="11.5" fill="#6B7280">1.1</text>
+<text x="120.8" y="522" font-size="11.5" fill="#6B7280">1</text>
+<text x="318.8" y="522" font-size="11.5" fill="#6B7280">2</text>
+<text x="516.8" y="522" font-size="11.5" fill="#6B7280">4</text>
+<text x="714.8" y="522" font-size="11.5" fill="#6B7280">8</text>
+<text x="909.61" y="522" font-size="11.5" fill="#6B7280">16</text>
+<line x1="92" y1="502" x2="948" y2="502" stroke="#B9BFC7" stroke-width="1.2" stroke-linecap="round"/>
+<text x="480.32" y="542" font-size="12" fill="#454B54">worker threads</text>
+<text x="44" y="390.36" font-size="12" fill="#454B54" transform="rotate(-90 44 390.36)">aggregate cycles/byte</text>
+<line x1="92" y1="355.2" x2="948" y2="355.2" stroke="#8A9099" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="5 4"/>
+<rect x="783.09" y="359.2" width="160.91" height="17.5" fill="#FFFFFF" fill-opacity="0.9" rx="2"/>
+<text x="787.09" y="371.7" font-size="10.5" fill="#6B7280">single thread, 0.4750 cycles/byte</text>
+<polyline points="124,355.2 322,355.07 520,355.3 718,352.69 916,352.6" fill="none" stroke="#0072B2" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="124" cy="355.2" r="5.8" fill="#FFFFFF"/>
+<circle cx="124" cy="355.2" r="4.2" fill="#0072B2"/>
+<circle cx="322" cy="355.07" r="5.8" fill="#FFFFFF"/>
+<circle cx="322" cy="355.07" r="4.2" fill="#0072B2"/>
+<circle cx="520" cy="355.3" r="5.8" fill="#FFFFFF"/>
+<circle cx="520" cy="355.3" r="4.2" fill="#0072B2"/>
+<circle cx="718" cy="352.69" r="5.8" fill="#FFFFFF"/>
+<circle cx="718" cy="352.69" r="4.2" fill="#0072B2"/>
+<circle cx="916" cy="352.6" r="5.8" fill="#FFFFFF"/>
+<circle cx="916" cy="352.6" r="4.2" fill="#0072B2"/>
+<polyline points="124,354.58 322,354.73 520,354.9 718,354.25 916,301.24" fill="none" stroke="#D55E00" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="7 4"/>
+<polygon points="118.9,349.47 129.1,349.47 129.1,359.68 118.9,359.68" fill="#FFFFFF"/>
+<polygon points="120.3,350.88 127.7,350.88 127.7,358.27 120.3,358.27" fill="#D55E00"/>
+<polygon points="316.9,349.63 327.1,349.63 327.1,359.84 316.9,359.84" fill="#FFFFFF"/>
+<polygon points="318.3,351.04 325.7,351.04 325.7,358.43 318.3,358.43" fill="#D55E00"/>
+<polygon points="514.9,349.8 525.1,349.8 525.1,360.01 514.9,360.01" fill="#FFFFFF"/>
+<polygon points="516.3,351.21 523.7,351.21 523.7,358.6 516.3,358.6" fill="#D55E00"/>
+<polygon points="712.9,349.15 723.1,349.15 723.1,359.36 712.9,359.36" fill="#FFFFFF"/>
+<polygon points="714.3,350.56 721.7,350.56 721.7,357.95 714.3,357.95" fill="#D55E00"/>
+<polygon points="910.9,296.14 921.1,296.14 921.1,306.35 910.9,306.35" fill="#FFFFFF"/>
+<polygon points="912.3,297.55 919.7,297.55 919.7,304.94 912.3,304.94" fill="#D55E00"/>
+<polyline points="124,355.22 322,355.1 520,355.22 718,346.82" fill="none" stroke="#009E73" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+<polygon points="124,348.49 130.19,360.06 117.81,360.06" fill="#FFFFFF"/>
+<polygon points="124,350.35 128.48,358.73 119.52,358.73" fill="#009E73"/>
+<polygon points="322,348.38 328.19,359.95 315.81,359.95" fill="#FFFFFF"/>
+<polygon points="322,350.23 326.48,358.61 317.52,358.61" fill="#009E73"/>
+<polygon points="520,348.49 526.19,360.07 513.81,360.07" fill="#FFFFFF"/>
+<polygon points="520,350.35 524.48,358.73 515.52,358.73" fill="#009E73"/>
+<polygon points="718,340.09 724.19,351.66 711.81,351.66" fill="#FFFFFF"/>
+<polygon points="718,341.94 722.48,350.32 713.52,350.32" fill="#009E73"/>
+<polyline points="124,354.54 322,354.79 520,354.81 718,301.6" fill="none" stroke="#7B52AB" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="7 4"/>
+<polygon points="124,347.47 131.08,354.54 124,361.62 116.92,354.54" fill="#FFFFFF"/>
+<polygon points="124,349.42 129.12,354.54 124,359.67 118.88,354.54" fill="#7B52AB"/>
+<polygon points="322,347.72 329.08,354.79 322,361.87 314.92,354.79" fill="#FFFFFF"/>
+<polygon points="322,349.67 327.12,354.79 322,359.92 316.88,354.79" fill="#7B52AB"/>
+<polygon points="520,347.73 527.08,354.81 520,361.88 512.92,354.81" fill="#FFFFFF"/>
+<polygon points="520,349.68 525.12,354.81 520,359.93 514.88,354.81" fill="#7B52AB"/>
+<polygon points="718,294.53 725.08,301.6 718,308.68 710.92,301.6" fill="#FFFFFF"/>
+<polygon points="718,296.48 723.12,301.6 718,306.73 712.88,301.6" fill="#7B52AB"/>
+<polyline points="718,350.15 916,299.99" fill="none" stroke="#B07A00" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+<polygon points="718,356.88 724.19,345.31 711.81,345.31" fill="#FFFFFF"/>
+<polygon points="718,355.03 722.48,346.65 713.52,346.65" fill="#B07A00"/>
+<polygon points="916,306.71 922.19,295.14 909.81,295.14" fill="#FFFFFF"/>
+<polygon points="916,304.86 920.48,296.48 911.52,296.48" fill="#B07A00"/>
+<polyline points="718,353.5 916,207.5" fill="none" stroke="#1F8A9E" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="7 4"/>
+<polygon points="715.8,346.83 720.2,346.83 720.2,351.3 724.67,351.3 724.67,355.71 720.2,355.71 720.2,360.17 715.8,360.17 715.8,355.71 711.33,355.71 711.33,351.3 715.8,351.3" fill="#FFFFFF"/>
+<polygon points="716.4,348.67 719.6,348.67 719.6,351.91 722.83,351.91 722.83,355.1 719.6,355.1 719.6,358.33 716.4,358.33 716.4,355.1 713.17,355.1 713.17,351.91 716.4,351.91" fill="#1F8A9E"/>
+<polygon points="913.8,200.83 918.2,200.83 918.2,205.3 922.67,205.3 922.67,209.7 918.2,209.7 918.2,214.17 913.8,214.17 913.8,209.7 909.33,209.7 909.33,205.3 913.8,205.3" fill="#FFFFFF"/>
+<polygon points="914.4,202.67 917.6,202.67 917.6,205.9 920.83,205.9 920.83,209.1 917.6,209.1 917.6,212.33 914.4,212.33 914.4,209.1 911.17,209.1 911.17,205.9 914.4,205.9" fill="#1F8A9E"/>
 </svg>
