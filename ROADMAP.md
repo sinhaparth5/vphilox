@@ -23,8 +23,11 @@ Derived from `docs/VPhilox Development Phases.md` and
 **Status:** Phases 0-3 complete; **Phase 4 complete.** The instruction-cache
 study is measured — a bare-metal Tiger Lake laptop cleared the co-location gate
 that no earlier host could — and the cuRAND cross-check is done without needing
-a GPU at all. **Phase 5 has started:** a full paper draft is in `paper/`,
-building clean at 15 pages and blocked on one citation.
+a GPU at all. **Phase 5 is under way:** the paper in `paper/` is a complete
+draft with every Phase 4 result folded in, and the changelog covers Phases 2
+through 4. What is left needs things this repository cannot produce on its own —
+the XGBoost thread URL, an affiliation, a Zenodo DOI, an arXiv submission, a
+tag, and vcpkg/Conan packaging.
 
 Current version
 `2026.08.0` (see [VERSIONING.md](VERSIONING.md)).
@@ -577,14 +580,25 @@ and whose state can be written on one platform and read on another.
       Pseudo-Random Number Generation for Parallel CPU Systems*.
 
       **Full draft in `paper/vphilox.tex`; see `paper/README.md` for what is still open.**
-      Twelve sections, five figures, every number traced to an archived run. Six `\todo`
-      markers remain, and the one that blocks publication is the citation for the upstream
-      XGBoost discussion: the paper quotes its 10x figure and spends its evaluation
-      rebutting it, so it cannot go out without the thread URL.
+      Twelve sections, five figures, six tables, every number traced to an archived run.
+      **Two `\todo` markers remain**, and the one that blocks publication is the citation
+      for the upstream XGBoost discussion: the paper quotes its 10x figure and spends its
+      evaluation rebutting it, so it cannot go out without the thread URL. The other is
+      the Zenodo DOI. A third gap is a red placeholder rather than a `\todo`: the
+      affiliation line in the author block.
 
-      Written against `article` rather than `acmart`, which is not installed here. The
-      swap is the preamble, the title block and the bibliography style. Builds clean under
-      `pdflatex`: 15 pages, no errors, no overfull boxes, no undefined references.
+      All four Phase 4 results are now folded in. §8.3 reports the instruction-supply
+      measurement (#53), §8.4 the OpenMP runtime contrast (#52), §9.1 the cuRAND
+      cross-check (#54), and the machines table carries the bare-metal Tiger Lake host
+      those studies needed. §10 no longer lists any measurement as pending hardware.
+
+      Written against `IEEEtran` in the Computer Society journal format, which is what
+      TPDS, TC and TSE use; a conference submission is a class-option change. The last
+      build on a TeX host was 15 pages with no errors, no overfull boxes and no undefined
+      references. **The tracked `paper/vphilox.pdf` is now behind the source**: the Phase 4
+      additions were written on a machine with no TeX installed, so `paper/build.sh` has
+      not been re-run and CI does not build the paper. Rebuild and commit the PDF before
+      circulating it.
 
       The original title names the method, not the contribution, and it invites exactly the
       comparison the measurements lose: xoshiro256++ is faster on four of the five machines
@@ -600,7 +614,10 @@ and whose state can be written on one platform and read on another.
   - [x] **Reproducibility under parallelism** — §8. Identical output regardless of thread count
         and scheduling, with the measured scaling behind it (3.95x on 4 cores, 98.8%
         efficiency, aggregate cycles/byte flat to 0.063% from 1 to 32 threads), plus the
-        placement result: the first knee is hyperthread co-location at 35%/worker, not memory
+        placement result: the first knee is hyperthread co-location at 35%/worker, not memory.
+        §8.3 and §8.4 then close out both alternative explanations by measurement: instruction
+        supply *improves* 36% under co-location while the penalty is +59%, and libgomp
+        reproduces the flat curve to 0.3% where the `std::thread` pool drifts to 1.220x
   - [x] Scalar wide-multiply bottleneck analysis — §4.2 and §7.2, with the finding that the
         reported ~10x penalty against `std::mt19937` did **not** reproduce on any of five CPUs
         measured (1.10-1.65x cost per byte, not 10x)
@@ -614,14 +631,24 @@ and whose state can be written on one platform and read on another.
         the exhaustive round trip catches what no distributional test can
   - [x] Benchmark figures from Phase 4, reported honestly — §10 carries both results that cut
         against us, that xoshiro256++ leads on four of five machines and that NEON leaves the
-        buffered engine behind `std::mt19937` on ARM
+        buffered engine behind `std::mt19937` on ARM. The two Phase 4 results added since are
+        tables rather than figures on purpose: both are two-arm contrasts of four numbers,
+        which a plot makes harder to read, and adding them to `publish_results.py` would put
+        two more byte-reproducible SVG/PDF pairs under CI's `--check` for no gain
+  - [x] **Portable-state analysis** — §1, §3 and §9.1. The failure mode, the counter-based
+        answer, and now an external check that the answer interoperates: 16/16 cases identical
+        against NVIDIA cuRAND, with the seeding mapping documented in `docs/curand-parity.md`
 - [ ] arXiv preprint (cs.PF / cs.MS)
 - [ ] Zenodo DOI for the repository
 - [ ] Tag and publish `sinhaparth5/vphilox`
 - [x] `CITATION.cff` for one-click BibTeX
 - [ ] Update `CITATION.cff` with the DOI once Zenodo assigns one
 - [ ] Package for vcpkg and Conan
-- [ ] Release notes in `CHANGELOG.md`
+- [x] Release notes in `CHANGELOG.md` — `[Unreleased]` now covers the whole of Phases 2
+      through 4: the serialized state, all three SIMD kernels, the cuRAND cross-check, the
+      per-worker counters and placement gate, the figure pipeline, the cross-platform
+      parity digest, and the four measured results worth not re-deriving. It still needs a
+      release heading rather than `[Unreleased]` when the tag goes out
 
 ---
 
