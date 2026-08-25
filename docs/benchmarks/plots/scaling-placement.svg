@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="460" viewBox="0 0 900 460" font-family="DejaVu Sans, Verdana, sans-serif">
+<title>Where the scaling knee comes from</title>
+<rect width="900" height="460" fill="#ffffff"/>
+<text x="18" y="28" font-size="15" text-anchor="start" fill="#222222" font-weight="bold">Thread placement, not thread count — Cascade Lake, 2 sockets, 16 cores</text>
+<text x="18" y="48" font-size="11" text-anchor="start" fill="#555555" font-weight="normal">generate_n, aggregate cost per byte. Flat is linear scaling. One thread per physical core stays flat to 16; sharing a core costs ~35%.</text>
+<line x1="78" y1="398" x2="632" y2="398" stroke="#d8d8d8" stroke-width="1"/>
+<text x="70" y="402" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">0</text>
+<line x1="78" y1="371.83" x2="632" y2="371.83" stroke="#d8d8d8" stroke-width="1"/>
+<text x="70" y="375.83" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">0.1</text>
+<line x1="78" y1="345.67" x2="632" y2="345.67" stroke="#d8d8d8" stroke-width="1"/>
+<text x="70" y="349.67" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">0.2</text>
+<line x1="78" y1="319.5" x2="632" y2="319.5" stroke="#d8d8d8" stroke-width="1"/>
+<text x="70" y="323.5" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">0.3</text>
+<line x1="78" y1="293.33" x2="632" y2="293.33" stroke="#d8d8d8" stroke-width="1"/>
+<text x="70" y="297.33" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">0.4</text>
+<line x1="78" y1="267.17" x2="632" y2="267.17" stroke="#d8d8d8" stroke-width="1"/>
+<text x="70" y="271.17" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">0.5</text>
+<line x1="78" y1="241" x2="632" y2="241" stroke="#d8d8d8" stroke-width="1"/>
+<text x="70" y="245" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">0.6</text>
+<line x1="78" y1="214.83" x2="632" y2="214.83" stroke="#d8d8d8" stroke-width="1"/>
+<text x="70" y="218.83" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">0.7</text>
+<line x1="78" y1="188.67" x2="632" y2="188.67" stroke="#d8d8d8" stroke-width="1"/>
+<text x="70" y="192.67" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">0.8</text>
+<line x1="78" y1="162.5" x2="632" y2="162.5" stroke="#d8d8d8" stroke-width="1"/>
+<text x="70" y="166.5" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">0.9</text>
+<line x1="78" y1="136.33" x2="632" y2="136.33" stroke="#d8d8d8" stroke-width="1"/>
+<text x="70" y="140.33" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">1</text>
+<line x1="78" y1="110.17" x2="632" y2="110.17" stroke="#d8d8d8" stroke-width="1"/>
+<text x="70" y="114.17" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">1.1</text>
+<line x1="78" y1="84" x2="632" y2="84" stroke="#d8d8d8" stroke-width="1"/>
+<text x="70" y="88" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">1.2</text>
+<text x="20" y="70" font-size="11" text-anchor="start" fill="#555555" font-weight="normal">cycles/byte</text>
+<text x="94" y="420" font-size="11" text-anchor="middle" fill="#555555" font-weight="normal">1</text>
+<text x="224.5" y="420" font-size="11" text-anchor="middle" fill="#555555" font-weight="normal">2</text>
+<text x="355" y="420" font-size="11" text-anchor="middle" fill="#555555" font-weight="normal">4</text>
+<text x="485.5" y="420" font-size="11" text-anchor="middle" fill="#555555" font-weight="normal">8</text>
+<text x="616" y="420" font-size="11" text-anchor="middle" fill="#555555" font-weight="normal">16</text>
+<text x="355" y="442" font-size="12" text-anchor="middle" fill="#222222" font-weight="normal">threads</text>
+<line x1="78" y1="273.72" x2="632" y2="273.72" stroke="#999999" stroke-width="1.2" stroke-dasharray="4 3"/>
+<text x="84" y="267.72" font-size="10" text-anchor="start" fill="#777777" font-weight="normal">single thread, 0.475</text>
+<polyline points="94,273.72 224.5,273.61 355,273.81 485.5,271.6 616,271.53" fill="none" stroke="#1f4e79" stroke-width="2" stroke-linejoin="round"/>
+<circle cx="94" cy="273.72" r="3" fill="#1f4e79"/>
+<circle cx="224.5" cy="273.61" r="3" fill="#1f4e79"/>
+<circle cx="355" cy="273.81" r="3" fill="#1f4e79"/>
+<circle cx="485.5" cy="271.6" r="3" fill="#1f4e79"/>
+<circle cx="616" cy="271.53" r="3" fill="#1f4e79"/>
+<polyline points="94,273.2 224.5,273.33 355,273.47 485.5,272.92 616,228.04" fill="none" stroke="#c0504d" stroke-width="2" stroke-linejoin="round" stroke-dasharray="6 4"/>
+<circle cx="94" cy="273.2" r="3" fill="#c0504d"/>
+<circle cx="224.5" cy="273.33" r="3" fill="#c0504d"/>
+<circle cx="355" cy="273.47" r="3" fill="#c0504d"/>
+<circle cx="485.5" cy="272.92" r="3" fill="#c0504d"/>
+<circle cx="616" cy="228.04" r="3" fill="#c0504d"/>
+<polyline points="94,273.74 224.5,273.64 355,273.74 485.5,266.63" fill="none" stroke="#3f8f4f" stroke-width="2" stroke-linejoin="round"/>
+<circle cx="94" cy="273.74" r="3" fill="#3f8f4f"/>
+<circle cx="224.5" cy="273.64" r="3" fill="#3f8f4f"/>
+<circle cx="355" cy="273.74" r="3" fill="#3f8f4f"/>
+<circle cx="485.5" cy="266.63" r="3" fill="#3f8f4f"/>
+<polyline points="94,273.17 224.5,273.38 355,273.39 485.5,228.35" fill="none" stroke="#8064a2" stroke-width="2" stroke-linejoin="round" stroke-dasharray="6 4"/>
+<circle cx="94" cy="273.17" r="3" fill="#8064a2"/>
+<circle cx="224.5" cy="273.38" r="3" fill="#8064a2"/>
+<circle cx="355" cy="273.39" r="3" fill="#8064a2"/>
+<circle cx="485.5" cy="228.35" r="3" fill="#8064a2"/>
+<polyline points="485.5,269.45 616,226.98" fill="none" stroke="#e08214" stroke-width="2" stroke-linejoin="round"/>
+<circle cx="485.5" cy="269.45" r="3" fill="#e08214"/>
+<circle cx="616" cy="226.98" r="3" fill="#e08214"/>
+<polyline points="485.5,272.29 616,148.69" fill="none" stroke="#4f81bd" stroke-width="2" stroke-linejoin="round" stroke-dasharray="6 4"/>
+<circle cx="485.5" cy="272.29" r="3" fill="#4f81bd"/>
+<circle cx="616" cy="148.69" r="3" fill="#4f81bd"/>
+<rect x="656" y="87" width="9" height="9" fill="#1f4e79" fill-opacity="1"/>
+<text x="671" y="96" font-size="12" text-anchor="start" fill="#222222" font-weight="normal">1/core, 2 sockets — 256 KiB</text>
+<rect x="656" y="106" width="9" height="9" fill="#c0504d" fill-opacity="1"/>
+<text x="671" y="115" font-size="12" text-anchor="start" fill="#222222" font-weight="normal">1/core, 2 sockets — 4 MiB</text>
+<rect x="656" y="125" width="9" height="9" fill="#3f8f4f" fill-opacity="1"/>
+<text x="671" y="134" font-size="12" text-anchor="start" fill="#222222" font-weight="normal">1/core, 1 socket — 256 KiB</text>
+<rect x="656" y="144" width="9" height="9" fill="#8064a2" fill-opacity="1"/>
+<text x="671" y="153" font-size="12" text-anchor="start" fill="#222222" font-weight="normal">1/core, 1 socket — 4 MiB</text>
+<rect x="656" y="163" width="9" height="9" fill="#e08214" fill-opacity="1"/>
+<text x="671" y="172" font-size="12" text-anchor="start" fill="#222222" font-weight="normal">hyperthreads, 1 socket — 256 KiB</text>
+<rect x="656" y="182" width="9" height="9" fill="#4f81bd" fill-opacity="1"/>
+<text x="671" y="191" font-size="12" text-anchor="start" fill="#222222" font-weight="normal">hyperthreads, 1 socket — 4 MiB</text>
+<text x="656" y="228" font-size="10" text-anchor="start" fill="#777777" font-weight="normal">dashed line = 4 MiB working set</text>
+</svg>

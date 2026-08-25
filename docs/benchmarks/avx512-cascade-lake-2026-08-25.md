@@ -13,6 +13,15 @@ and the expectation recorded at the time was that it would behave the same.
 is unchanged and #27 closes — but this is the first part measured here where
 anything resembling the penalty the issue was written about shows up.
 
+> **Superseded in part, 2026-08-25.** A second Cascade Lake — the whole
+> two-socket host rather than four vCPUs of a shared one — converts **92%** of
+> the doubled width, matching Skylake-SP, and a direct frequency measurement
+> there shows no licence drop at all. The 78% below is a property of that
+> 4-vCPU instance, not of the architecture. See
+> [the correction](#the-correction-a-whole-socket-cascade-lake) at the foot of
+> this page; the hypothesis section between here and there is left standing so
+> the reasoning that turned out to be wrong is still on the record.
+
 ## Environment
 
 | | |
@@ -158,3 +167,100 @@ xoshiro256++ leads the bulk path by 1.40x on this part.
 
 These are the first runs whose JSON carries its own resolved backend in the
 `context` block, so nothing here had to be recovered by hand.
+
+## The correction: a whole-socket Cascade Lake
+
+The write-up above closed on a hypothesis: that a light-tier AVX-512 licence
+transition cost this part about fourteen points of width conversion, untestable
+because GCP exposes no virtual PMU. Issue #51 needed a many-core x86 host, which
+turned out to be the machine that could answer this as well.
+
+| | |
+|---|---|
+| CPU | Intel Xeon @ 2.80 GHz, family 6 model 85 **stepping 7** — the same part |
+| Instance | GCP `n2-standard-32`, `--min-cpu-platform="Intel Cascade Lake"`, `us-east1-b` |
+| Topology | 2 sockets × 8 cores × 2 threads = 32 logical CPUs, 2 NUMA nodes |
+| Caches | L2 16 MiB (16 instances), **L3 66 MiB (2 instances, 33 MiB per socket)** |
+| Compiler | GCC 13.3.0, CMake 3.28.3 — identical to the 4-vCPU run |
+| Affinity | CPU 2 |
+| Commit | `35e08af` |
+
+`BM_vphilox_bulk`, same binary, backend forced, seven interleaved repetitions,
+every row at 0.05–0.46% CV:
+
+| backend | cycles/byte | vs AVX2 | vs scalar |
+|---|---:|---:|---:|
+| scalar | 2.2883 | | 1.00x |
+| avx2 | 0.8740 | 1.00x | 2.62x |
+| **avx512** | **0.4747** | **1.84x** | **4.82x** |
+
+**1.84x, not 1.56x.** Width conversion is 92%, which is Skylake-SP's number to
+the point.
+
+### The licence hypothesis is now contradicted, not merely unconfirmed
+
+The 32-vCPU host has whole cores rather than a slice of a shared socket, so the
+clock can be measured from inside the guest without a PMU. A dependent chain of
+`addq` instructions retires exactly one per core cycle, so timing a chain of
+known length against a wall clock gives the core frequency, and against RDTSC
+gives the reference frequency. Their ratio is the turbo state. The probe thread
+and every load thread get their own logical CPU — without that the probe
+time-shares a core and reports 1/N of the clock, which looks exactly like a
+catastrophic downclock and is nothing of the kind.
+
+Core GHz, with N cores hammering the kernel:
+
+| active cores | scalar load | AVX2 load | AVX-512 load |
+|---:|---:|---:|---:|
+| 1 | 3.371 | 3.371 | 3.371 |
+| 4 | 3.368 | 3.367 | 3.366 |
+| 8 | 3.370 | 3.369 | 3.368 |
+| 16 | 3.369 | 3.368 | 3.366 |
+| 32 | 3.151 | 3.358 | 3.158 |
+
+Reference frequency read 2.800 GHz in every cell, as it must.
+
+**AVX-512 load does not depress the core clock on this part**, at any core
+count up to 16, by more than 0.15% — which is the probe's own noise. The
+light-tier argument was right about the mechanism and wrong about the
+conclusion: Philox's inner loop is `vpmuludq`/`vpaddd`/`vpxord`/`vpsrlq` and
+shuffles with no floating-point instruction, and on Cascade Lake that costs
+nothing at all rather than a little. The 32-core row drops for both scalar and
+AVX-512 and not for AVX2, which is hyperthread contention on the probe's own
+core rather than a licence effect — at 32 active the probe shares a physical
+core with a load thread.
+
+### What the 4-vCPU number was, then
+
+Unknown, and it stays unknown. What can be said is what it was not: it was not
+Cascade Lake declining to convert 512-bit width, because the same stepping
+converts 92% of it here. The remaining candidate is the instance — four vCPUs
+are two cores of a socket shared with other tenants, whose activity moves the
+package turbo budget underneath a measurement that RDTSC reports in reference
+cycles. That is consistent with the scalar kernel also being slower there
+(2.4142 against 2.2883 for identical code on an identical part), which no
+AVX-512 licence can explain.
+
+That reading is *not* confirmed either, and the honest summary of #27 across
+both hosts is:
+
+- AVX-512 beats AVX2 on every part measured, by 1.56x at worst and 1.84x at
+  best. **Dispatch is correct and unchanged.**
+- On a part whose cores are not shared, Philox's AVX-512 kernel triggers no
+  measurable frequency licence drop. That is now measured rather than argued.
+- Small shared-socket cloud instances are not a sound basis for a claim about a
+  microarchitecture, which is the third measurement rule in `CLAUDE.md` biting
+  in a new way: it warns that cycles/byte does not transfer across machines, and
+  the 4-vCPU and 32-vCPU hosts here are two machines despite being one part.
+
+### Artifacts for the correction
+
+- [`results/cascadelake-32v-scalar-matrix.json`](../../results/cascadelake-32v-scalar-matrix.json),
+  [`-avx2-matrix.json`](../../results/cascadelake-32v-avx2-matrix.json),
+  [`-avx512-matrix.json`](../../results/cascadelake-32v-avx512-matrix.json)
+- [`results/cascadelake-32v-frequency-probe.txt`](../../results/cascadelake-32v-frequency-probe.txt)
+  — the table above, verbatim
+- [`scripts/benchmarks/freq_probe.cpp`](../../scripts/benchmarks/freq_probe.cpp)
+  — the probe, with its build line
+- [`scaling-cascade-lake-2026-08-25.md`](scaling-cascade-lake-2026-08-25.md) —
+  the run this host was actually provisioned for

@@ -285,10 +285,17 @@ passing all 160 statistics (`docs/statistical-validation.md`).
 `ROADMAP.md` tracks phases and `docs/` holds the theory, research, and recorded
 benchmark runs.
 
-Two measured results worth not re-deriving: the ~10x
+Three measured results worth not re-deriving. The ~10x
 scalar-Philox-vs-mt19937 slowdown from the literature did **not** reproduce on
-any machine measured here (`docs/benchmarks/baseline-2026-08-21.md`), and the
+any machine measured here (`docs/benchmarks/baseline-2026-08-21.md`). The
 refill buffer now costs ~109% of bulk throughput on AVX-512, ~42% on AVX2 and
 ~10% on x86 scalar — the faster the kernel, the more the drain pass dominates —
 which is what makes issues #36 and #37 worth more than their original
-estimates.
+estimates. And **the multi-core knee is hyperthreading, not the memory system**
+(`docs/benchmarks/scaling-cascade-lake-2026-08-25.md`): one thread per physical
+core is flat to sixteen cores, two workers sharing a core cost 35% each because
+the kernel is execution-port-bound, and memory only enters as a second limit
+that tracks footprint per socket. Advise callers to size pools by physical
+cores, not `hardware_concurrency()`. Frequency was excluded by direct
+measurement rather than argument (`scripts/benchmarks/freq_probe.cpp`), which
+also retired the open AVX-512 licence hypothesis from issue #27.

@@ -52,6 +52,13 @@
 <circle cx="374.15" cy="399.13" r="3" fill="#8064a2"/>
 <circle cx="616" cy="404.3" r="3" fill="#8064a2"/>
 <line x1="78" y1="102" x2="630" y2="102" stroke="#8064a2" stroke-width="1" stroke-dasharray="5 4"/>
+<polyline points="92,236.95 172.62,319.26 293.54,383.73 374.15,398.96 616,403.83" fill="none" stroke="#e08214" stroke-width="2" stroke-linejoin="round"/>
+<circle cx="92" cy="236.95" r="3" fill="#e08214"/>
+<circle cx="172.62" cy="319.26" r="3" fill="#e08214"/>
+<circle cx="293.54" cy="383.73" r="3" fill="#e08214"/>
+<circle cx="374.15" cy="398.96" r="3" fill="#e08214"/>
+<circle cx="616" cy="403.83" r="3" fill="#e08214"/>
+<line x1="78" y1="184.82" x2="630" y2="184.82" stroke="#e08214" stroke-width="1" stroke-dasharray="5 4"/>
 <rect x="654" y="87" width="9" height="9" fill="#1f4e79" fill-opacity="1"/>
 <text x="669" y="96" font-size="12" text-anchor="start" fill="#222222" font-weight="normal">Pi 5 / NEON</text>
 <rect x="654" y="106" width="9" height="9" fill="#c0504d" fill-opacity="1"/>
@@ -59,7 +66,9 @@
 <rect x="654" y="125" width="9" height="9" fill="#3f8f4f" fill-opacity="1"/>
 <text x="669" y="134" font-size="12" text-anchor="start" fill="#222222" font-weight="normal">Skylake-SP</text>
 <rect x="654" y="144" width="9" height="9" fill="#8064a2" fill-opacity="1"/>
-<text x="669" y="153" font-size="12" text-anchor="start" fill="#222222" font-weight="normal">Cascade Lake</text>
-<text x="654" y="188" font-size="10" text-anchor="start" fill="#555555" font-weight="normal">dashed: operator() through</text>
-<text x="654" y="202" font-size="10" text-anchor="start" fill="#555555" font-weight="normal">the refill buffer</text>
+<text x="669" y="153" font-size="12" text-anchor="start" fill="#222222" font-weight="normal">Cascade Lake 4v</text>
+<rect x="654" y="163" width="9" height="9" fill="#e08214" fill-opacity="1"/>
+<text x="669" y="172" font-size="12" text-anchor="start" fill="#222222" font-weight="normal">Cascade Lake 32v</text>
+<text x="654" y="207" font-size="10" text-anchor="start" fill="#555555" font-weight="normal">dashed: operator() through</text>
+<text x="654" y="221" font-size="10" text-anchor="start" fill="#555555" font-weight="normal">the refill buffer</text>
 </svg>

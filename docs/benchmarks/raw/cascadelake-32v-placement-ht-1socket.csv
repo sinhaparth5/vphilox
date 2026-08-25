@@ -1,0 +1,5 @@
+benchmark,cycles_per_byte,cycles_per_byte_cv_pct,bytes_per_second,median_time_ns,cycle_source
+BM_thread_scaling_bulk/16/1048576/real_time,0.952792,3.1313,33757916515.7,1.988,rdtsc
+BM_thread_scaling_bulk/16/65536/real_time,0.653573,0.2569,24354770089.1,0.172,rdtsc
+BM_thread_scaling_bulk/8/1048576/real_time,0.480437,2.2660,42321704273.6,0.793,rdtsc
+BM_thread_scaling_bulk/8/65536/real_time,0.491267,1.3272,23288690967.8,0.090,rdtsc

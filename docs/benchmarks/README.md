@@ -36,35 +36,43 @@ the two single-machine figures.
 Cost per byte for each generator, divided by `std::mt19937` on the same
 machine. Lower is faster.
 
-|  | Pi 5 / NEON | Sapphire Rapids | Skylake-SP | Cascade Lake |
-|---|---:|---:|---:|---:|
-| xoshiro256++ | 0.28x | 0.30x | 0.24x | 0.17x |
-| PCG64 | 0.83x | 0.59x | 0.33x | 0.32x |
-| `std::mt19937` | 1.00x | 1.00x | 1.00x | 1.00x |
-| Philox, unspecialised | 1.65x | 1.55x | 1.15x | 1.10x |
-| vphilox, `operator()` | 1.15x | 0.79x | 0.51x | 0.58x |
-| **vphilox, `generate_n`** | **0.75x** | **0.38x** | **0.22x** | **0.24x** |
+|  | Pi 5 / NEON | Sapphire Rapids | Skylake-SP | Cascade Lake 4v | Cascade Lake 32v |
+|---|---:|---:|---:|---:|---:|
+| xoshiro256++ | 0.28x | 0.30x | 0.24x | 0.17x | 0.29x |
+| PCG64 | 0.83x | 0.59x | 0.33x | 0.32x | 0.53x |
+| `std::mt19937` | 1.00x | 1.00x | 1.00x | 1.00x | 1.00x |
+| Philox, unspecialised | 1.65x | 1.55x | 1.15x | 1.10x | 1.62x |
+| vphilox, `operator()` | 1.15x | 0.79x | 0.51x | 0.58x | 0.68x |
+| **vphilox, `generate_n`** | **0.75x** | **0.38x** | **0.22x** | **0.24x** | **0.33x** |
+
+The two Cascade Lake columns are the same part — family 6, model 85, stepping 7
+— in a four-vCPU slice of a shared socket and on a whole two-socket host. They
+are listed separately because cycles/byte does not transfer between machines,
+and these behave as two machines: see
+[`avx512-cascade-lake-2026-08-25.md`](avx512-cascade-lake-2026-08-25.md).
 
 Three things this figure is for.
 
 **The original objection.** vphilox was rejected upstream with "the performance
 here is 1/10 of mt". Unspecialised Philox is 1.10-1.65x `std::mt19937` here —
-not 10x, and within 10% of parity on Cascade Lake — and with the wide multiplies
-specialised the bulk path is 0.22-0.75x it. That is the whole reason the SIMD
-work exists.
+not 10x, and within 10% of parity on the 4-vCPU Cascade Lake — and with the wide
+multiplies specialised the bulk path is 0.22-0.75x it. That is the whole reason
+the SIMD work exists.
 
-**xoshiro256++ leads on three of the four.** It is ahead on the Pi, on Sapphire
-Rapids and on Cascade Lake. On Skylake-SP `generate_n` is 0.4210 cycles/byte
-against xoshiro's 0.4703 — vphilox wins that one part, on one machine. That is
-a result, not a trend, and it does not change the guidance in `CLAUDE.md`: do
-not optimise toward xoshiro. It is a latency-bound scalar chain, it offers none
-of the properties this library exists for, and the comparison is here to be
-reported honestly rather than chased.
+**xoshiro256++ leads on four of the five.** It is ahead on the Pi, on Sapphire
+Rapids and on both Cascade Lake hosts, though only by 1.15x on the 32-vCPU one.
+On Skylake-SP `generate_n` is 0.4210 cycles/byte against xoshiro's 0.4703 —
+vphilox wins that one part, on one machine. That is a result, not a trend, and
+it does not change the guidance in `CLAUDE.md`: do not optimise toward xoshiro.
+It is a latency-bound scalar chain, it offers none of the properties this
+library exists for, and the comparison is here to be reported honestly rather
+than chased.
 
 **The buffer is the remaining cost.** The gap between the two vphilox rows is
 the refill drain, and it widens as the kernel gets faster: 1.53x on the Pi,
-2.09x on Sapphire Rapids, 2.37x on Skylake-SP, 2.42x on Cascade Lake. The
-faster the kernel, the more the second pass over every byte dominates.
+2.03x on Cascade Lake 32v, 2.09x on Sapphire Rapids, 2.37x on Skylake-SP, 2.42x
+on Cascade Lake 4v. The faster the kernel, the more the second pass over every
+byte dominates.
 
 ### `generate_n` call size — [`plots/generate-n-sweep.svg`](plots/generate-n-sweep.svg)
 
@@ -72,15 +80,31 @@ faster the kernel, the more the second pass over every byte dominates.
 
 What a small bulk call costs relative to the raw kernel on the same machine.
 Eight words a call is 1.4-1.9x the kernel; by 256 words the remainder is a few
-percent, and by 65536 it is gone. Cascade Lake is the exception at 1.92x for an
-eight-word call, which is the same story as its buffer gap: the fastest kernel
-of the four pays the most for a call too small to amortise. The dashed line per machine is `operator()`
-through the refill buffer, which is what a caller pays if they never reach for
-the bulk path.
+percent, and by 65536 it is gone. The two fastest kernels pay the most for a
+call too small to amortise — 1.92x on Cascade Lake 4v and 1.78x on Cascade Lake
+32v for an eight-word call — which is the same story as their buffer gaps. The
+dashed line per machine is `operator()` through the refill buffer, which is what
+a caller pays if they never reach for the bulk path.
 
 This is the practical form of the buffer result above: `generate_n` recovers
 essentially all of it, but only once the call is large enough to amortise the
 setup.
+
+### Thread placement — [`plots/scaling-placement.svg`](plots/scaling-placement.svg)
+
+![Aggregate cost per byte against thread placement](plots/scaling-placement.svg)
+
+Cascade Lake, two sockets, sixteen physical cores — one machine, so cycles/byte
+again. Where the threads sit matters more than how many there are. With one
+thread per physical core the cost per byte is flat from 1 to 16 (0.4750 →
+0.4833, +1.7%); put two workers on one core's hyperthread siblings and each
+loses 35%. The dashed 4 MiB lines bend earlier and track footprint *per socket*
+against the 33 MiB L3 rather than thread count. Frequency was measured directly
+and is flat across the whole range, so none of the movement is turbo.
+
+[`scaling-cascade-lake-2026-08-25.md`](scaling-cascade-lake-2026-08-25.md) is
+the write-up. The short version for callers: **size a Philox thread pool by
+physical cores, not by `hardware_concurrency()`.**
 
 ### Thread scaling — [`plots/thread-scaling.svg`](plots/thread-scaling.svg)
 
@@ -94,6 +118,11 @@ cost per byte still does not move, which is what running out of cores looks
 like rather than running out of scaling.
 
 Four series are drawn and two are visible: each working set lands on the other.
+
+Four cores is too few to reach a knee, which is why the placement figure above
+exists. The unpinned x86 curve in the same protocol does bend, but its CV rises
+from under 1% to 3-5% at the same point — a scheduler result as much as a
+generator one.
 
 ### Float conversion widths — [`plots/float-conversion-widths.svg`](plots/float-conversion-widths.svg)
 
