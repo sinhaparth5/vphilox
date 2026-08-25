@@ -100,19 +100,24 @@ arXiv wants the LaTeX source rather than a locally built PDF, which is what
 
 ## What is still open
 
-The `\todo` markers in the source are the list, and there are two left:
-
-1. **The XGBoost citation.** The paper quotes a tenfold-slowdown figure from an
-   upstream discussion and answers it with measurements. The thread URL and an
-   access date are needed before that section can go out; paraphrasing the
-   quoted number without the source is not acceptable in a paper whose main
-   evaluation exists to rebut it. **This is the one that blocks publication.**
-2. **Zenodo DOI**, in the Availability section and in `CITATION.cff`.
+The `\todo` markers in the source are the list, and there is one left: the
+**Zenodo DOI**, in the Availability section and in `CITATION.cff`. It cannot be
+filled before the release exists, so it is not a writing task.
 
 Plus one that is not a `\todo` marker because it is a red placeholder in the
 author block: the **affiliation line** on the title page. The publishing guide
 suggests `Independent Researcher, City, Country` for an unaffiliated submission.
 An ORCID belongs there too, and Zenodo asks for one separately.
+
+The XGBoost citation, which used to be the item blocking publication, is filled.
+Section 1 quotes the review comment on
+[dmlc/xgboost#12485](https://github.com/dmlc/xgboost/pull/12485#issuecomment-5355357794)
+verbatim rather than paraphrasing it, and a footnote discloses that the author
+of this paper submitted the proposal that comment declined. The section also now
+cites [dmlc/xgboost#12459](https://github.com/dmlc/xgboost/issues/12459), an
+unrelated user's report of the same portability failure in the field, which is
+what turns the opening from an argument from the standard library sources into
+an argument with a witness.
 
 One thing on the list is not a repository task at all. The guide asks for at
 least one knowledgeable reader to go over the claims, citations, methodology,

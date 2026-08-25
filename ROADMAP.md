@@ -583,11 +583,13 @@ and whose state can be written on one platform and read on another.
 
       **Full draft in `paper/vphilox.tex`; see `paper/README.md` for what is still open.**
       Twelve sections, five figures, six tables, every number traced to an archived run.
-      **Two `\todo` markers remain**, and the one that blocks publication is the citation
-      for the upstream XGBoost discussion: the paper quotes its 10x figure and spends its
-      evaluation rebutting it, so it cannot go out without the thread URL. The other is
-      the Zenodo DOI. A third gap is a red placeholder rather than a `\todo`: the
-      affiliation line in the author block.
+      **One `\todo` marker remains**, for the Zenodo DOI, which cannot be filled before
+      the release exists. The XGBoost citation that used to block publication is in:
+      §1 quotes the review comment on dmlc/xgboost#12485 verbatim, discloses in a
+      footnote that this author submitted the proposal it declined, and cites
+      dmlc/xgboost#12459 as an unrelated user's report of the same failure in the field.
+      One gap is a red placeholder rather than a `\todo`: the affiliation line in the
+      author block.
 
       All four Phase 4 results are now folded in. §8.3 reports the instruction-supply
       measurement (#53), §8.4 the OpenMP runtime contrast (#52), §9.1 the cuRAND
