@@ -164,6 +164,19 @@ not just a byte stream. TestU01 ships under a non-permissive licence, so it is
 never vendored — the `vphilox_testu01` target simply does not exist unless the
 library is installed, and configure logs which case you are in.
 
+`tools/vphilox_curand_parity` is the third of these and follows the same
+optional-target rule: it exists only when the cuRAND headers are found, and
+**CUDA never becomes a dependency of the library.** It cross-checks the stream
+against NVIDIA cuRAND and documents the seeding mapping between them
+(`docs/curand-parity.md`) — cuRAND's `subsequence` is the counter's high 64
+bits, `offset / 4` the low 64, `offset % 4` a word index, so cuRAND's `offset`
+counts *words* where a vphilox counter counts *blocks of four*. It needs no GPU
+and no `nvcc`: cuRAND guards its decoration with `#if !defined(QUALIFIERS)`, so
+the tool compiles NVIDIA's reference implementation as host C++. Do not
+"upgrade" it to a real device build expecting a stronger result — the only
+target-dependent line in the generator is `mulhilo32`, whose host and device
+branches compute the same product.
+
 ```bash
 scripts/statistical/build_practrand.sh    # PractRand pre0.95 -> ~/.local/src
 scripts/statistical/build_testu01.sh      # TestU01 -> ~/.local
