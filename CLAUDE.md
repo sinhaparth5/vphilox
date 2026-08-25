@@ -141,7 +141,8 @@ The layering, bottom up:
 - `detail/kernel_avx2.hpp` — eight interleaved counters per `__m256i`,
   `[[gnu::target("avx2")]]` rather than a TU flag because the kernel lives in a
   header. `detail/kernel_avx512.hpp` interleaves sixteen counters per `__m512i`
-  and `detail/kernel_neon.hpp` four per `uint32x4_t`; both are real
+  and `detail/kernel_neon.hpp` four per `uint32x4_t` with two groups
+  interleaved per iteration; both are real
   implementations, verified on Sapphire Rapids / Skylake-SP and Cortex-A76.
 - `detail/cpu_features.hpp` — one-shot runtime CPU probe. The x86 path is a raw
   `CPUID` + `XGETBV` probe written once for every compiler (`__cpuidex` on MSVC,
@@ -178,10 +179,12 @@ not depend on how the caller chunks the request — that independence is what
 makes parity testing meaningful and lets the engine refill in any size. Kernels
 handle their own tails and must not assume `out` is aligned.
 `preferred_blocks` advertises the tail-free width: scalar 1, AVX2 8, AVX-512 16,
-NEON 4 — one counter per 32-bit lane in every case, which is what
-`docs/benchmarks/simd-lane-layout.md` settled. The AVX-512 and NEON figures are
-16 and 4 rather than the 8 and 2 originally planned; both plans underestimated
-the reachable lane count.
+NEON 8. On x86 that is one counter per 32-bit lane, which is what
+`docs/benchmarks/simd-lane-layout.md` settled, and both figures are double what
+was originally planned — those plans underestimated the reachable lane count.
+NEON is 8 for a different reason: four lanes per register, but two independent
+groups per iteration, because the Cortex-A76 kernel was latency-bound rather
+than width-bound (issue #89).
 
 ### Dispatch and the `implemented` flag
 
