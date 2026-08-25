@@ -3,6 +3,9 @@ name: CI
 on:
   push:
     branches: [master, main]
+    # Without this, the release-readiness job below is unreachable: its only
+    # guard is a tag ref, and a workflow with no tag trigger never sees one.
+    tags: ['v*']
   pull_request:
   workflow_dispatch:
 
@@ -99,12 +102,16 @@ jobs:
           cmake --build b
           ./b/app
 
+  # Runs only on a tag push. Everything here is a mistake that is expensive to
+  # undo once the tag is public and Zenodo has minted a DOI against it, and
+  # cheap to catch in the ninety seconds before that happens.
   version-check:
-    name: VERSION matches tag
+    name: release readiness
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
       - uses: actions/checkout@v4
+
       - name: Compare tag against the VERSION file
         run: |
           file_version="$(tr -d '[:space:]' < VERSION)"
@@ -113,6 +120,44 @@ jobs:
             echo "::error::tag $GITHUB_REF_NAME does not match VERSION ($file_version)"
             exit 1
           fi
+
+      # A tag whose changes are still filed under [Unreleased] ships a changelog
+      # that describes the previous release. VERSION alone does not catch it:
+      # 2026.08.0 sat in VERSION with its own dated section for the whole of
+      # Phases 2 through 4, so a tag matching VERSION could still have pointed
+      # at a section reading "there is no speedup yet".
+      - name: Changelog has a section for this version
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          if ! grep -qE "^## \[${version}\]" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md has no '## [${version}]' section"
+            exit 1
+          fi
+          # Body of [Unreleased], up to the next level-2 heading.
+          unreleased="$(awk '/^## \[Unreleased\]/{f=1;next} /^## /{f=0} f' CHANGELOG.md \
+                        | grep -v '^[[:space:]]*$' || true)"
+          if [ -n "$unreleased" ]; then
+            echo "::error::[Unreleased] is not empty; move it under [${version}] before tagging"
+            printf '%s\n' "$unreleased" | head -5
+            exit 1
+          fi
+
+      # The paper is part of what a release archives, and a placeholder that
+      # reaches a DOI stays there. \todo renders visibly in the PDF; the
+      # affiliation is a red \textcolor rather than a \todo, so grepping for
+      # \todo alone misses it.
+      - name: Paper has no unfilled placeholders
+        run: |
+          status=0
+          if grep -n '\\todo' paper/vphilox.tex; then
+            echo "::error file=paper/vphilox.tex::unresolved \\todo markers"
+            status=1
+          fi
+          if grep -n 'Affiliation: department' paper/vphilox.tex; then
+            echo "::error file=paper/vphilox.tex::affiliation placeholder still in the author block"
+            status=1
+          fi
+          exit "$status"
 
   format:
     name: clang-format
