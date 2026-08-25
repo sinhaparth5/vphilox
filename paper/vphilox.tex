@@ -146,6 +146,13 @@ dangerous: a reader that accepts 624 integers has no way to detect that it has
 been handed a differently ordered array, so the restore succeeds and the
 simulation continues from a state that is not the one that was saved.
 
+Neither defect is hypothetical. A model trained and serialized on Linux under
+XGBoost 3.3.0 was reported as failing to deserialize on Windows under the same
+library version, with the base mismatch surfacing as a hard
+error~\cite{xgboostbug}; the report rules out a version mismatch, a damaged
+file, and a locale difference in turn. That failure is the recoverable case.
+The layout defect is the one that does not announce itself.
+
 The failure is a consequence of serializing an implementation rather than a
 position. A Mersenne Twister state is a large array plus an index into it, and
 the array has no canonical form. A counter-based generator has no such array.
@@ -163,15 +170,16 @@ in what order they are scheduled.
 
 These properties are not new; they are the reason counter-based generators were
 proposed. What has kept them out of some CPU codebases is a performance
-objection. When Philox was proposed for the random number path of a widely used
-gradient boosting library, the proposal was declined with the observation that
-its throughput was one tenth that of \code{std::mt19937}, attributed to the
-absence of specialisation for wide integer multiplication on
-CPUs.\todo[inline]{Insert the citation for the upstream discussion: project,
-thread URL, and access date. Do not paraphrase the quoted figure without it.}
-That objection is the thing this work has to remove, and it sets the shape of
-the evaluation: the target is not to be the fastest generator available, but to
-make the portability properties cost nothing.
+objection. A proposal to make the serialized generator state of XGBoost, a
+widely used gradient boosting library, portable across platforms by replacing
+\code{std::mt19937} with a Philox engine was declined on throughput grounds:
+``[t]he performance here is 1/10 of mt. This is due to no specialisation for
+wide multiplies''~\cite{xgboostrng}.\footnote{The present author submitted that
+proposal. The measurements reported here were made afterwards, and
+\cref{sec:limitations} states the cases in which they do not support the
+design.} That objection is the thing this work has to remove, and it sets the
+shape of the evaluation: the target is not to be the fastest generator
+available, but to make the portability properties cost nothing.
 
 This paper makes four contributions.
 
@@ -1148,6 +1156,23 @@ NVIDIA Corporation,
 \textit{cuRAND Library Programming Guide},
 cuRAND 10.4.1, CUDA Toolkit 13.1.
 [Online]. Available: \url{https://docs.nvidia.com/cuda/curand/}
+
+\bibitem{xgboostbug}
+CharlesHMJr,
+``XGBoostError: input stream corrupted when unpickling a Linux-trained Booster
+on Windows (xgboost 3.3.0),''
+dmlc/xgboost issue \#12459, GitHub, Aug.~13, 2026.
+[Online]. Available: \url{https://github.com/dmlc/xgboost/issues/12459}
+(accessed Aug.~26, 2026).
+
+\bibitem{xgboostrng}
+R.~Mitchell,
+review comment on pull request \#12485,
+``Make the serialized RNG state portable across platforms,''
+dmlc/xgboost, GitHub, Aug.~20, 2026.
+[Online]. Available:
+\url{https://github.com/dmlc/xgboost/pull/12485#issuecomment-5355357794}
+(accessed Aug.~26, 2026).
 
 \end{thebibliography}
 
