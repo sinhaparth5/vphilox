@@ -20,7 +20,9 @@ particular) is a comparison worth *reporting* honestly, not a target to chase.
 Derived from `docs/VPhilox Development Phases.md` and
 `docs/Vector Philox Development Strategy.md`.
 
-**Status:** Phases 0-3 complete; Phase 4 complete except libpfm.
+**Status:** Phases 0-3 complete; Phase 4 complete except two measurements that
+need hardware — the instruction-cache study (harness ready, wants the pinned
+16-core host) and a cuRAND/GPU parity reference.
 Current version
 `2026.08.0` (see [VERSIONING.md](VERSIONING.md)).
 
@@ -435,7 +437,35 @@ and whose state can be written on one platform and read on another.
         identity check, because a `perf_event_open` counter measures the thread
         that opened it and OpenMP does not promise a stable thread-number-to-thread
         mapping across regions. Both report a skipped row rather than a number
-  - [ ] Instruction-cache miss rates via libpfm
+  - [~] Instruction-cache miss rates — harness done, measurement pending a host
+        worth quoting. `--perf-counters` on a scaling run gives per-worker
+        `icache_mpki` and `instructions_per_byte`, written to `<tag>-icache.json`
+        so an instruction-supply study never overwrites the throughput curve it
+        explains.
+    - [x] **Not libpfm, and not `--benchmark_perf_counters`.** Both were the
+          original plan and both are wrong here. Google Benchmark's counters
+          start and stop on the thread running the benchmark loop, which in this
+          pool-driven benchmark is the dispatcher — it blocks on a condition
+          variable while the workers do every instruction, so the numbers would
+          have been a near-empty thread on the `std::thread` path and one
+          worker's share on the OpenMP one, both looking like an aggregate. Per-
+          worker counters, summed as `cycle_counter` already is, are the only
+          shape that answers the question. That also removes the dependency:
+          retired instructions and L1 i-cache read misses are both generic
+          `perf_event_open` events, so libpfm is not needed at all
+    - [x] A denied PMU drops the counter rather than reporting a zero, and
+          `run_matrix.sh` exits non-zero if an `--perf-counters` run produced no
+          `icache_mpki`. An MPKI of 0.00 is a plausible answer to this question,
+          so it must never be what a missing PMU produces
+    - [x] `instructions_per_byte` doubles as the self-check: it is a property of
+          the kernel, so it must not move with thread count. Measured invariant
+          to six digits from 1 to 8 threads, and 0.00% CV across repetitions
+    - [ ] The measurement itself, on the pinned 16-core host from #51. The
+          question is narrow: #51 concluded the hyperthread knee is
+          execution-port contention, and the standing alternative is that two
+          workers on one core thrash a shared instruction cache, since these
+          kernels are large unrolled bodies. MPKI flat across the co-location
+          boundary excludes it; MPKI that climbs with it does not
 - [~] **Cross-platform bit parity** — same key and counter produce identical output on x86-64,
       aarch64, and (if reachable) a cuRAND/GPU reference. This is the reproducibility claim;
       it needs a test, not an assertion.

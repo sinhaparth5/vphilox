@@ -41,6 +41,19 @@
 // because the fixed spawn cost amortised better. With the pool, both columns
 // measure the same work.
 //
+// Instruction supply (#53) is measured on demand, not on every run. Set
+// VPHILOX_PERF_COUNTERS=1 and each worker also opens retired-instruction and
+// L1 i-cache-miss counters on itself, and the row gains `icache_mpki` and
+// `instructions_per_byte`. It is opt-in because the extra ioctl pair per
+// worker per iteration lands in wall time and so in `bytes_per_second`, and
+// the published scaling rows must not move because a diagnostic was added.
+//
+// The question it answers is narrow. #51 concluded the hyperthread knee is
+// execution-port contention; the standing alternative is that two workers on
+// one core thrash a shared instruction cache, since these kernels are large
+// unrolled bodies. MPKI flat across the co-location boundary excludes that,
+// and MPKI that climbs with it does not.
+//
 // One caveat remains. On x86 the counter is RDTSC, which counts reference
 // cycles rather than core cycles. Adding threads moves the turbo ceiling, so
 // on a machine without a pinned clock part of any movement in cycles/byte is
@@ -62,6 +75,7 @@
 #include <atomic>
 #include <condition_variable>
 #include <cstdint>
+#include <cstdlib>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -81,6 +95,17 @@
 namespace {
 
 using vphilox_bench::cycle_counter;
+using vphilox_bench::perf_counter;
+
+/// Opt-in instruction-supply counters (#53). Read once: getenv in the worker
+/// path would be a shared-state read inside the measured region.
+bool perf_counters_wanted() {
+    static const bool wanted = [] {
+        const char* v = std::getenv("VPHILOX_PERF_COUNTERS");
+        return v != nullptr && v[0] != '\0' && v[0] != '0';
+    }();
+    return wanted;
+}
 
 /// A fixed set of workers that outlive the benchmark loop.
 ///
@@ -192,6 +217,11 @@ void run_scaling(benchmark::State& state) {
     std::vector<std::thread::id> owners(threads);
     std::atomic<bool> migrated{false};
 
+    // Instruction supply, same per-worker ownership rule, same lifetime.
+    const bool want_perf = perf_counters_wanted();
+    std::vector<std::unique_ptr<perf_counter>> instrs(threads);
+    std::vector<std::unique_ptr<perf_counter>> imisses(threads);
+
     const std::function<void(std::size_t)> job = [&](std::size_t t) {
         if (!counters[t]) {
             counters[t] = std::make_unique<cycle_counter>();
@@ -201,12 +231,23 @@ void run_scaling(benchmark::State& state) {
         }
         auto& cycles = *counters[t];
 
+        if (want_perf && !instrs[t]) {
+            instrs[t]  = std::make_unique<perf_counter>();
+            imisses[t] = std::make_unique<perf_counter>();
+            instrs[t]->open(perf_counter::kind::instructions);
+            imisses[t]->open(perf_counter::kind::icache_misses);
+        }
+
         const auto start = vphilox::counter_advanced(
             vphilox::counter4{}, static_cast<vphilox::u64>(t) * (words / vphilox::block_words));
 
         vphilox::engine g{key, start};
         auto& buf = *buffers[t];
 
+        if (want_perf) {
+            instrs[t]->start();
+            imisses[t]->start();
+        }
         cycles.start();
         if constexpr (Mode == fill_mode::bulk) {
             g.generate_n(buf.data(), words);
@@ -214,6 +255,10 @@ void run_scaling(benchmark::State& state) {
             for (std::size_t i = 0; i < words; ++i) buf[i] = g();
         }
         cycles.stop();
+        if (want_perf) {
+            imisses[t]->stop();
+            instrs[t]->stop();
+        }
 
         benchmark::DoNotOptimize(buf.data());
     };
@@ -276,6 +321,34 @@ void run_scaling(benchmark::State& state) {
         label += std::string{", cycle_source="} + counters.front()->source();
     }
     state.counters["kib_per_thread"] = static_cast<double>(words * sizeof(vphilox::u32)) / 1024.0;
+
+    if (want_perf) {
+        std::uint64_t total_instr = 0;
+        std::uint64_t total_imiss = 0;
+        bool all_available        = true;
+        for (std::size_t t = 0; t < threads; ++t) {
+            if (!instrs[t] || !instrs[t]->available() || !imisses[t]->available()) {
+                all_available = false;
+                break;
+            }
+            total_instr += instrs[t]->raw();
+            total_imiss += imisses[t]->raw();
+        }
+        // A denied event reports nothing rather than a zero: an MPKI of 0.00
+        // is the answer this study is looking for, so it must never be what a
+        // missing PMU produces. `perf_event_paranoid` and VMs without a vPMU
+        // both land here.
+        if (!all_available || total_instr == 0) {
+            state.SetLabel(label + ", perf_counters=unavailable");
+            return;
+        }
+        state.counters["icache_mpki"] =
+            static_cast<double>(total_imiss) * 1000.0 / static_cast<double>(total_instr);
+        state.counters["instructions_per_byte"] =
+            static_cast<double>(total_instr) / static_cast<double>(bytes);
+        label += ", perf_counters=on";
+    }
+
     state.SetLabel(label);
 }
 

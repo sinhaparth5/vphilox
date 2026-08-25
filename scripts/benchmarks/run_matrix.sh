@@ -11,10 +11,19 @@
 #   scripts/benchmarks/run_matrix.sh --tag pi-arm --cpu 3
 #   scripts/benchmarks/run_matrix.sh --tag pi-arm --bench scaling
 #   scripts/benchmarks/run_matrix.sh --tag icelake --cpu 2 --repetitions 9
+#   scripts/benchmarks/run_matrix.sh --tag icelake --bench scaling --perf-counters
 #
 # --bench engines (default) runs the throughput matrix pinned to one CPU.
 # --bench scaling runs the thread-scaling curve, which needs every core, so it
 # is not pinned to a single CPU.
+#
+# --perf-counters adds per-worker instruction and L1 i-cache-miss counters to a
+# scaling run (#53) and writes to <tag>-icache.json instead, so an
+# instruction-supply study never overwrites the throughput curve it is
+# explaining. The extra ioctls land in wall time, which is why it is a separate
+# run rather than always on: `bytes_per_second` from a --perf-counters run is
+# not comparable with the published scaling numbers, and only `icache_mpki`
+# and `instructions_per_byte` should be quoted from it.
 #
 # The governor is forced to `performance` for the duration and restored on
 # exit, including on Ctrl-C. Results below this project's sub-1% cycles/byte
@@ -33,6 +42,7 @@ cpu=3
 repetitions=7
 min_time="1s"
 filter='.*'
+perf_counters=0
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -42,6 +52,7 @@ while [[ $# -gt 0 ]]; do
         --repetitions) repetitions="$2"; shift 2 ;;
         --min-time)    min_time="$2"; shift 2 ;;
         --filter)      filter="$2"; shift 2 ;;
+        --perf-counters) perf_counters=1; shift ;;
         *) echo "unknown option: $1" >&2; exit 2 ;;
     esac
 done
@@ -67,6 +78,18 @@ case "$bench" in
         ;;
     *) echo "unknown --bench: $bench (expected 'engines' or 'scaling')" >&2; exit 2 ;;
 esac
+
+if [[ "$perf_counters" == 1 ]]; then
+    if [[ "$bench" != "scaling" ]]; then
+        echo "--perf-counters applies to --bench scaling only" >&2
+        exit 2
+    fi
+    # A separate suffix, so the throughput curve and the instruction-supply
+    # study never land in the same file: their bytes_per_second columns are not
+    # comparable, and a reader cannot tell them apart from the JSON alone.
+    suffix="icache"
+    export VPHILOX_PERF_COUNTERS=1
+fi
 
 BENCH="$REPO/build/bench/benchmarks/$target"
 JSON="$OUTDIR/$tag-$suffix.json"
@@ -164,6 +187,7 @@ echo "==> capturing environment to $ENVFILE"
     echo "nproc: $(nproc 2>/dev/null || echo unknown)"
     echo "governor: $(cat "${GOV_PATHS[0]}" 2>/dev/null || echo unavailable)"
     echo "perf_event_paranoid: $(cat /proc/sys/kernel/perf_event_paranoid 2>/dev/null || echo n/a)"
+    echo "perf-counters: $([[ "$perf_counters" == 1 ]] && echo on || echo off)"
     # The write-ups quote a compiler version, and a benchmark number without one
     # is not reproducible: the same source on the same part gives different
     # results across GCC releases.
@@ -225,6 +249,20 @@ if ! grep -q '"cycles_per_byte"' "$JSON"; then
     exit 1
 fi
 
+# Same failure shape as above, one level up: with --perf-counters the whole
+# point of the run is icache_mpki, and a denied PMU drops the counter rather
+# than reporting a zero (bench_cycles.hpp is deliberate about that). A run that
+# lost it is not a quieter result, it is no result.
+if [[ "$perf_counters" == 1 ]] && ! grep -q '"icache_mpki"' "$JSON"; then
+    echo >&2
+    echo "ERROR: no icache_mpki in $JSON -- the perf counters did not run." >&2
+    echo "  perf_event_open was denied, or this host exposes no PMU. Try:" >&2
+    echo "    sudo sysctl -w kernel.perf_event_paranoid=1" >&2
+    echo "  Cloud instances frequently expose no vPMU at all, in which case" >&2
+    echo "  this study cannot be run on this host." >&2
+    exit 1
+fi
+
 # The binary stamps the resolved kernel into the JSON context, which is the one
 # fact the environment capture above cannot know: it runs before the benchmark,
 # and dispatch resolves inside it. Mirror it into the environment file so the
@@ -250,14 +288,26 @@ for b in rows:
         cv[name[:-3]] = b
 
 noisy = []
-print(f"{'benchmark':<42}{'cycles/byte':>13}{'GiB/s':>10}{'cv':>9}")
+# The MPKI columns only exist on a --perf-counters run; show them only then,
+# so the ordinary scaling table keeps its shape.
+has_mpki = any("icache_mpki" in b for b in med.values())
+head = f"{'benchmark':<42}{'cycles/byte':>13}{'GiB/s':>10}{'cv':>9}"
+if has_mpki:
+    head += f"{'i$ MPKI':>10}{'instr/B':>10}"
+print(head)
 for name, b in med.items():
     cpb = b.get("cycles_per_byte")
     gib = b.get("bytes_per_second", 0) / (1 << 30)
     c   = cv.get(name, {}).get("cycles_per_byte")
     cvs = f"{c*100:.2f}%" if c is not None else "n/a"
     cpbs = f"{cpb:.4f}" if cpb is not None else "n/a"
-    print(f"{name.replace('/real_time', ''):<42}{cpbs:>13}{gib:>10.3f}{cvs:>9}")
+    line = f"{name.replace('/real_time', ''):<42}{cpbs:>13}{gib:>10.3f}{cvs:>9}"
+    if has_mpki:
+        mpki = b.get("icache_mpki")
+        ipb  = b.get("instructions_per_byte")
+        line += f"{mpki:>10.3f}" if mpki is not None else f"{'n/a':>10}"
+        line += f"{ipb:>10.3f}" if ipb is not None else f"{'n/a':>10}"
+    print(line)
     if c is not None and c > 0.01:
         noisy.append((name, c))
 
