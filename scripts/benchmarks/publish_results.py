@@ -70,6 +70,13 @@ RUNS = {
     "sapphire-rapids-matrix":        ("Sapphire Rapids",   "avx512", "cloud; dedicated vCPU"),
     "sapphire-rapids-float-convert": ("Sapphire Rapids",   "avx512", "cloud; dedicated vCPU"),
     "skylake-sp-matrix":             ("Skylake-SP",        "avx512", "cloud; dedicated vCPU"),
+    "cascadelake-matrix":            ("Cascade Lake",      "avx512", "cloud; dedicated vCPU"),
+    # The three pinned-backend runs behind issue #27. Same binary, same CPU,
+    # VPHILOX_BACKEND forced -- so they are one measurement in three files and
+    # belong in a comparison, not on the cross-machine figures.
+    "cascadelake-scalar":            ("Cascade Lake",      "scalar", "cloud; dedicated vCPU"),
+    "cascadelake-avx2":              ("Cascade Lake",      "avx2",   "cloud; dedicated vCPU"),
+    "cascadelake-avx512":            ("Cascade Lake",      "avx512", "cloud; dedicated vCPU"),
     "avx2-baseline":                 ("Tiger Lake / AVX2", "avx2",   "harness validation: unpinned governor"),
     "bulk-generate-baseline":        ("Tiger Lake / AVX2", "avx2",   "harness validation: unpinned governor"),
     "avx512-baseline":               ("Ice Lake SP",       "scalar", "harness validation: 2-vCPU cloud VM"),
@@ -299,7 +306,7 @@ def legend(svg, x, y, entries, size=12):
 
 def plot_matrix_relative(runs, outdir):
     """Cycles/byte relative to std::mt19937, per machine. Lower is faster."""
-    tags = ["pi5-matrix", "sapphire-rapids-matrix", "skylake-sp-matrix"]
+    tags = ["pi5-matrix", "sapphire-rapids-matrix", "skylake-sp-matrix", "cascadelake-matrix"]
     tags = [t for t in tags if t in runs and t in PUBLISHABLE]
 
     series = []
@@ -366,7 +373,7 @@ def plot_generate_n_sweep(runs, outdir):
     """The refill-buffer crossover: cost per call size, relative to bulk."""
     # bulk-generate-baseline has the richest sweep but an unpinned governor, so
     # it is deliberately not here -- see the quality column in machines.csv.
-    tags = ["pi5-matrix", "sapphire-rapids-matrix", "skylake-sp-matrix"]
+    tags = ["pi5-matrix", "sapphire-rapids-matrix", "skylake-sp-matrix", "cascadelake-matrix"]
     tags = [t for t in tags if t in runs and t in PUBLISHABLE]
 
     series = []

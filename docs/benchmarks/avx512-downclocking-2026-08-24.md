@@ -24,6 +24,16 @@ Cloud VM, so steal time is invisible; CVs came in at 0.05-0.22%. The instance
 was deleted after the run. All 90 tests passed here, backend resolving to
 `avx512`.
 
+> **Qualified 2026-08-25.** Cascade Lake was measured and does not behave the
+> same — see
+> [`avx512-cascade-lake-2026-08-25.md`](avx512-cascade-lake-2026-08-25.md).
+> AVX-512 still wins there (1.56x AVX2), so nothing below changes the dispatch
+> decision, but it converts only 78% of the doubled lane width against the 92%
+> on this part. "No penalty" was true of the two parts measured here and is too
+> strong as a claim about the architecture. The light-tier argument below is
+> still why the effect is *small*; light tier means a smaller licence drop, not
+> none.
+
 ## The answer: no penalty
 
 `BM_vphilox_bulk`, same binary, backend pinned with `VPHILOX_BACKEND`:

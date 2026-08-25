@@ -5,16 +5,18 @@
 <text x="18" y="48" font-size="11" text-anchor="start" fill="#555555" font-weight="normal">1.0x is the raw kernel. Ratios within each machine, so the curves are comparable even though the cycles are not.</text>
 <line x1="78" y1="404" x2="630" y2="404" stroke="#d8d8d8" stroke-width="1"/>
 <text x="70" y="408" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">1.00x</text>
-<line x1="78" y1="346.86" x2="630" y2="346.86" stroke="#d8d8d8" stroke-width="1"/>
-<text x="70" y="350.86" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">1.25x</text>
-<line x1="78" y1="289.71" x2="630" y2="289.71" stroke="#d8d8d8" stroke-width="1"/>
-<text x="70" y="293.71" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">1.50x</text>
-<line x1="78" y1="232.57" x2="630" y2="232.57" stroke="#d8d8d8" stroke-width="1"/>
-<text x="70" y="236.57" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">1.75x</text>
-<line x1="78" y1="175.43" x2="630" y2="175.43" stroke="#d8d8d8" stroke-width="1"/>
-<text x="70" y="179.43" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">2.00x</text>
-<line x1="78" y1="118.29" x2="630" y2="118.29" stroke="#d8d8d8" stroke-width="1"/>
-<text x="70" y="122.29" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">2.25x</text>
+<line x1="78" y1="350.67" x2="630" y2="350.67" stroke="#d8d8d8" stroke-width="1"/>
+<text x="70" y="354.67" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">1.25x</text>
+<line x1="78" y1="297.33" x2="630" y2="297.33" stroke="#d8d8d8" stroke-width="1"/>
+<text x="70" y="301.33" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">1.50x</text>
+<line x1="78" y1="244" x2="630" y2="244" stroke="#d8d8d8" stroke-width="1"/>
+<text x="70" y="248" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">1.75x</text>
+<line x1="78" y1="190.67" x2="630" y2="190.67" stroke="#d8d8d8" stroke-width="1"/>
+<text x="70" y="194.67" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">2.00x</text>
+<line x1="78" y1="137.33" x2="630" y2="137.33" stroke="#d8d8d8" stroke-width="1"/>
+<text x="70" y="141.33" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">2.25x</text>
+<line x1="78" y1="84" x2="630" y2="84" stroke="#d8d8d8" stroke-width="1"/>
+<text x="70" y="88" font-size="11" text-anchor="end" fill="#555555" font-weight="normal">2.50x</text>
 <line x1="78" y1="404" x2="630" y2="404" stroke="#999999" stroke-width="1.5"/>
 <text x="92" y="426" font-size="11" text-anchor="middle" fill="#555555" font-weight="normal">8</text>
 <text x="172.62" y="426" font-size="11" text-anchor="middle" fill="#555555" font-weight="normal">32</text>
@@ -22,33 +24,42 @@
 <text x="374.15" y="426" font-size="11" text-anchor="middle" fill="#555555" font-weight="normal">1024</text>
 <text x="616" y="426" font-size="11" text-anchor="middle" fill="#555555" font-weight="normal">65536</text>
 <text x="354" y="450" font-size="12" text-anchor="middle" fill="#222222" font-weight="normal">words per generate_n call</text>
-<polyline points="92,317.26 172.62,352.18 293.54,397.68 374.15,401.68 616,403.98" fill="none" stroke="#1f4e79" stroke-width="2" stroke-linejoin="round"/>
-<circle cx="92" cy="317.26" r="3" fill="#1f4e79"/>
-<circle cx="172.62" cy="352.18" r="3" fill="#1f4e79"/>
-<circle cx="293.54" cy="397.68" r="3" fill="#1f4e79"/>
-<circle cx="374.15" cy="401.68" r="3" fill="#1f4e79"/>
+<polyline points="92,323.04 172.62,355.63 293.54,398.1 374.15,401.83 616,403.98" fill="none" stroke="#1f4e79" stroke-width="2" stroke-linejoin="round"/>
+<circle cx="92" cy="323.04" r="3" fill="#1f4e79"/>
+<circle cx="172.62" cy="355.63" r="3" fill="#1f4e79"/>
+<circle cx="293.54" cy="398.1" r="3" fill="#1f4e79"/>
+<circle cx="374.15" cy="401.83" r="3" fill="#1f4e79"/>
 <circle cx="616" cy="403.98" r="3" fill="#1f4e79"/>
-<line x1="78" y1="282.8" x2="630" y2="282.8" stroke="#1f4e79" stroke-width="1" stroke-dasharray="5 4"/>
-<polyline points="92,242.91 172.62,344.26 293.54,388.72 374.15,399.8 616,403.85" fill="none" stroke="#c0504d" stroke-width="2" stroke-linejoin="round"/>
-<circle cx="92" cy="242.91" r="3" fill="#c0504d"/>
-<circle cx="172.62" cy="344.26" r="3" fill="#c0504d"/>
-<circle cx="293.54" cy="388.72" r="3" fill="#c0504d"/>
-<circle cx="374.15" cy="399.8" r="3" fill="#c0504d"/>
-<circle cx="616" cy="403.85" r="3" fill="#c0504d"/>
-<line x1="78" y1="155.8" x2="630" y2="155.8" stroke="#c0504d" stroke-width="1" stroke-dasharray="5 4"/>
-<polyline points="92,194.35 172.62,322.08 293.54,384.63 374.15,399.21 616,405.22" fill="none" stroke="#3f8f4f" stroke-width="2" stroke-linejoin="round"/>
-<circle cx="92" cy="194.35" r="3" fill="#3f8f4f"/>
-<circle cx="172.62" cy="322.08" r="3" fill="#3f8f4f"/>
-<circle cx="293.54" cy="384.63" r="3" fill="#3f8f4f"/>
-<circle cx="374.15" cy="399.21" r="3" fill="#3f8f4f"/>
-<circle cx="616" cy="405.22" r="3" fill="#3f8f4f"/>
-<line x1="78" y1="90.96" x2="630" y2="90.96" stroke="#3f8f4f" stroke-width="1" stroke-dasharray="5 4"/>
+<line x1="78" y1="290.88" x2="630" y2="290.88" stroke="#1f4e79" stroke-width="1" stroke-dasharray="5 4"/>
+<polyline points="92,253.65 172.62,348.24 293.54,389.74 374.15,400.08 616,403.86" fill="none" stroke="#c0504d" stroke-width="2" stroke-linejoin="round"/>
+<circle cx="92" cy="253.65" r="3" fill="#c0504d"/>
+<circle cx="172.62" cy="348.24" r="3" fill="#c0504d"/>
+<circle cx="293.54" cy="389.74" r="3" fill="#c0504d"/>
+<circle cx="374.15" cy="400.08" r="3" fill="#c0504d"/>
+<circle cx="616" cy="403.86" r="3" fill="#c0504d"/>
+<line x1="78" y1="172.35" x2="630" y2="172.35" stroke="#c0504d" stroke-width="1" stroke-dasharray="5 4"/>
+<polyline points="92,208.33 172.62,327.54 293.54,385.92 374.15,399.53 616,405.13" fill="none" stroke="#3f8f4f" stroke-width="2" stroke-linejoin="round"/>
+<circle cx="92" cy="208.33" r="3" fill="#3f8f4f"/>
+<circle cx="172.62" cy="327.54" r="3" fill="#3f8f4f"/>
+<circle cx="293.54" cy="385.92" r="3" fill="#3f8f4f"/>
+<circle cx="374.15" cy="399.53" r="3" fill="#3f8f4f"/>
+<circle cx="616" cy="405.13" r="3" fill="#3f8f4f"/>
+<line x1="78" y1="111.83" x2="630" y2="111.83" stroke="#3f8f4f" stroke-width="1" stroke-dasharray="5 4"/>
+<polyline points="92,207.26 172.62,318.03 293.54,385.58 374.15,399.13 616,404.3" fill="none" stroke="#8064a2" stroke-width="2" stroke-linejoin="round"/>
+<circle cx="92" cy="207.26" r="3" fill="#8064a2"/>
+<circle cx="172.62" cy="318.03" r="3" fill="#8064a2"/>
+<circle cx="293.54" cy="385.58" r="3" fill="#8064a2"/>
+<circle cx="374.15" cy="399.13" r="3" fill="#8064a2"/>
+<circle cx="616" cy="404.3" r="3" fill="#8064a2"/>
+<line x1="78" y1="102" x2="630" y2="102" stroke="#8064a2" stroke-width="1" stroke-dasharray="5 4"/>
 <rect x="654" y="87" width="9" height="9" fill="#1f4e79" fill-opacity="1"/>
 <text x="669" y="96" font-size="12" text-anchor="start" fill="#222222" font-weight="normal">Pi 5 / NEON</text>
 <rect x="654" y="106" width="9" height="9" fill="#c0504d" fill-opacity="1"/>
 <text x="669" y="115" font-size="12" text-anchor="start" fill="#222222" font-weight="normal">Sapphire Rapids</text>
 <rect x="654" y="125" width="9" height="9" fill="#3f8f4f" fill-opacity="1"/>
 <text x="669" y="134" font-size="12" text-anchor="start" fill="#222222" font-weight="normal">Skylake-SP</text>
-<text x="654" y="169" font-size="10" text-anchor="start" fill="#555555" font-weight="normal">dashed: operator() through</text>
-<text x="654" y="183" font-size="10" text-anchor="start" fill="#555555" font-weight="normal">the refill buffer</text>
+<rect x="654" y="144" width="9" height="9" fill="#8064a2" fill-opacity="1"/>
+<text x="669" y="153" font-size="12" text-anchor="start" fill="#222222" font-weight="normal">Cascade Lake</text>
+<text x="654" y="188" font-size="10" text-anchor="start" fill="#555555" font-weight="normal">dashed: operator() through</text>
+<text x="654" y="202" font-size="10" text-anchor="start" fill="#555555" font-weight="normal">the refill buffer</text>
 </svg>
