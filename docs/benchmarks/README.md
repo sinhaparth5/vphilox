@@ -165,8 +165,17 @@ as a percentage, bytes/second, median wall time, and which counter supplied the
 cycles.
 
 `raw/machines.csv` — one row per archived run: label, resolved backend,
-measurement quality, CPU, nominal MHz, cycle source, date, commit, governor,
+measurement quality, CPU, reported MHz, cycle source, date, commit, governor,
 compiler, and the verbatim command.
+
+**`reported_mhz` is not a machine specification.** It is Google Benchmark's
+`mhz_per_cpu`, the clock it observed when the run started, so on a machine with
+a scaling governor at idle it can read an order of magnitude low: two Tiger Lake
+runs say 400 and 421 MHz for a part whose base clock is 3100, next to sibling
+runs of the same host on the same day saying 3090 and 3100. Nothing derived
+depends on it — cycles/byte comes from RDTSC or `perf_event_open` inside the
+benchmark, never from this column — so it is provenance, not input. For a
+host's actual clock, read the write-up.
 
 **Read the `quality` column before quoting a number.** Four archived runs do
 not meet the bar in `CLAUDE.md` — an unpinned governor puts a moving turbo
