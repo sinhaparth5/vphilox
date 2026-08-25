@@ -11,11 +11,18 @@ later is a preamble change plus `\bibliography{refs}`.
 ## Build
 
 ```bash
-pdflatex vphilox.tex
-pdflatex vphilox.tex        # second pass resolves \cref
+./build.sh                  # -> vphilox.pdf, 15 pages
 ```
 
-That is the whole build. The figures are **not** duplicated into this
+`vphilox.pdf` is **tracked**, so the paper can be read without a TeX install.
+That only works if a rebuild with unchanged sources produces an unchanged file,
+so `build.sh` pins `SOURCE_DATE_EPOCH`: without it, pdftex stamps the wall
+clock into the PDF and `\today` moves the title-page date, and every rebuild
+churns 300 KB of binary diff for no content change. Bump `PAPER_DATE` in
+`build.sh` when the draft is revised.
+
+Plain `pdflatex vphilox.tex` twice works too and produces the same pages; it
+just is not byte-reproducible, so prefer `build.sh` for anything you commit. The figures are **not** duplicated into this
 directory: `\graphicspath` falls back to `../docs/benchmarks/plots/`, which is
 tracked, so a fresh clone compiles all five figures with no staging step.
 
