@@ -36,6 +36,8 @@ Lake result, this supports treating that slowdown as external context rather
 than a project result. An AVX-512 measurement is still needed to complete
 issue #9.
 
-The source artifacts are
-[`results/pi-arm-baseline.json`](../../results/pi-arm-baseline.json) and
-[`results/pi-arm-environment.txt`](../../results/pi-arm-environment.txt).
+The source artifact is
+[`results/pi-arm-baseline.json`](../../results/pi-arm-baseline.json). This run
+predates `run_matrix.sh`, so no environment file was captured beside it; the
+environment table above is the whole provenance record. Every archived run from
+`pi-arm-matrix` onwards has a `-environment.txt` next to its JSON.
