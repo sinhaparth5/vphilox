@@ -60,7 +60,7 @@ whenever a table is added.
 
 | Paper | Source |
 |---|---|
-| `tab:machines` | `docs/benchmarks/raw/machines.csv` |
+| `tab:machines` | `docs/benchmarks/raw/machines.csv`, except the MHz column — see below |
 | `tab:matrix` (relative matrix) | `docs/benchmarks/raw/*-matrix.csv`, five hosts |
 | `tab:avx512` (AVX-512 vs AVX2) | `docs/benchmarks/avx512-downclocking-2026-08-24.md` |
 | `tab:icache` (instruction supply) | `docs/benchmarks/icache-placement-tigerlake-2026-08-25.md` |
@@ -72,6 +72,13 @@ whenever a table is added.
 | `sec:placement` | `docs/benchmarks/scaling-cascade-lake-2026-08-25.md` |
 | `sec:stat` (statistics) | `docs/statistical-validation.md`, `results/practrand/`, `results/testu01/` |
 | `sec:curand` | `docs/curand-parity.md`, `results/curand/` |
+
+The one column not taken from the CSV is `tab:machines`'s MHz, which carries
+each host's nominal clock. `machines.csv` has a `reported_mhz` column, but that
+is Google Benchmark's reading of the clock at run start rather than a machine
+specification, and on an idle laptop it reads an order of magnitude low. The
+table's figures come from the per-host write-ups instead; see
+`docs/benchmarks/README.md`.
 
 The two new tables are tables and not figures on purpose. Both are two-arm
 contrasts of four numbers, which a plot makes harder to read rather than easier,

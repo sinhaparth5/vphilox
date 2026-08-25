@@ -1,4 +1,4 @@
-tag,label,backend,quality,arch,cpu,nominal_mhz,cycle_source,date,commit,governor,compiler,command
+tag,label,backend,quality,arch,cpu,reported_mhz,cycle_source,date,commit,governor,compiler,command
 avx2-baseline,Tiger Lake / AVX2,avx2,harness validation: unpinned governor,x86_64,11th Gen Intel(R) Core(TM) i5-11300H @ 3.10GHz,4400,rdtsc,2026-08-23T09:50:31+01:00,,,g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0,
 avx512-baseline,Ice Lake SP,scalar,harness validation: 2-vCPU cloud VM,x86_64,Intel(R) Xeon(R) CPU @ 2.60GHz,2600,rdtsc,2026-08-22T09:54:10+00:00,,,,
 bulk-generate-baseline,Tiger Lake / AVX2,avx2,harness validation: unpinned governor,x86_64,11th Gen Intel(R) Core(TM) i5-11300H @ 3.10GHz,4400,rdtsc,2026-08-23T11:06:10+01:00,,,,

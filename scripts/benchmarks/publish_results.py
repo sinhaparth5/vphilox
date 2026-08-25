@@ -281,7 +281,16 @@ def write_csvs(runs, outdir):
     path = os.path.join(rawdir, "machines.csv")
     with open(path, "w", encoding="utf-8", newline="\n") as fh:
         w = csv.writer(fh, lineterminator="\n")
-        w.writerow(["tag", "label", "backend", "quality", "arch", "cpu", "nominal_mhz",
+        # reported_mhz, not nominal_mhz. This is Google Benchmark's mhz_per_cpu,
+        # which is the clock it observed when the run started -- on a machine
+        # with a scaling governor at idle that is nowhere near the nominal rate.
+        # The archive has two Tiger Lake runs reading 400 and 421 MHz for a part
+        # whose base clock is 3100, alongside sibling runs of the same host on
+        # the same day reading 3090 and 3100. Nothing derived depends on it,
+        # because cycles/byte comes from RDTSC inside the benchmark, but the
+        # column was named as though it were a machine specification and it is
+        # not one.
+        w.writerow(["tag", "label", "backend", "quality", "arch", "cpu", "reported_mhz",
                     "cycle_source", "date", "commit", "governor", "compiler", "command"])
         for tag, run in sorted(runs.items()):
             ctx, env = run["context"], run["env"]
