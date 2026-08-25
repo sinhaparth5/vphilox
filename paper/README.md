@@ -11,20 +11,23 @@ later is a preamble change plus `\bibliography{refs}`.
 ## Build
 
 ```bash
-./stage-figures.sh          # copies the published figure PDFs into figures/
 pdflatex vphilox.tex
-pdflatex vphilox.tex        # second pass resolves \cref and the TOC
+pdflatex vphilox.tex        # second pass resolves \cref
 ```
+
+That is the whole build. The figures are **not** duplicated into this
+directory: `\graphicspath` falls back to `../docs/benchmarks/plots/`, which is
+tracked, so a fresh clone compiles all five figures with no staging step.
+
+`./stage-figures.sh` copies them into `figures/` and is needed only for arXiv,
+which wants a flat directory. It runs `publish_results.py --check` first, so a
+stale figure fails loudly instead of ending up in the submission. `figures/` is
+gitignored because those copies are generated; the tracked originals live under
+`docs/`.
 
 Builds clean: 15 pages, zero errors, zero overfull boxes, zero undefined
 references. `acmart` is not installed, which is the other half of why this is
 `article` (see below).
-
-The figures come from `docs/benchmarks/plots/`, which is **generated** by
-`scripts/benchmarks/publish_results.py` from the JSON in `results/`.
-`stage-figures.sh` runs that script in `--check` mode before copying, so a
-stale figure fails loudly instead of ending up in the paper. `figures/` is
-gitignored for the same reason: the checked-in copy lives under `docs/`.
 
 ## Where the numbers come from
 
