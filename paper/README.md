@@ -85,6 +85,19 @@ contrasts of four numbers, which a plot makes harder to read rather than easier,
 and adding them to `publish_results.py` would put two more byte-reproducible
 SVG/PDF pairs under CI's `--check` for no gain in legibility.
 
+## Where it goes when it is done
+
+[`docs/publishing-guide.md`](../docs/publishing-guide.md) has the route. The
+short version: Zenodo archives the software and its data, TechRxiv hosts the
+manuscript and supplies its DOI, and arXiv comes last because submitting there
+requires an endorsement that is easier to get once the preprint and the software
+DOI already exist. Do not post the manuscript to Zenodo as well, or one paper
+ends up with two competing DOIs.
+
+arXiv wants the LaTeX source rather than a locally built PDF, which is what
+`./stage-figures.sh` is for: run it, then submit `vphilox.tex` plus
+`figures/*.pdf` as a flat directory.
+
 ## What is still open
 
 The `\todo` markers in the source are the list, and there are two left:
@@ -97,7 +110,14 @@ The `\todo` markers in the source are the list, and there are two left:
 2. **Zenodo DOI**, in the Availability section and in `CITATION.cff`.
 
 Plus one that is not a `\todo` marker because it is a red placeholder in the
-author block: the **affiliation line** on the title page.
+author block: the **affiliation line** on the title page. The publishing guide
+suggests `Independent Researcher, City, Country` for an unaffiliated submission.
+An ORCID belongs there too, and Zenodo asks for one separately.
+
+One thing on the list is not a repository task at all. The guide asks for at
+least one knowledgeable reader to go over the claims, citations, methodology,
+figures and language before the preprint is posted. Nothing in CI substitutes for
+that.
 
 Three earlier entries are closed. The PractRand release is pinned to
 `PractRand-pre0.95` with the SourceForge project URL; the cuRAND reference is

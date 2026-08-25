@@ -19,20 +19,23 @@
 
 vphilox is a small C++20 library for simulations, tests, games, data tools, and
 other programs that need a lot of random numbers. Give it the same seed and it
-produces the same results — on another compiler, another operating system,
+produces the same results on another compiler, another operating system,
 another CPU, and whether the work runs on one thread or sixty-four. You can
 write a generator's position to a file and pick it up somewhere else, jump to
 any point in a stream in constant time, and hand every worker its own stream
 without locks. It is also quick: on a machine with AVX-512 it generates numbers
 several times faster than `std::mt19937`.
 
-> vphilox is still in early development, but all four backends are now real and
-> verified on hardware: scalar, AVX2, AVX-512 and NEON. Against `std::mt19937`
-> on the raw kernel, AVX-512 measures 4.6x on Skylake-SP and 2.6x on Sapphire
-> Rapids, and AVX2 measures 2.4x on Coffee Lake. NEON is the exception at 0.89x
-> -- the one target where vphilox is still behind. Every backend produces the
+> vphilox has not been tagged yet, so the API may still change. The bit stream is
+> frozen regardless: for a given key and counter it produces the same bytes now
+> and in every later release. All four backends are implemented and verified on
+> hardware, and filling a buffer runs at 1.3x to 4.6x the throughput of
+> `std::mt19937` across the five CPUs benchmarked. The low end of that range is a
+> Raspberry Pi 5 under NEON; drawing one value at a time on that machine is
+> 0.87x, the one place where vphilox comes out behind. Every backend produces the
 > same bytes, checked against the published Random123 vectors and pinned by a
-> digest test across five CPUs. Follow the work in the [roadmap](ROADMAP.md).
+> digest test. PractRand runs clean to a terabyte and TestU01 BigCrush passes all
+> 160 statistics. Follow the work in the [roadmap](ROADMAP.md).
 
 ## What it gives you
 
@@ -87,10 +90,22 @@ random.generate(block);                     // or: random.generate_n(ptr, count)
 ```
 
 This produces exactly the same numbers, in the same order, as calling
-`random()` a million times, and leaves the generator in the same place — you
-can mix the two styles on one engine. On a machine with AVX2 it runs about
-1.7 times faster than the one-at-a-time loop. Ask for a few hundred values or
-more to get the full benefit.
+`random()` a million times, and leaves the generator in the same place, so you
+can mix the two styles on one engine. It runs 1.5 to 2.4 times faster than the
+one-at-a-time loop, and the faster the machine's kernel, the wider that gap
+gets. Ask for a few hundred values or more to get the full benefit.
+
+## Where it stands against other generators
+
+On four of the five CPUs benchmarked, xoshiro256++ costs less per byte than
+vphilox does. The exception is Skylake-SP, where the bulk path comes in at
+0.4210 cycles per byte against xoshiro's 0.4703. xoshiro is a latency-bound
+scalar chain that a wider kernel does not catch, and it offers none of what this
+library is for: a checkpoint that survives a change of standard library,
+constant-time seek, and output that does not depend on thread count. Speed here
+only has to be good enough that portability costs nothing. The full table,
+including PCG64 and unspecialised Philox, is in
+[`docs/benchmarks/README.md`](docs/benchmarks/README.md).
 
 ## Using it from several threads
 
@@ -109,21 +124,33 @@ one shared generator.
 
 For reproducible jobs, keep the worker-to-seed mapping stable between runs.
 
+Size the pool by physical cores rather than by `hardware_concurrency()`. Cost per
+byte stays flat out to sixteen cores when each worker gets its own core, but two
+workers sharing one core's hyperthread siblings each lose about a third of their
+throughput. The kernel is execution-port-bound, so the siblings are competing for
+the same ports; measurements ruling out memory bandwidth, frequency, and
+instruction supply as the cause are in
+[`docs/benchmarks/`](docs/benchmarks/README.md).
+
 ## Saving and restoring a generator
 
 A long job that checkpoints needs to write its generator down and pick it up
-later — sometimes on a different machine. That is the one thing
-`std::mt19937` cannot do: each standard library writes its 624 internal numbers
-differently, so a checkpoint written on Linux fails to load on Windows, and on
-macOS it loads silently wrong.
+later, sometimes on a different machine. That is the one thing `std::mt19937`
+cannot do: each standard library writes its 624 internal numbers differently, so
+a checkpoint written on Linux fails to load on Windows, and on macOS it loads
+silently wrong.
 
-vphilox writes a position instead — a key and how far along the stream you are:
+vphilox writes a position instead, meaning a key and how far along the stream
+you are:
 
 ```cpp
 #include <vphilox/serialize.hpp>
 
+vphilox::engine random{42};
+for (int i = 0; i < 1000; ++i) (void)random();
+
 std::ostringstream out;
-out << random;                  // "vphilox1 3735928559 0 100 0 0 0 0"
+out << random;                  // "vphilox1 42 0 250 0 0 0 0"
 
 vphilox::engine restored;
 std::istringstream in{out.str()};
@@ -143,10 +170,10 @@ same output. That makes it easy to split a large job into independent pieces or
 resume at a known position.
 
 Philox calculations are also independent of one another, so vphilox processes
-several at once with the vector instructions on modern CPUs: eight counters at
-a time under AVX2, sixteen under AVX-512, four under NEON. The plain scalar
-path is the reference that every faster path must match bit for bit, and a test
-checks that it does on every CPU the library runs on.
+several at once with the vector instructions on modern CPUs: eight counters at a
+time under AVX2, sixteen under AVX-512, and eight under NEON as two groups of
+four. The plain scalar path is the reference that every faster path must match
+bit for bit, and a test checks that it does on every CPU the library runs on.
 
 ## Add vphilox to a project
 
@@ -222,10 +249,17 @@ across compiler versions, CPU types, and future vphilox releases.
 `tests/test_reference_vectors.cpp` checks the scalar engine against the
 published Random123 values. `tests/test_kernel_parity.cpp` checks that each SIMD
 backend gives the same answer, including requests that do not fill a complete
-vector register.
+vector register. `tests/test_cross_platform_parity.cpp` folds 8191 blocks into a
+digest and compares it with a constant, which covers what the published vectors
+cannot: SIMD tails, the refill buffer, chunked bulk calls, the counter carry
+chain, and float conversion.
 
-Long statistical runs with PractRand and TestU01 are planned for Phase 4. They
-have not been completed yet.
+The stream has also been through the two standard batteries.
+[PractRand](docs/statistical-validation.md) reported no anomalies over a
+terabyte of output, and all four backends produced that terabyte byte for byte.
+TestU01 BigCrush passed all 160 statistics. A third check compares the stream
+against NVIDIA cuRAND and writes down the seeding mapping between the two
+libraries, in [`docs/curand-parity.md`](docs/curand-parity.md).
 
 ## Repository map
 
@@ -234,16 +268,25 @@ include/vphilox/          Public headers
 include/vphilox/detail/   Scalar and SIMD backends, CPU checks, dispatch
 tests/                    GoogleTest correctness tests
 benchmarks/               Google Benchmark programs
-tools/                    Raw output tool for statistical testing
+tools/                    Raw stream, TestU01 driver, cuRAND cross-check
+scripts/                  Benchmark harness and statistical battery runners
+results/                  Archived benchmark JSON and battery logs
 docs/                     Theory, research, plans, and recorded results
+paper/                    The LaTeX write-up and its figures
 ```
 
 The technical background lives in the documentation:
 
 - [How Philox and vphilox work](docs/vPhilox%20theory.md)
+- [Measured results, figures, and the rules they follow](docs/benchmarks/README.md)
+- [Statistical validation](docs/statistical-validation.md)
 - [Research and prior work](docs/Research%20on%20vPhilox.md)
 - [Development strategy](docs/Vector%20Philox%20Development%20Strategy.md)
 - [Current roadmap](ROADMAP.md)
+
+Benchmarks are run through `scripts/benchmarks/run_matrix.sh` rather than by
+hand. It pins the governor, records provenance beside the numbers, and refuses a
+run whose cycles-per-byte varies by more than 1%.
 
 ## Versioning
 
@@ -257,10 +300,18 @@ Start with [`CONTRIBUTING.md`](CONTRIBUTING.md). New behavior needs a focused
 test. New SIMD code must pass the shared parity checks and should include
 benchmark results in both cycles per byte and GB/s.
 
-## Reference
+## Citing vphilox
 
-J. K. Salmon, M. A. Moraes, R. O. Dror, and D. E. Shaw. *Parallel Random
-Numbers: As Easy as 1, 2, 3.* SC'11.
+[`CITATION.cff`](CITATION.cff) holds the machine-readable record; GitHub turns it
+into BibTeX or APA from the "Cite this repository" button on the sidebar.
+
+The generator itself is not ours. It comes from J. K. Salmon, M. A. Moraes,
+R. O. Dror, and D. E. Shaw, *Parallel Random Numbers: As Easy as 1, 2, 3*, SC'11,
+[doi:10.1145/2063384.2063405](https://doi.org/10.1145/2063384.2063405). Cite that
+paper for Philox and cite vphilox for this implementation.
+
+The write-up of the design and the measurements is in
+[`paper/`](paper/README.md).
 
 ## License
 

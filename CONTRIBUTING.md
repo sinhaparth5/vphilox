@@ -27,7 +27,8 @@ enforces this against the published vectors; if it fails, the change is wrong.
 
 ## Adding a SIMD kernel
 
-This is Phase 2, and the scaffolding is already in place.
+Scalar, AVX2, AVX-512 and NEON are all implemented. A fifth kernel (SVE, say)
+follows the same five steps.
 
 1. Implement `generate()` in the kernel header, replacing the scalar
    fallthrough.
@@ -108,8 +109,21 @@ bespoke checks.
 Report cycles per byte alongside GB/s. GB/s is not comparable across machines,
 and the claims this project makes are cycle-level claims.
 
-Benchmark on a quiet machine with frequency scaling pinned. A 10% swing between
-runs on a laptop is thermal, not algorithmic.
+Run them through the harness rather than by hand:
+
+```bash
+scripts/benchmarks/run_matrix.sh --tag <machine> --cpu <isolated-cpu>
+```
+
+It rebuilds first, pins the governor and restores it on exit, writes a
+provenance file next to the JSON, and exits non-zero if any row moves more than
+1% between repetitions. A stale `build/` will otherwise run a months-old binary
+and print a plausible table. A 10% swing between runs on a laptop is thermal,
+not algorithmic, and the CV check is there to catch it.
+
+`docs/benchmarks/README.md` explains why cross-machine figures plot ratios
+measured inside each machine, and why a cloud VM is fine for correctness but not
+for throughput.
 
 ## Versioning
 

@@ -25,9 +25,11 @@ study is measured — a bare-metal Tiger Lake laptop cleared the co-location gat
 that no earlier host could — and the cuRAND cross-check is done without needing
 a GPU at all. **Phase 5 is under way:** the paper in `paper/` is a complete
 draft with every Phase 4 result folded in, and the changelog covers Phases 2
-through 4. What is left needs things this repository cannot produce on its own —
-the XGBoost thread URL, an affiliation, a Zenodo DOI, an arXiv submission, a
-tag, and vcpkg/Conan packaging.
+through 4. What is left needs things this repository cannot produce on its own:
+the XGBoost thread URL, an affiliation, a tag, a Zenodo DOI, a TechRxiv
+preprint, an arXiv endorsement, and vcpkg/Conan packaging. The route through
+those services, and the reason for their order, is in
+[`docs/publishing-guide.md`](docs/publishing-guide.md).
 
 Current version
 `2026.08.0` (see [VERSIONING.md](VERSIONING.md)).
@@ -50,7 +52,7 @@ Not in the original five-phase plan, but nothing else can start without it.
 - [x] GitHub Actions CI (build + test matrix)
 - [x] `.clang-format`, `CONTRIBUTING.md`, `CHANGELOG.md`, `CITATION.cff`
 - [x] License story settled — dual MIT/Apache-2.0 per the docs; SPDX headers on every source file
-- [ ] README badges once CI has run at least once on the remote
+- [x] README badges once CI has run at least once on the remote
 
 ---
 
@@ -637,12 +639,21 @@ and whose state can be written on one platform and read on another.
   - [x] **Portable-state analysis** — §1, §3 and §9.1. The failure mode, the counter-based
         answer, and now an external check that the answer interoperates: 16/16 cases identical
         against NVIDIA cuRAND, with the seeding mapping documented in `docs/curand-parity.md`
-- [ ] arXiv preprint (cs.PF / cs.MS)
-- [ ] Zenodo DOI for the repository
-- [ ] Tag and publish `sinhaparth5/vphilox`
-- [x] `CITATION.cff` for one-click BibTeX
+The publishing route is written down in
+[`docs/publishing-guide.md`](docs/publishing-guide.md), and the order matters:
+Zenodo archives the *software*, TechRxiv hosts the *paper*, and arXiv comes last
+because it needs an endorsement that is easier to obtain once the preprint and
+the DOI both exist. The same manuscript must not go to both Zenodo and TechRxiv,
+or one paper ends up with two competing DOIs.
+
+- [ ] Tag and publish `sinhaparth5/vphilox` — everything below depends on it
+- [ ] Zenodo DOI for the tagged release (software archive, not the manuscript)
 - [ ] Update `CITATION.cff` with the DOI once Zenodo assigns one
-- [ ] Package for vcpkg and Conan
+- [ ] TechRxiv preprint (IEEE-operated, moderated, supplies the paper's DOI)
+- [ ] arXiv preprint (cs.PF primary, cs.MS secondary) once endorsed
+- [x] `CITATION.cff` for one-click BibTeX
+- [ ] Package for vcpkg and Conan — needs the release tarball URL and hash, so
+      it cannot start before the tag
 - [x] Release notes in `CHANGELOG.md` — `[Unreleased]` now covers the whole of Phases 2
       through 4: the serialized state, all three SIMD kernels, the cuRAND cross-check, the
       per-worker counters and placement gate, the figure pipeline, the cross-platform
