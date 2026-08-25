@@ -49,7 +49,16 @@ foreach(src IN LISTS VPHILOX_TEST_SOURCES)
     if(NOT MSVC)
         target_compile_options(${name} PRIVATE -Wall -Wextra -Wpedantic)
     endif()
-    gtest_discover_tests(${name})
+    # PRE_TEST, not the POST_BUILD default. The default enumerates a test
+    # binary by running it as a build step, and on the macOS arm64 runner that
+    # intermittently comes back with an empty test list, failing the build with
+    # a JSON parse error on an empty string. It hit a different binary each
+    # time, so it is the mechanism rather than any one test: ninja runs the
+    # freshly linked executables concurrently, and on macOS the loader does not
+    # always have them ready. PRE_TEST defers enumeration to ctest, which
+    # removes the race and also stops a cross-compiled or unsupported binary
+    # from being executed at build time at all.
+    gtest_discover_tests(${name} DISCOVERY_MODE PRE_TEST)
 endforeach()
 
 # The vendored benchmark generators (issue #48). third_party is SYSTEM so that
