@@ -311,3 +311,52 @@ TEST(BulkGenerateFloat, ConversionWidthsAgreeBitForBit) {
     GTEST_SKIP() << "AVX2 not compiled in";
 #endif
 }
+
+// The sixteen-lane variant has to clear the same bar. It is gated on the
+// kernel's f+dq probe rather than on avx512f alone, so this skips exactly where
+// the AVX-512 kernel would not run.
+TEST(BulkGenerateFloat, Avx512ConversionAgreesBitForBit) {
+#if VPHILOX_HAS_AVX512
+    if (!detail::detect_cpu().avx512) GTEST_SKIP() << "no AVX-512 on this CPU";
+
+    constexpr std::size_t n = 4096 + 5;  // deliberately not a vector multiple
+    std::vector<u32> src(n);
+    engine g{0xABCDull};
+    g.generate(std::span<u32>{src});
+
+    std::vector<float> baseline(n), wide(n);
+    detail::to_float01_n_baseline(src.data(), baseline.data(), n);
+    detail::to_float01_n_avx512(src.data(), wide.data(), n);
+
+    EXPECT_EQ(baseline, wide);
+#else
+    GTEST_SKIP() << "AVX-512 not compiled in";
+#endif
+}
+
+// The conversion is now derived from the resolved backend rather than from a
+// second CPU probe, so the two cannot disagree. This is the test that says so:
+// whatever backend the kernels picked, the converter must be that backend's
+// variant -- a scalar-pinned run converting sixteen lanes at a time would be
+// measuring something nobody asked for.
+TEST(BulkGenerateFloat, ConversionFollowsTheResolvedBackend) {
+    const detail::float_convert_fn fn = detail::resolve_float_convert();
+
+    switch (active_backend()) {
+#if VPHILOX_HAS_AVX512
+        case backend::avx512:
+            EXPECT_EQ(fn, &detail::to_float01_n_avx512);
+            break;
+#endif
+#if VPHILOX_HAS_AVX2
+        case backend::avx2:
+            EXPECT_EQ(fn, &detail::to_float01_n_avx2);
+            break;
+#endif
+        // NEON lands here on purpose: it is baseline on aarch64, so the
+        // baseline loop already vectorises and there is no clone to select.
+        default:
+            EXPECT_EQ(fn, &detail::to_float01_n_baseline);
+            break;
+    }
+}

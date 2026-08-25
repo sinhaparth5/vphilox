@@ -200,7 +200,30 @@ the copy now takes 53% of that path, up from 35%. Callers get the ARM win throug
         `VPHILOX_TARGET("avx2")` — and selects at runtime like the kernels do
   - [x] Bulk float API to consume it: `generate_n(float*, n)` / `generate(std::span<float>)`,
         equivalent to the same number of `next_float()` calls, ~2x that path
-  - [ ] AVX-512 / NEON variants — blocked on #24 and #28, not on hardware access
+  - [x] AVX-512 variant — a third clone under `VPHILOX_TARGET("avx512f")`. Verified to emit
+        the sixteen-lane form (`vpsrld $9 / vpord / vaddps / vmovups %zmm`) on GCC 15, which
+        is worth checking because vector width is a *tune* decision and a target attribute
+        does not change the tune. `avx512f` alone suffices — the `dq` subset the kernel needs
+        is not required for a shift, an or and a subtract
+  - [x] No NEON variant, and that is the answer rather than a gap: NEON is baseline on
+        aarch64, so the consumer's own translation unit already compiles the plain loop to
+        `ushr`/`orr`/`fsub`. The ISA gap this file exists to close does not exist there
+  - [x] The converter is now **derived from the resolved backend** instead of repeating the
+        CPU probe, so the two cannot disagree. That also fixed a latent inconsistency:
+        `VPHILOX_BACKEND=neon` on x86 gave the AVX2 kernel and the *baseline* converter
+  - [x] Measured on Sapphire Rapids
+        ([`float-conversion-widths-2026-08-25.md`](docs/benchmarks/float-conversion-widths-2026-08-25.md)).
+        At `float_tile_words` — the 256-word chunk `generate_n` actually converts — AVX-512
+        is **1.89x** the baseline conversion and 1.68x AVX2; at a 32 MiB footprint, 3.19x
+        and 1.76x. In between, at a 512 KiB L2-resident footprint, all three sit within 8%:
+        that regime is bandwidth-bound and the width is irrelevant there
+    - [x] The conversion is a small term either way — 0.039 cycles/byte against an AVX-512
+          kernel at roughly 0.25. The case for the variant is that it costs one attribute
+          and a branch already being taken, not that it moves the headline
+    - [x] A GCC 12 consumer at `-O2` gets **scalar** conversion from every variant: the
+          target attribute pins the ISA but not the vectoriser, and GCC 12's `-O2` cost
+          model rejects this loop. `-O3` gives `%ymm`/`%zmm` as intended, and GCC 15
+          vectorises at `-O2`. Header-only means the consumer's flags decide
   - [ ] Decide whether to fuse conversion into the kernels and remove the second pass.
         Needs a frequency-pinned host: this laptop put the cost anywhere between 10% and 26%
 - [x] MSVC CPU detection (`__cpuidex` leaf 7 + `XGETBV` OS-state check) — no longer stubbed to `false`.

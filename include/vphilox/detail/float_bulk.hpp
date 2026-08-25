@@ -25,6 +25,11 @@
 // The conversion is elementwise and branch-free, so every width produces
 // bit-identical output. Which variant runs is a speed decision, never a stream
 // decision.
+//
+// There is no NEON clone, and that is not an omission. NEON is baseline on
+// aarch64, so the consumer's translation unit already compiles the plain loop
+// to ushr/orr/fsub over uint32x4_t -- the ISA gap this file exists to close
+// does not exist there. A VPHILOX_TARGET("neon") attribute would be inert.
 
 #ifndef VPHILOX_DETAIL_FLOAT_BULK_HPP
 #define VPHILOX_DETAIL_FLOAT_BULK_HPP
@@ -52,22 +57,58 @@ inline void to_float01_n_avx2(const u32* src, float* dst, std::size_t n) noexcep
 }
 #endif
 
-/// Resolve the conversion once per process.
+#if VPHILOX_HAS_AVX512
+/// The identical loop again at sixteen lanes.
 ///
-/// Gated on the same CPU probe and the same VPHILOX_BACKEND override as the
-/// kernels: pinning a backend has to pin the whole path, or a benchmark that
-/// says "scalar" would still be converting eight lanes at a time.
+/// The shift, the or and the subtract are all avx512f; the dq subset the
+/// AVX-512 *kernel* needs is not required here. The gate below is still the
+/// kernel's f+dq probe, because the two paths resolving to different backends
+/// on the same CPU would be worse than converting eight lanes on the vanishing
+/// set of machines that have f without dq.
+///
+/// Checked rather than assumed: GCC 15 at -O2 compiles this to
+///
+///     vpsrld $9, (%rdi,%rax), %zmm0 / vpord / vaddps / vmovups %zmm0
+///
+/// which is the sixteen-lane form of the AVX2 sequence above. It is worth
+/// checking because vector width is a tuning decision, not a target one -- GCC
+/// tunes some Skylake-derived -mtune values to prefer-vector-width=256, and a
+/// compiler that does so here emits the ymm sequence instead. That degrades to
+/// a second copy of the AVX2 variant: still bit-identical, just not faster. No
+/// test can catch it, because every width produces the same floats by
+/// construction.
+VPHILOX_TARGET("avx512f")
+inline void to_float01_n_avx512(const u32* src, float* dst, std::size_t n) noexcept {
+    for (std::size_t i = 0; i < n; ++i) dst[i] = to_float01(src[i]);
+}
+#endif
+
+/// Resolve the conversion once per process, from the backend the kernels
+/// already resolved to.
+///
+/// Deriving it rather than repeating the probe is what guarantees the two can
+/// never disagree: pinning VPHILOX_BACKEND has to pin the whole path, or a run
+/// that says "scalar" would still be converting sixteen lanes at a time. It
+/// also inherits dispatch's handling of an override naming a backend this CPU
+/// does not have, which the previous hand-rolled check got subtly wrong --
+/// VPHILOX_BACKEND=neon on x86 gave the AVX2 kernel and the baseline
+/// converter.
 inline float_convert_fn resolve_float_convert() noexcept {
     static const float_convert_fn fn = []() -> float_convert_fn {
-#if VPHILOX_HAS_AVX2
-        bool has_override    = false;
-        const backend forced = backend_override(has_override);
-        if (has_override && forced != backend::avx2 && forced != backend::avx512) {
-            return &to_float01_n_baseline;
-        }
-        if (detect_cpu().avx2) return &to_float01_n_avx2;
+        switch (active_backend()) {
+#if VPHILOX_HAS_AVX512
+            case backend::avx512:
+                return &to_float01_n_avx512;
 #endif
-        return &to_float01_n_baseline;
+#if VPHILOX_HAS_AVX2
+            case backend::avx2:
+                return &to_float01_n_avx2;
+#endif
+            // scalar, and neon -- where the baseline loop already is the NEON
+            // loop, because NEON is not an optional ISA on aarch64.
+            default:
+                return &to_float01_n_baseline;
+        }
     }();
     return fn;
 }
