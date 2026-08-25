@@ -1,0 +1,9 @@
+benchmark,cycles_per_byte,cycles_per_byte_cv_pct,bytes_per_second,median_time_ns,cycle_source
+BM_thread_scaling_bulk/1/65536/real_time,0.508398,0.0626,5304905811.5,0.049,rdtsc
+BM_thread_scaling_bulk/2/65536/real_time,0.516493,0.9131,10185493434.3,0.051,rdtsc
+BM_thread_scaling_bulk/4/65536/real_time,0.620471,2.7408,14911549256.9,0.070,rdtsc
+BM_thread_scaling_bulk/8/65536/real_time,0.807579,2.0787,16290511976.5,0.129,rdtsc
+BM_thread_scaling_omp_bulk/1/65536/real_time,0.508562,0.1421,6054920832.2,0.043,rdtsc
+BM_thread_scaling_omp_bulk/2/65536/real_time,0.508587,0.0691,11946446968.1,0.044,rdtsc
+BM_thread_scaling_omp_bulk/4/65536/real_time,0.510225,0.4051,23337593610.4,0.045,rdtsc
+BM_thread_scaling_omp_bulk/8/65536/real_time,0.912570,0.2921,22842219280.9,0.092,rdtsc

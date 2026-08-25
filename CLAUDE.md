@@ -92,8 +92,10 @@ scripts/benchmarks/run_matrix.sh --tag <machine> --bench scaling   # unpinned; n
 scripts/benchmarks/run_matrix.sh --tag <machine> --bench scaling --perf-counters  # i-cache study
 ```
 
-The placement study that #53 needs is `run_placement.sh`, which runs one
-worker count under two placements and compares `icache_mpki`:
+The placement study #53 needed is `run_placement.sh`, which runs one worker
+count under two placements and compares `icache_mpki`. **It has now run** — on a
+bare-metal Tiger Lake laptop, the only host on record that clears its gate — so
+re-run it only on new hardware:
 
 ```bash
 scripts/benchmarks/run_placement.sh --tag <machine>          # bare metal only
@@ -340,7 +342,7 @@ passing all 160 statistics (`docs/statistical-validation.md`).
 `ROADMAP.md` tracks phases and `docs/` holds the theory, research, and recorded
 benchmark runs.
 
-Three measured results worth not re-deriving. The ~10x
+Four measured results worth not re-deriving. The ~10x
 scalar-Philox-vs-mt19937 slowdown from the literature did **not** reproduce on
 any machine measured here (`docs/benchmarks/baseline-2026-08-21.md`). The
 refill buffer now costs ~109% of bulk throughput on AVX-512, ~42% on AVX2 and
@@ -354,3 +356,16 @@ that tracks footprint per socket. Advise callers to size pools by physical
 cores, not `hardware_concurrency()`. Frequency was excluded by direct
 measurement rather than argument (`scripts/benchmarks/freq_probe.cpp`), which
 also retired the open AVX-512 licence hypothesis from issue #27.
+
+The fourth closes that knee out on both remaining alternatives, measured on a
+bare-metal Tiger Lake laptop after no earlier host could control placement.
+**Instruction supply is not the mechanism** — co-location costs +59% cycles/byte
+while i-cache MPKI *falls* 36%, because both siblings run the identical kernel
+so sharing one L1i is constructive
+(`docs/benchmarks/icache-placement-tigerlake-2026-08-25.md`). **And the flat
+scaling result is the generator, not this project's worker pool** — libgomp
+reproduces it at 1.000/1.000/1.003x to one thread per physical core, where the
+`std::thread` pool drifts to 1.220x because its dispatcher is an extra thread
+once the workers own every core
+(`docs/benchmarks/openmp-runtime-tigerlake-2026-08-25.md`). Do not re-run either
+on a VM; both needed the co-location gate to pass first.

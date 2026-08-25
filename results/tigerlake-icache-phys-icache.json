@@ -1,0 +1,128 @@
+{
+  "context": {
+    "date": "2026-08-25T20:32:32+01:00",
+    "host_name": "parthsinha",
+    "executable": "/home/parthsinha/Documents/vphilox/build/bench/benchmarks/bench_scaling",
+    "num_cpus": 8,
+    "mhz_per_cpu": 421,
+    "cpu_scaling_enabled": false,
+    "caches": [
+      {
+        "type": "Data",
+        "level": 1,
+        "size": 49152,
+        "num_sharing": 2
+      },
+      {
+        "type": "Instruction",
+        "level": 1,
+        "size": 32768,
+        "num_sharing": 2
+      },
+      {
+        "type": "Unified",
+        "level": 2,
+        "size": 1310720,
+        "num_sharing": 2
+      },
+      {
+        "type": "Unified",
+        "level": 3,
+        "size": 8388608,
+        "num_sharing": 8
+      }
+    ],
+    "load_avg": [2.18652,3.10059,3.98242],
+    "library_version": "v1.9.0",
+    "library_build_type": "release",
+    "json_schema_version": 1,
+    "vphilox_backend": "avx512",
+    "vphilox_version": "2026.08.0"
+  },
+  "benchmarks": [
+    {
+      "name": "BM_thread_scaling_bulk/4/65536/real_time_mean",
+      "family_index": 0,
+      "per_family_instance_index": 0,
+      "run_name": "BM_thread_scaling_bulk/4/65536/real_time",
+      "run_type": "aggregate",
+      "repetitions": 7,
+      "threads": 1,
+      "aggregate_name": "mean",
+      "aggregate_unit": "time",
+      "iterations": 7,
+      "real_time": 8.3703197488554051e-02,
+      "cpu_time": 5.1264798379821739e-03,
+      "time_unit": "ms",
+      "bytes_per_second": 1.2552823076173635e+10,
+      "cycles_per_byte": 5.1664924801387480e-01,
+      "icache_mpki": 2.1138224861829089e-01,
+      "instructions_per_byte": 9.5855356320941487e-01,
+      "kib_per_thread": 2.5600000000000000e+02,
+      "label": "avx512, runtime=std::thread, cycle_source=rdtsc, perf_counters=on"
+    },
+    {
+      "name": "BM_thread_scaling_bulk/4/65536/real_time_median",
+      "family_index": 0,
+      "per_family_instance_index": 0,
+      "run_name": "BM_thread_scaling_bulk/4/65536/real_time",
+      "run_type": "aggregate",
+      "repetitions": 7,
+      "threads": 1,
+      "aggregate_name": "median",
+      "aggregate_unit": "time",
+      "iterations": 7,
+      "real_time": 8.2541926496604440e-02,
+      "cpu_time": 5.1288205354887611e-03,
+      "time_unit": "ms",
+      "bytes_per_second": 1.2703556174487103e+10,
+      "cycles_per_byte": 5.1601449026246060e-01,
+      "icache_mpki": 2.1083574112511855e-01,
+      "instructions_per_byte": 9.5855357966720534e-01,
+      "kib_per_thread": 2.5600000000000000e+02,
+      "label": "avx512, runtime=std::thread, cycle_source=rdtsc, perf_counters=on"
+    },
+    {
+      "name": "BM_thread_scaling_bulk/4/65536/real_time_stddev",
+      "family_index": 0,
+      "per_family_instance_index": 0,
+      "run_name": "BM_thread_scaling_bulk/4/65536/real_time",
+      "run_type": "aggregate",
+      "repetitions": 7,
+      "threads": 1,
+      "aggregate_name": "stddev",
+      "aggregate_unit": "time",
+      "iterations": 7,
+      "real_time": 4.2120276398042332e-03,
+      "cpu_time": 1.2701874892343510e-04,
+      "time_unit": "ms",
+      "bytes_per_second": 5.9207519739850903e+08,
+      "cycles_per_byte": 3.4629996623985865e-03,
+      "icache_mpki": 3.2261155425257985e-03,
+      "instructions_per_byte": 4.2583615083203337e-08,
+      "kib_per_thread": 0.0000000000000000e+00,
+      "label": "avx512, runtime=std::thread, cycle_source=rdtsc, perf_counters=on"
+    },
+    {
+      "name": "BM_thread_scaling_bulk/4/65536/real_time_cv",
+      "family_index": 0,
+      "per_family_instance_index": 0,
+      "run_name": "BM_thread_scaling_bulk/4/65536/real_time",
+      "run_type": "aggregate",
+      "repetitions": 7,
+      "threads": 1,
+      "aggregate_name": "cv",
+      "aggregate_unit": "percentage",
+      "iterations": 7,
+      "real_time": 5.0320988518750491e-02,
+      "cpu_time": 2.4776991802903641e-02,
+      "time_unit": "ms",
+      "bytes_per_second": 4.7166696591328522e-02,
+      "cycles_per_byte": 6.7028059669324951e-03,
+      "icache_mpki": 1.5261998410999225e-02,
+      "instructions_per_byte": 4.4424867547959976e-08,
+      "kib_per_thread": 0.0000000000000000e+00,
+      "label": "avx512, runtime=std::thread, cycle_source=rdtsc, perf_counters=on"
+    }
+  ]
+}
