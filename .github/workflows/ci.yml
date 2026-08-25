@@ -133,10 +133,12 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check docs/benchmarks/ is current
         run: |
-          # The CSVs and SVGs under docs/benchmarks/ are generated from the raw
-          # JSON in results/, so a run archived without regenerating them leaves
-          # published figures that disagree with the data behind them. The
-          # script is standard-library only and takes under a second.
+          # The CSVs, SVGs and PDFs under docs/benchmarks/ are generated from
+          # the raw JSON in results/, so a run archived without regenerating
+          # them leaves published figures that disagree with the data behind
+          # them. The script is standard-library only and takes under a second.
+          # --check does not look at the PNGs: they are rasterisations of the
+          # SVGs it does check, and no two rasterisers agree byte-for-byte.
           python3 scripts/benchmarks/publish_results.py --check
 
   # TODO(phase-4): a scheduled job running PractRand for a few hours on the

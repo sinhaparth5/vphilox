@@ -69,7 +69,7 @@ aggregate cycles per byte, nine repetitions:
 | `0-31` — every logical CPU | 16 | 0.6649 | 0.6108 |
 | | 32 | 0.6154 | 1.1195 |
 
-![Thread placement](plots/scaling-placement.svg)
+![Thread placement](plots/scaling-placement.png)
 
 ### The generator scales linearly to sixteen cores
 
