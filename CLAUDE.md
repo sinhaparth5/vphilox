@@ -293,6 +293,14 @@ to make it pass.
 - `.clang-format` is authoritative and CI-enforced: Google base, 4-space indent,
   100 columns, left-aligned pointers, consecutive-assignment alignment (chosen
   so a botched lane index in intrinsic code is visible at a glance).
+  **The version is pinned to 21.1.8 and that matters as much as the config.**
+  clang-format is not stable across major versions: 18 (what `ubuntu-24.04`
+  ships) and 21 disagree on the short block after the `#pragma omp parallel` in
+  `bench_scaling.cpp`, and no source text satisfies both, so an unpinned check
+  enforces the runner image rather than `.clang-format`. CI installs the pin
+  into a venv; `CLANG_FORMAT_VERSION` at the top of `.github/workflows/ci.yml`
+  is the only place the number is written. If a format failure looks absurd,
+  check `clang-format --version` before changing any code.
 - `snake_case` files and functions; PascalCase GoogleTest names like
   `TEST(Counter, CarriesAcrossEveryWord)`.
 - Comments explain *why* — a note naming the lane layout or the reason for a

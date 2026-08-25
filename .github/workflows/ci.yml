@@ -10,6 +10,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # The one place the formatter version is written down. See the format job.
+  CLANG_FORMAT_VERSION: "21.1.8"
+
 jobs:
   build:
     name: ${{ matrix.name }}
@@ -115,8 +119,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      # Pinned, not the runner's. clang-format is not version-stable: 18 (what
+      # ubuntu-24.04 ships) and 21 disagree on a short block following a
+      # `#pragma omp`, so an unpinned check enforces whichever version GitHub
+      # last baked into the image rather than enforcing .clang-format. The pin
+      # tracks what developers run locally; bump it deliberately, in a commit
+      # that also reformats whatever the new version changes its mind about.
+      - name: Install the pinned clang-format
+        run: |
+          python3 -m venv /tmp/clang-format-venv
+          /tmp/clang-format-venv/bin/pip install --quiet \
+            clang-format==${{ env.CLANG_FORMAT_VERSION }}
+          echo "/tmp/clang-format-venv/bin" >> "$GITHUB_PATH"
+
       - name: Check formatting
         run: |
+          clang-format --version
           # Vendored code lives one level down inside third_party/ (issue #48)
           # and is skipped: reformatting it would destroy the hashes in
           # benchmarks/third_party/README.md, which are the only thing making

@@ -55,6 +55,43 @@ correctly on a CPU that lacks the instructions, falling back at runtime.
 
 `.clang-format` is authoritative; CI checks it.
 
+**Use clang-format 21.1.8.** The version matters as much as the config file:
+clang-format is not stable across major versions, and 18 and 21 disagree on a
+short block following a `#pragma omp` in `benchmarks/bench_scaling.cpp`. There
+is no source text that satisfies both, so a check run against whatever version
+the distribution happens to ship is a coin flip rather than an enforcement of
+`.clang-format`. CI installs the pin explicitly; `CLANG_FORMAT_VERSION` at the
+top of `.github/workflows/ci.yml` is the single place it is written down.
+
+If your distribution ships something else, get the pinned build from PyPI
+rather than fighting the packaged one:
+
+```bash
+python3 -m venv ~/.local/clang-format
+~/.local/clang-format/bin/pip install clang-format==21.1.8
+~/.local/clang-format/bin/clang-format --version   # expect 21.1.8
+```
+
+Check and fix, the same commands CI runs:
+
+```bash
+find include tests benchmarks tools \
+  \( -name '*.hpp' -o -name '*.cpp' \) -not -path '*/third_party/*/*' \
+  | xargs clang-format --dry-run --Werror   # check
+find include tests benchmarks tools \
+  \( -name '*.hpp' -o -name '*.cpp' \) -not -path '*/third_party/*/*' \
+  | xargs clang-format -i                   # fix
+```
+
+Vendored code one level down inside `third_party/` is excluded on purpose:
+reformatting it would destroy the hashes in `benchmarks/third_party/README.md`,
+which are the only thing making its provenance checkable. Files directly in
+`third_party/` are ours and stay checked.
+
+Bumping the pin is fine, but do it deliberately, in a commit that also applies
+whatever the new version reformats. Do not bump it as a side effect of an
+unrelated change.
+
 Beyond formatting: comments explain *why*, not *what*. The intrinsic sequences
 in the kernels are dense by necessity — a comment naming the lane layout or the
 reason for a particular shuffle is worth more than a comment restating the
