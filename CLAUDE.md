@@ -92,6 +92,21 @@ scripts/benchmarks/run_matrix.sh --tag <machine> --bench scaling   # unpinned; n
 scripts/benchmarks/run_matrix.sh --tag <machine> --bench scaling --perf-counters  # i-cache study
 ```
 
+The placement study that #53 needs is `run_placement.sh`, which runs one
+worker count under two placements and compares `icache_mpki`:
+
+```bash
+scripts/benchmarks/run_placement.sh --tag <machine>          # bare metal only
+```
+
+It reads the sibling map from sysfs rather than assuming an enumeration, and
+**it gates on a measured co-location penalty before it will run anything**: two
+workers on one core's siblings must cost at least 15% more cycles/byte than two
+on separate cores, or it aborts. That gate is the whole point. A VM publishes a
+correct sibling map and accepts every `taskset` mask while the hypervisor places
+vCPUs itself, so both arms silently become the same placement — see the VM rule
+above.
+
 `--perf-counters` adds per-worker retired-instruction and L1 i-cache-miss
 counters (#53) and writes `<tag>-icache.json` rather than `<tag>-scaling.json`.
 Keep the two apart: the extra ioctls land in wall time, so **only `icache_mpki`
