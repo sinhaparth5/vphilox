@@ -125,15 +125,54 @@ the submission. Follow the [official submission guide](https://info.arxiv.org/he
 ## 6. Submit for Peer Review
 
 Preprints are not the end state; none of the services above provides review.
-Candidate venues, given what the paper argues:
+The venue is **IEEE Transactions on Parallel and Distributed Systems (TPDS)**,
+chosen on cost. Submit through
+[ScholarOne](https://mc.manuscriptcentral.com/tpds-cs) as a **Regular Paper**;
+TPDS does not accept survey or comment-style submissions.
 
-- **ACM TOMACS** — the traditional home for random number generation work.
-- **ACM TOMS** — mathematical software, and a natural fit for a header-only
-  library with a reproducibility argument.
-- **SoftwareX** — fast and software-first, with a shorter format.
-- **IEEE TPDS** — what `paper/vphilox.tex` is already formatted for.
+### Why TPDS and not TOMACS
 
-Check each venue's preprint policy before submitting. All four permit preprints,
-but confirm rather than assume, and note that posting a preprint does not itself
-constitute peer-reviewed publication. A manuscript under review is also a
-stronger thing to tell a prospective endorser than a preprint link alone.
+ACM TOMACS is the better fit on scope — its charter names "random number
+generators and testing" outright — and it runs a Replicated Computational
+Results initiative whose badges this repository is unusually well prepared to
+earn, since `run_matrix.sh` records provenance and gates on CV,
+`publish_results.py --check` regenerates every figure in CI, and every
+PractRand and TestU01 log carries a git SHA.
+
+It was ruled out on price. ACM became a fully open-access publisher on
+1 January 2026 and retired the subscription track, so an accepted TOMACS paper
+carries a mandatory APC. The 2026 subsidised rate is reported as $250 for
+ACM/SIG members and $350 otherwise, but that subsidy is announced in terms of
+conferences and a separate source quotes $1,450 for journals, so the real
+number is unconfirmed. ACM's discretionary waiver policy states explicitly that
+being an independent researcher without an institutional affiliation is not by
+itself a demonstration of financial hardship, so no waiver is available here.
+
+TPDS is hybrid: the traditional, non-open-access track carries no APC. Author-
+paid open access exists as an option and is not needed. The paper is also
+already written in IEEEtran, so no conversion is required.
+
+The cost of the free route is time rather than money. TPDS scope is parallel and
+distributed systems, and a desk rejection on fit would cost a month or two and
+force the venue choice again.
+
+### Two constraints before submitting
+
+- **Twelve pages.** TPDS caps review versions at 12 pages, and
+  `paper/vphilox.pdf` is exactly 12. Overlength charges on the accepted version
+  are mandatory and non-negotiable, so a reviewer asking for one more experiment
+  is what turns a free submission into a paid one. Trim to 11 first.
+- **Lead with the parallel result.** As drafted, the paper's spine is portable
+  serialized state and single-threaded throughput, with the parallel material in
+  section 8. For TPDS the contribution has to be the parallel-systems claim:
+  streams that are bit-identical regardless of thread count and scheduling,
+  O(1) seek, and checkpoints that survive moving between machines in a
+  heterogeneous cluster. The hyperthreading result — the multi-core knee is
+  execution-port contention rather than the memory system, with frequency
+  excluded by direct measurement rather than argument — is the most TPDS-shaped
+  finding in the paper and should not sit two thirds of the way in.
+
+IEEE permits preprints on arXiv and other repositories; after acceptance the
+posted version must carry the IEEE copyright notice. Posting to Zenodo first
+does not compromise the submission, and a manuscript under review is a stronger
+thing to tell a prospective arXiv endorser than a preprint link alone.
