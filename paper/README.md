@@ -35,7 +35,7 @@ churns 300 KB of binary diff for no content change. Bump `PAPER_DATE` in
 Plain `pdflatex vphilox.tex` twice works too and produces the same pages; it
 just is not byte-reproducible, so prefer `build.sh` for anything you commit. The figures are **not** duplicated into this
 directory: `\graphicspath` falls back to `../docs/benchmarks/plots/`, which is
-tracked, so a fresh clone compiles all five figures with no staging step.
+tracked, so a fresh clone compiles all four figures with no staging step.
 
 `./stage-figures.sh` copies them into `figures/` and is needed only for arXiv,
 which wants a flat directory. It runs `publish_results.py --check` first, so a
@@ -71,7 +71,8 @@ whenever a table is added.
 | `tab:avx512` (AVX-512 vs AVX2) | `results/{sapphire-rapids,skylake-sp}-matrix.json`, pinned-backend runs |
 | `tab:icache` (instruction supply) | `docs/benchmarks/raw/tigerlake-icache-{phys,ht}-icache.csv` |
 | `tab:runtimes` (threading runtimes) | `docs/benchmarks/raw/tigerlake-omp-l1-{default,passive}-scaling.csv` |
-| `fig:matrix`, `fig:sweep`, `fig:floatwidths` | `plots/matrix-relative`, `generate-n-sweep`, `float-conversion-widths` |
+| `fig:matrix`, `fig:sweep` | `plots/matrix-relative`, `generate-n-sweep` |
+| `sec:float` (conversion widths) | `docs/benchmarks/raw/*float-conversion*` — quoted inline; the figure itself is published under `docs/` but is not in the manuscript |
 | `fig:scaling` (thread scaling) | `docs/benchmarks/raw/pi-arm-scaling.csv` |
 | `fig:placement` | `docs/benchmarks/raw/cascadelake-32v-placement-*.csv` |
 | `sec:neon` (NEON unroll) | `docs/benchmarks/raw/pi5-matrix.csv`, `pi-arm-matrix.csv` |
@@ -97,11 +98,13 @@ SVG/PDF pairs under CI's `--check` for no gain in legibility.
 ## Where it goes when it is done
 
 [`docs/publishing-guide.md`](../docs/publishing-guide.md) has the route. The
-short version: Zenodo archives the software and its data, TechRxiv hosts the
-manuscript and supplies its DOI, and arXiv comes last because submitting there
-requires an endorsement that is easier to get once the preprint and the software
-DOI already exist. Do not post the manuscript to Zenodo as well, or one paper
-ends up with two competing DOIs.
+short version: Zenodo archives the software and its data under one record and
+the manuscript under a second, related one, and arXiv comes last because
+submitting there requires an endorsement. TechRxiv was the intended host for the
+manuscript and closed its submissions in August 2026. The two Zenodo records
+must be linked by a relation (`IsDocumentedBy` / `IsSupplementTo`); what to avoid
+is two competing DOIs for the *same* artifact, not a software record and a paper
+record.
 
 arXiv wants the LaTeX source rather than a locally built PDF, which is what
 `./stage-figures.sh` is for: run it, then submit `vphilox.tex` plus

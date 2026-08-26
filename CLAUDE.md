@@ -411,7 +411,15 @@ ORCID `0009-0002-3120-9301`, and
 Availability section, `CITATION.cff`, `README.md` and `CHANGELOG.md`. What is
 left is accounts and identifiers rather than repository work, in the order
 `docs/publishing-guide.md` sets out: a knowledgeable reader for the manuscript,
-then TechRxiv, then arXiv, then vcpkg/Conan. The release series opens at
+then arXiv, then vcpkg/Conan. TechRxiv was the intended preprint host and
+closed its submissions in August 2026, so arXiv is the route and a separate
+Zenodo record for the manuscript is the fallback if endorsement drags. The
+reader and the arXiv endorser are deliberately the same search, since
+endorsement does not auto-fire for an independent researcher on a personal
+email address. The venue for review is IEEE TPDS, chosen because its
+traditional track carries no APC where ACM went fully open access in January
+2026; the paper is in IEEEtran and trimmed to 11 pages against a 12-page review
+cap. The release series opens at
 `2026.08.1` because `2026.08.0` was never tagged but already had a dated
 changelog section describing the Phase 0/1 scaffold. CI's `release readiness`
 job runs only on a `v*` tag and fails it if the changelog has not been rolled

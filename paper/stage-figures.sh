@@ -15,8 +15,7 @@ dst="$repo/paper/figures"
 python3 "$repo/scripts/benchmarks/publish_results.py" --check
 
 mkdir -p "$dst"
-for name in matrix-relative generate-n-sweep thread-scaling scaling-placement \
-            float-conversion-widths; do
+for name in matrix-relative generate-n-sweep thread-scaling scaling-placement; do
     cp "$src/$name.pdf" "$dst/$name.pdf"
     echo "staged $name.pdf"
 done

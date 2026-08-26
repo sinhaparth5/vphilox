@@ -77,7 +77,7 @@ rather than reusing that number, which is why the release series opens at
 `2026.08.1`.
 
 `docs/publishing-guide.md` picks up from the tag: Zenodo archives the release,
-TechRxiv hosts the paper, arXiv follows.
+arXiv takes the paper once an endorsement lands, and IEEE TPDS reviews it.
 
 ## Compatibility contract
 
