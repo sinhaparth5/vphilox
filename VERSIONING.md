@@ -76,8 +76,8 @@ scalar; there is no speedup yet". The first real tag therefore bumped MICRO
 rather than reusing that number, which is why the release series opens at
 `2026.08.1`.
 
-`docs/publishing-guide.md` picks up from the tag: Zenodo archives the release,
-TechRxiv hosts the paper, arXiv follows.
+`docs/publishing-guide.md` picks up from the tag: Zenodo archives the release
+and, in a second record, the paper; arXiv follows once an endorsement lands.
 
 ## Compatibility contract
 

@@ -38,8 +38,9 @@ keywords:
 # citation keeps resolving after the next release.
 #
 # TODO(phase-5): one edit left. Add a `preferred-citation:` block for the
-# TechRxiv preprint once it has a DOI, and swap it for the arXiv version if and
-# when that supersedes it. See docs/publishing-guide.md.
+# paper's own DOI once it has one, and swap it for the arXiv version if and
+# when that supersedes it. TechRxiv was the intended host and closed its
+# submissions in August 2026; see docs/publishing-guide.md for the route now.
 references:
   - type: conference-paper
     title: "Parallel Random Numbers: As Easy as 1, 2, 3"

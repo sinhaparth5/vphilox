@@ -97,11 +97,13 @@ SVG/PDF pairs under CI's `--check` for no gain in legibility.
 ## Where it goes when it is done
 
 [`docs/publishing-guide.md`](../docs/publishing-guide.md) has the route. The
-short version: Zenodo archives the software and its data, TechRxiv hosts the
-manuscript and supplies its DOI, and arXiv comes last because submitting there
-requires an endorsement that is easier to get once the preprint and the software
-DOI already exist. Do not post the manuscript to Zenodo as well, or one paper
-ends up with two competing DOIs.
+short version: Zenodo archives the software and its data under one record and
+the manuscript under a second, related one, and arXiv comes last because
+submitting there requires an endorsement. TechRxiv was the intended host for the
+manuscript and closed its submissions in August 2026. The two Zenodo records
+must be linked by a relation (`IsDocumentedBy` / `IsSupplementTo`); what to avoid
+is two competing DOIs for the *same* artifact, not a software record and a paper
+record.
 
 arXiv wants the LaTeX source rather than a locally built PDF, which is what
 `./stage-figures.sh` is for: run it, then submit `vphilox.tex` plus
