@@ -40,9 +40,10 @@ keywords:
 # when the citation is to vphilox rather than to 2026.08.1. Bump `doi` on each
 # release; the concept DOI never changes.
 #
-# TODO(phase-5): one edit left. Add a `preferred-citation:` block for the
-# TechRxiv preprint once it has a DOI, and swap it for the arXiv version if and
-# when that supersedes it. See docs/publishing-guide.md.
+# TODO(phase-5): one edit left. Add a `preferred-citation:` block once the paper
+# is posted and has an identifier. That was going to be a TechRxiv DOI; TechRxiv
+# closed to submissions during a platform migration, so it will be the arXiv ID.
+# See docs/publishing-guide.md.
 identifiers:
   - type: doi
     value: "10.5281/zenodo.22103482"
