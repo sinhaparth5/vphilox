@@ -19,12 +19,22 @@ the tagged source, benchmark data, scripts, documentation, version number,
 license, repository URL, and ORCID. Once checked, publish the record to activate
 the DOI. See the [Zenodo DOI guide](https://help.zenodo.org/docs/deposit/describe-records/reserve-doi/).
 
-**Done.** The reserved DOI is
-[10.5281/zenodo.22103483](https://doi.org/10.5281/zenodo.22103483), and it is
-recorded in `CITATION.cff`, `README.md`, `CHANGELOG.md` and the paper's
-Availability section. Zenodo also mints a concept DOI covering every version of
-a record; if this one has one, `CITATION.cff` should carry that instead, so a
-citation survives the next release.
+**Done.** The record is published, holding the `v2026.08.1` source archive.
+
+```text
+10.5281/zenodo.22103483   this version, cited by the paper
+10.5281/zenodo.22103482   concept DOI, always the newest version
+```
+
+The version DOI is recorded in `CITATION.cff`, `README.md`, `CHANGELOG.md` and
+the paper's Availability section; the concept DOI is in `CITATION.cff` under
+`identifiers`. Reserving the DOI before the tag is what let the paper cite it,
+so a later release must reserve its own before rebuilding the PDF.
+
+Do not switch on Zenodo's GitHub integration for this repository. It mints a
+fresh DOI on every published GitHub Release, which would leave a second record
+competing with this one and would not match the identifier already printed in
+the paper.
 
 ## 2. Finish the Manuscript
 
