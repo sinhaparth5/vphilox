@@ -351,8 +351,8 @@ library was built around. Phase 4
 statistical validation is done and does not need re-running: PractRand clean to
 1 TB, byte-identical across backends over that terabyte, and TestU01 BigCrush
 passing all 160 statistics (`docs/statistical-validation.md`).
-`ROADMAP.md` tracks phases and `docs/` holds the theory, research, and recorded
-benchmark runs.
+Phase tracking lives in GitHub issues rather than a file in the tree, and
+`docs/` holds the theory, the publishing guide, and the recorded benchmark runs.
 
 Four measured results worth not re-deriving. The ~10x
 scalar-Philox-vs-mt19937 slowdown from the literature did **not** reproduce on
