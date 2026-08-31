@@ -291,7 +291,14 @@ vphilox1 <k0> <k1> <c0> <c1> <c2> <c3> <word>
 \end{lstlisting}
 
 Seven decimal integers and a version tag. Every field is an unsigned 32-bit
-value except the final word index, which lies in $[0, 4)$.
+value except the final word index, which lies in $[0, 4)$. The whole position
+occupies 28 bytes in memory and at most 76 characters on disk. The contrast
+with a Mersenne Twister is not marginal: \code{std::mt19937} occupies 5000
+bytes under libstdc++ on x86-64, since \code{uint\_fast32\_t} is 64 bits there
+while the state words it holds are 32-bit values, and its serialized form runs
+to roughly 6.7~kB of decimal text. Recording a position rather than a state
+array is two orders of magnitude smaller, and unlike the array its size does
+not depend on which standard library wrote it.
 
 The distinction between this and the engine's internal variables is the point
 of the design. The engine generates into a buffer of \code{refill\_blocks}
@@ -452,7 +459,10 @@ maps it to $[0, 1)$:
   \mathrm{to\_float01}(u) =
     \mathrm{bitcast}\bigl(\mathtt{0x3F800000} \mathbin{|} (u \gg 9)\bigr) - 1.0f.
 \end{equation}
-The double precision form is identical with exponent 1023 and 52 mantissa bits.
+The double precision form is identical with exponent 1023 and 52 mantissa
+bits, differing only in where the bits come from: the generator emits 32-bit
+words, so a double is assembled from two of them concatenated into a 64-bit
+value, of which the top 52 bits are injected and the low 12 discarded.
 On the vector path this is a bitwise or followed by a subtract.
 
 The cost is resolution, not correctness. The injection fills the 23
@@ -504,6 +514,14 @@ The build is unconditional. A stale build directory will run a months-old
 binary and print a plausible table, and nothing in the output identifies it as
 stale. The script also asserts that the expected benchmark rows exist before
 accepting a run.
+
+The configuration it builds is the same on every host: a release build at
+\code{-O3} with assertions disabled, no link-time optimisation, and no
+instruction set flag applied to the translation unit. Kernels take their
+instruction sets from per-function target attributes instead, so the backends
+compared in a table are compiled into one binary and chosen at run time rather
+than built separately, and a comparison between them cannot be confounded by a
+difference in how they were compiled.
 
 The frequency governor is pinned for the run and restored on exit, and the
 resolved backend, compiler, processor model, commit hash and verbatim command
@@ -725,12 +743,44 @@ across the range in question.
 
 \section{Parallel behaviour}\label{sec:parallel}
 
+\subsection{Partitioning the counter space}\label{sec:partition}
+
+Independence between workers is arranged by construction rather than by
+synchronisation. One key is fixed for the whole run and worker $t$ of $P$ is
+given a contiguous run of $B$ blocks, so its $i$th block is
+\begin{equation}\label{eq:partition}
+  \ctr(t, i) = \ctr_0 + tB + i, \qquad 0 \le t < P,\ \ 0 \le i < B.
+\end{equation}
+The intervals $[tB, (t+1)B)$ are disjoint and together cover $[0, PB)$, so the
+workers consume a partition of one stream rather than $P$ streams that are
+merely unlikely to collide. Because $b(\cdot, \key)$ in \cref{eq:cbrng} is a
+bijection for a fixed key, distinct counters give distinct outputs, and the
+non-overlap follows from the partition with nothing assumed about the
+generator beyond that. Each worker owns its engine and reads the key, which is
+immutable for the run, so there is no lock and no atomic on the generator; the
+one hazard that remains is physical rather than algorithmic, and engines are
+given separate allocations so that two of them cannot share a cache line. The
+counter is 128-bit, so partitioning does not become the scarce resource:
+$2^{32}$ workers still leave each of them $2^{96}$ blocks. The measurements in
+this section use \cref{eq:partition} directly, with $B$ the number of blocks a
+worker fills and the offset formed by the same 128-bit addition that backs
+\code{discard}.
+
+The alternative partition gives each worker a distinct key and leaves the
+counters equal. It is not used here, and the reason is the strength of the
+guarantee rather than the cost. Distinct keys select distinct bijections, and
+nothing in the construction prevents two of them from carrying their equal
+counters to overlapping output; disjointness would become an empirical
+expectation where \cref{eq:partition} makes it an identity. Keying by thread
+index also makes the stream a function of the thread count, which is the
+property the next subsection depends on not having.
+
 \subsection{Output does not depend on the configuration}\label{sec:reproducible}
 
 The property that motivates the parallel work is not throughput, so it is
-stated before any timing. Because worker $j$ of $P$ takes a fixed counter range
-determined by the partition and not by the order in which threads happen to
-run, the concatenated output of a partitioned run is identical for every $P$ and
+stated before any timing. Because worker $t$ takes the counter range fixed by
+\cref{eq:partition} and not the range that the order of arrival would give it,
+the concatenated output of a partitioned run is identical for every $P$ and
 every scheduling. Two runs of the same simulation, one on four threads and one
 on sixty-four, consume the same random numbers in the same positions. A
 generator with shared state offers this only by serialising access behind a
@@ -1030,11 +1080,13 @@ $1.15\times$ \code{std::mt19937} per byte because the refill drain now costs
 more than the kernel does. Callers who use the bulk path get the full benefit
 on that platform; callers who use \code{operator()} do not.
 
-\textbf{Vector floating-point conversion is not yet implemented.} The
-conversion in \cref{sec:float} is scalar. The intended form operates on a whole
-kernel output block so values never leave vector registers, and until that
-lands, a caller requesting floats pays a per-value cost that the integer path
-does not.
+\textbf{Double-precision conversion is scalar.} The bulk float path is
+vectorized and dispatched exactly as the kernels are, converting a 256-word
+tile at a time for the gains reported in \cref{sec:float}. The double path is
+not. Each double consumes two 32-bit words, so a vector form has to combine two
+input registers for every output register, and that kernel is not written.
+Callers converting to double therefore pay a per-value cost that callers
+converting to float no longer do.
 
 \textbf{The instruction-supply result rests on one four-core host.} The
 measurement in \cref{sec:icache} needs simultaneous access to symmetric
