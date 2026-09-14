@@ -1,0 +1,120 @@
+{
+  "context": {
+    "date": "2026-09-14T12:25:57+00:00",
+    "host_name": "vphilox-gcp-cascadelake-454461",
+    "executable": "/home/parth/vphilox/build/bench/benchmarks/bench_scaling",
+    "num_cpus": 32,
+    "mhz_per_cpu": 2800,
+    "cpu_scaling_enabled": false,
+    "caches": [
+      {
+        "type": "Data",
+        "level": 1,
+        "size": 32768,
+        "num_sharing": 2
+      },
+      {
+        "type": "Instruction",
+        "level": 1,
+        "size": 32768,
+        "num_sharing": 2
+      },
+      {
+        "type": "Unified",
+        "level": 2,
+        "size": 1048576,
+        "num_sharing": 2
+      },
+      {
+        "type": "Unified",
+        "level": 3,
+        "size": 34603008,
+        "num_sharing": 16
+      }
+    ],
+    "load_avg": [0.678223,0.194824,0.065918],
+    "library_version": "v1.9.0",
+    "library_build_type": "release",
+    "json_schema_version": 1,
+    "vphilox_backend": "avx512",
+    "vphilox_version": "2026.08.1"
+  },
+  "benchmarks": [
+    {
+      "name": "BM_thread_scaling_bulk/8/65536/real_time_mean",
+      "family_index": 0,
+      "per_family_instance_index": 0,
+      "run_name": "BM_thread_scaling_bulk/8/65536/real_time",
+      "run_type": "aggregate",
+      "repetitions": 7,
+      "threads": 1,
+      "aggregate_name": "mean",
+      "aggregate_unit": "time",
+      "iterations": 7,
+      "real_time": 9.7131768539636482e-02,
+      "cpu_time": 1.8206431439629554e-02,
+      "time_unit": "ms",
+      "bytes_per_second": 2.1738497763958378e+10,
+      "cycles_per_byte": 4.7795843312940639e-01,
+      "kib_per_thread": 2.5600000000000000e+02,
+      "label": "avx512, runtime=std::thread, cycle_source=rdtsc"
+    },
+    {
+      "name": "BM_thread_scaling_bulk/8/65536/real_time_median",
+      "family_index": 0,
+      "per_family_instance_index": 0,
+      "run_name": "BM_thread_scaling_bulk/8/65536/real_time",
+      "run_type": "aggregate",
+      "repetitions": 7,
+      "threads": 1,
+      "aggregate_name": "median",
+      "aggregate_unit": "time",
+      "iterations": 7,
+      "real_time": 9.8786114094500707e-02,
+      "cpu_time": 1.8249837042412516e-02,
+      "time_unit": "ms",
+      "bytes_per_second": 2.1229218491111248e+10,
+      "cycles_per_byte": 4.7818122419921105e-01,
+      "kib_per_thread": 2.5600000000000000e+02,
+      "label": "avx512, runtime=std::thread, cycle_source=rdtsc"
+    },
+    {
+      "name": "BM_thread_scaling_bulk/8/65536/real_time_stddev",
+      "family_index": 0,
+      "per_family_instance_index": 0,
+      "run_name": "BM_thread_scaling_bulk/8/65536/real_time",
+      "run_type": "aggregate",
+      "repetitions": 7,
+      "threads": 1,
+      "aggregate_name": "stddev",
+      "aggregate_unit": "time",
+      "iterations": 7,
+      "real_time": 8.7340666364565077e-03,
+      "cpu_time": 1.8166618985126170e-04,
+      "time_unit": "ms",
+      "bytes_per_second": 1.9225763224461503e+09,
+      "cycles_per_byte": 1.9878342863926552e-03,
+      "kib_per_thread": 0.0000000000000000e+00,
+      "label": "avx512, runtime=std::thread, cycle_source=rdtsc"
+    },
+    {
+      "name": "BM_thread_scaling_bulk/8/65536/real_time_cv",
+      "family_index": 0,
+      "per_family_instance_index": 0,
+      "run_name": "BM_thread_scaling_bulk/8/65536/real_time",
+      "run_type": "aggregate",
+      "repetitions": 7,
+      "threads": 1,
+      "aggregate_name": "cv",
+      "aggregate_unit": "percentage",
+      "iterations": 7,
+      "real_time": 8.9919773600049338e-02,
+      "cpu_time": 9.9781327523543566e-03,
+      "time_unit": "ms",
+      "bytes_per_second": 8.8441084720845359e-02,
+      "cycles_per_byte": 4.1590108022101840e-03,
+      "kib_per_thread": 0.0000000000000000e+00,
+      "label": "avx512, runtime=std::thread, cycle_source=rdtsc"
+    }
+  ]
+}

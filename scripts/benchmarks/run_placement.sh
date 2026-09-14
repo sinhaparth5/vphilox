@@ -115,16 +115,23 @@ cmake --preset bench >/dev/null
 cmake --build --preset bench --target bench_scaling >/dev/null
 [[ -x "$BENCH" ]] || { echo "no bench_scaling at $BENCH" >&2; exit 1; }
 
-# Median cycles/byte for a placement, straight from the binary. The gate wants a
-# number fast, not an archived run.
+# Median cycles/byte and its coefficient of variation for a placement, straight
+# from the binary. The gate wants numbers fast, not an archived run. Both are
+# printed on one line, "<median> <cv-percent>", because the gate needs the
+# spread as well as the level -- see the three-sigma condition below.
 measure_cpb() {
-    local cpus="$1" n="$2"
-    taskset -c "$cpus" "$BENCH" \
+    local cpus="$1" n="$2" out median cv
+    out="$(taskset -c "$cpus" "$BENCH" \
         --benchmark_filter="BM_thread_scaling_bulk/$n/$words/" \
         --benchmark_repetitions=5 \
         --benchmark_report_aggregates_only=true \
-        --benchmark_min_time=0.3s 2>/dev/null \
-        | grep '_median' | grep -o 'cycles_per_byte=[0-9.]*' | cut -d= -f2
+        --benchmark_min_time=0.3s 2>/dev/null)"
+    median="$(grep '_median' <<<"$out" | grep -o 'cycles_per_byte=[0-9.]*' | cut -d= -f2)"
+    # The _cv row already carries a percentage, printed with a trailing '%'
+    # ("cycles_per_byte=5.61%"). Scaling it again turns a 1.4% spread into a
+    # 143% one and the gate then refuses every host it is shown.
+    cv="$(grep '_cv' <<<"$out" | grep -o 'cycles_per_byte=[0-9.]*' | cut -d= -f2)"
+    echo "$median ${cv:-0}"
 }
 
 # ----------------------------------------------------------- gate
@@ -133,19 +140,27 @@ phys2="$(mask_phys 2)"
 ht2="$(mask_ht 2)"
 
 echo "==> placement gate: 2 workers on $phys2 (two cores) vs $ht2 (one core's siblings)"
-cpb_sep="$(measure_cpb "$phys2" 2)"
-cpb_col="$(measure_cpb "$ht2" 2)"
+read -r cpb_sep cv_sep <<<"$(measure_cpb "$phys2" 2)"
+read -r cpb_col cv_col <<<"$(measure_cpb "$ht2" 2)"
 [[ -n "$cpb_sep" && -n "$cpb_col" ]] || { echo "ERROR: no cycles_per_byte from the gate run." >&2; exit 1; }
 
 # Single-quoted so bash leaves sys.argv alone: in double quotes $1/$2 are the
 # script's own positional parameters, not Python's arguments.
 penalty="$(python3 -c 'import sys; a, b = float(sys.argv[1]), float(sys.argv[2]); print(f"{(b / a - 1) * 100:.1f}")' "$cpb_sep" "$cpb_col")"
-echo "    separate cores: $cpb_sep cycles/byte"
-echo "    shared core:    $cpb_col cycles/byte"
-echo "    co-location penalty: ${penalty}% (need >= ${min_penalty_pct}%)"
+worst_cv="$(python3 -c 'import sys; print(f"{max(float(sys.argv[1]), float(sys.argv[2])):.2f}")' "$cv_sep" "$cv_col")"
+echo "    separate cores: $cpb_sep cycles/byte (CV ${cv_sep}%)"
+echo "    shared core:    $cpb_col cycles/byte (CV ${cv_col}%)"
+echo "    co-location penalty: ${penalty}% (need >= ${min_penalty_pct}% and >= 3x the worse CV, ${worst_cv}%)"
 
+# Two conditions, because either alone is passable by accident. The threshold
+# alone is not enough: a WSL2 guest returned +23.7% on one invocation of this
+# same comparison and -6.5% on the next, so a single noisy probe can clear 15%
+# on scatter. Requiring the gap to exceed three times the worse arm's CV is
+# roughly a three-sigma separation from zero, which scatter does not clear.
 if ! python3 -c "import sys; sys.exit(0 if float(sys.argv[1]) >= float(sys.argv[2]) else 1)" \
-        "$penalty" "$min_penalty_pct"; then
+        "$penalty" "$min_penalty_pct" \
+   || ! python3 -c "import sys; sys.exit(0 if float(sys.argv[1]) >= 3 * float(sys.argv[2]) else 1)" \
+        "$penalty" "$worst_cv"; then
     cat >&2 <<'MSG'
 
 ERROR: sharing a core did not cost what it must, so placement is not controlled.
@@ -162,6 +177,10 @@ ERROR: sharing a core did not cost what it must, so placement is not controlled.
 
   If this IS bare metal, check that SMT is enabled in firmware and that nothing
   else is competing for the cores before lowering --min-penalty.
+
+  A penalty that clears the threshold but not three times the worse arm's
+  coefficient of variation is a different failure: the machine is too noisy for
+  the comparison to mean anything yet, whatever the point estimate says.
 MSG
     exit 1
 fi
@@ -169,6 +188,18 @@ fi
 echo "==> placement is real; proceeding"
 
 # ------------------------------------------------------ the study
+
+# The counters are the point of #53, but the placement comparison itself does
+# not need them: a cloud instance with dedicated vCPUs can control placement
+# while exposing no PMU at all. Dropping the flag there costs the i-cache
+# columns and keeps the cycles/byte comparison, where hard-failing would throw
+# away a run the host can actually support.
+perf_flag="--perf-counters"
+if [[ ! -e /sys/bus/event_source/devices/cpu ]]; then
+    perf_flag=""
+    echo "==> no PMU exposed (/sys/bus/event_source/devices/cpu absent):"
+    echo "    running without counters, so this arm carries cycles/byte only."
+fi
 
 # Archived through run_matrix.sh so each arm carries a governor, provenance and
 # a CV check. The tags differ so the two placements never share a file.
@@ -185,12 +216,19 @@ for arm in phys ht; do
     taskset -c "$cpus" "$REPO/scripts/benchmarks/run_matrix.sh" \
         --tag "$tag-icache-$arm" \
         --bench scaling \
-        --perf-counters \
+        ${perf_flag:+$perf_flag} \
         --filter "BM_thread_scaling_bulk/$workers/$words/"
 done
 
 echo
-echo "==> both arms archived. The comparison is icache_mpki between"
-echo "    results/$tag-icache-phys-icache.json and results/$tag-icache-ht-icache.json"
-echo "    Flat across the two excludes instruction supply as the mechanism"
-echo "    behind the hyperthread knee; a rise does not."
+if [[ -n "$perf_flag" ]]; then
+    echo "==> both arms archived. The comparison is icache_mpki between"
+    echo "    results/$tag-icache-phys-icache.json and results/$tag-icache-ht-icache.json"
+    echo "    Flat across the two excludes instruction supply as the mechanism"
+    echo "    behind the hyperthread knee; a rise does not."
+else
+    echo "==> both arms archived without counters, so this run carries the"
+    echo "    placement comparison only:"
+    echo "    results/$tag-icache-phys-scaling.json and results/$tag-icache-ht-scaling.json"
+    echo "    The i-cache question needs a host with a PMU."
+fi

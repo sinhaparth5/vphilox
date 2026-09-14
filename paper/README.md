@@ -67,11 +67,11 @@ whenever a table is added.
 | Paper | Source |
 |---|---|
 | `tab:machines` | `docs/benchmarks/raw/machines.csv`, except the MHz column — see below |
-| `tab:matrix` (relative matrix) | `docs/benchmarks/raw/*-matrix.csv`, five hosts |
+| `tab:matrix` (relative matrix) | `docs/benchmarks/raw/*-matrix.csv`, five hosts. `plots/matrix-relative` draws the same ratios and is published under `docs/`, but is not in the manuscript: it duplicated the table, and the page limit made that the cheapest thing to drop |
 | `tab:avx512` (AVX-512 vs AVX2) | `results/{sapphire-rapids,skylake-sp}-matrix.json`, pinned-backend runs |
 | `tab:icache` (instruction supply) | `docs/benchmarks/raw/tigerlake-icache-{phys,ht}-icache.csv` |
 | `tab:runtimes` (threading runtimes) | `docs/benchmarks/raw/tigerlake-omp-l1-{default,passive}-scaling.csv` |
-| `fig:matrix`, `fig:sweep` | `plots/matrix-relative`, `generate-n-sweep` |
+| `fig:sweep` | `plots/generate-n-sweep` |
 | `sec:float` (conversion widths) | `docs/benchmarks/raw/*float-conversion*` — quoted inline; the figure itself is published under `docs/` but is not in the manuscript |
 | `fig:scaling` (thread scaling) | `docs/benchmarks/raw/pi-arm-scaling.csv` |
 | `fig:placement` | `docs/benchmarks/raw/cascadelake-32v-placement-*.csv` |

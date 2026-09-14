@@ -39,6 +39,7 @@ set(VPHILOX_TEST_SOURCES
     test_cross_platform_parity.cpp   # Phase 4: the bit stream is identical on every target
     test_serialization.cpp    # portable engine state: exact, locale-free, refuses junk
     test_std_philox_parity.cpp  # agrees with C++26 std::philox_engine (#91)
+    test_thread_reproducibility.cpp  # draws are a function of the task, not the thread count
 )
 
 foreach(src IN LISTS VPHILOX_TEST_SOURCES)

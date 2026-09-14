@@ -24,7 +24,7 @@
 # format is usually a table that was written against a full-width measure.
 set -euo pipefail
 
-PAPER_DATE="${PAPER_DATE:-2026-08-25}"
+PAPER_DATE="${PAPER_DATE:-2026-09-14}"
 strict=0
 
 while [[ $# -gt 0 ]]; do
