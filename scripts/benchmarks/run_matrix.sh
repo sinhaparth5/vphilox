@@ -196,6 +196,11 @@ echo "==> capturing environment to $ENVFILE"
     else
         echo "affinity-cpu: $cpu"
     fi
+    # The mask this run actually inherited, which is not the same fact as the
+    # one above: run_placement.sh invokes this script under `taskset -c`, and
+    # the placement arms differ only in that mask. Recording it makes the
+    # placement documented rather than argued after the fact.
+    echo "affinity-inherited: $(taskset -cp $$ 2>/dev/null | sed 's/.*: //' || echo unknown)"
     echo "nproc: $(nproc 2>/dev/null || echo unknown)"
     echo "governor: $(cat "${GOV_PATHS[0]}" 2>/dev/null || echo unavailable)"
     echo "perf_event_paranoid: $(cat /proc/sys/kernel/perf_event_paranoid 2>/dev/null || echo n/a)"
