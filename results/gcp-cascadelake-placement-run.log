@@ -1,0 +1,80 @@
+==> 16 physical cores, SMT present
+==> building
+==> placement gate: 2 workers on 0,1 (two cores) vs 0,16 (one core's siblings)
+    separate cores: 0.49817 cycles/byte (CV 0.43%)
+    shared core:    0.602433 cycles/byte (CV 0.79%)
+    co-location penalty: 20.9% (need >= 15% and >= 3x the worse CV, 0.79%)
+==> placement is real; proceeding
+==> no PMU exposed (/sys/bus/event_source/devices/cpu absent):
+    running without counters, so this arm carries cycles/byte only.
+
+==> 8 workers, one thread per physical core (cpus 0,1,10,11,12,13,14,15)
+==> building the bench preset
+WARNING: no cpufreq governor visible; clock is not pinned
+==> capturing environment to /home/parth/vphilox/results/gcp-cascadelake-icache-phys-scaling-environment.txt
+==> running bench_scaling unpinned across 8 CPUs (7 reps, 1s each)
+2026-09-14T12:25:57+00:00
+Running /home/parth/vphilox/build/bench/benchmarks/bench_scaling
+Run on (32 X 2800 MHz CPU s)
+CPU Caches:
+  L1 Data 32 KiB (x16)
+  L1 Instruction 32 KiB (x16)
+  L2 Unified 1024 KiB (x16)
+  L3 Unified 33792 KiB (x2)
+Load Average: 0.68, 0.19, 0.07
+vphilox_backend: avx512
+vphilox_version: 2026.08.1
+----------------------------------------------------------------------------------------------------------
+Benchmark                                                Time             CPU   Iterations UserCounters...
+----------------------------------------------------------------------------------------------------------
+BM_thread_scaling_bulk/8/65536/real_time_mean        0.097 ms        0.018 ms            7 bytes_per_second=20.2456Gi/s cycles_per_byte=0.477958 kib_per_thread=256 avx512, runtime=std::thread, cycle_source=rdtsc
+BM_thread_scaling_bulk/8/65536/real_time_median      0.099 ms        0.018 ms            7 bytes_per_second=19.7713Gi/s cycles_per_byte=0.478181 kib_per_thread=256 avx512, runtime=std::thread, cycle_source=rdtsc
+BM_thread_scaling_bulk/8/65536/real_time_stddev      0.009 ms        0.000 ms            7 bytes_per_second=1.79054Gi/s cycles_per_byte=1.98783m kib_per_thread=0 avx512, runtime=std::thread, cycle_source=rdtsc
+BM_thread_scaling_bulk/8/65536/real_time_cv           8.99 %          1.00 %             7 bytes_per_second=8.84% cycles_per_byte=0.42% kib_per_thread=0.00% avx512, runtime=std::thread, cycle_source=rdtsc
+
+==> resolved backend: avx512
+
+==> medians and cycles/byte CV
+benchmark                                   cycles/byte     GiB/s       cv
+BM_thread_scaling_bulk/8/65536                   0.4782    19.771    0.42%
+
+==> wrote /home/parth/vphilox/results/gcp-cascadelake-icache-phys-scaling.json
+==> wrote /home/parth/vphilox/results/gcp-cascadelake-icache-phys-scaling-environment.txt
+
+==> 8 workers, packed onto 4 cores' sibling threads (cpus 0,16,1,17,10,26,11,27)
+==> building the bench preset
+WARNING: no cpufreq governor visible; clock is not pinned
+==> capturing environment to /home/parth/vphilox/results/gcp-cascadelake-icache-ht-scaling-environment.txt
+==> running bench_scaling unpinned across 8 CPUs (7 reps, 1s each)
+2026-09-14T12:26:06+00:00
+Running /home/parth/vphilox/build/bench/benchmarks/bench_scaling
+Run on (32 X 2800 MHz CPU s)
+CPU Caches:
+  L1 Data 32 KiB (x16)
+  L1 Instruction 32 KiB (x16)
+  L2 Unified 1024 KiB (x16)
+  L3 Unified 33792 KiB (x2)
+Load Average: 1.32, 0.35, 0.12
+vphilox_backend: avx512
+vphilox_version: 2026.08.1
+----------------------------------------------------------------------------------------------------------
+Benchmark                                                Time             CPU   Iterations UserCounters...
+----------------------------------------------------------------------------------------------------------
+BM_thread_scaling_bulk/8/65536/real_time_mean        0.144 ms        0.026 ms            7 bytes_per_second=13.6326Gi/s cycles_per_byte=0.686485 kib_per_thread=256 avx512, runtime=std::thread, cycle_source=rdtsc
+BM_thread_scaling_bulk/8/65536/real_time_median      0.145 ms        0.026 ms            7 bytes_per_second=13.4546Gi/s cycles_per_byte=0.687275 kib_per_thread=256 avx512, runtime=std::thread, cycle_source=rdtsc
+BM_thread_scaling_bulk/8/65536/real_time_stddev      0.006 ms        0.000 ms            7 bytes_per_second=602.812Mi/s cycles_per_byte=1.70308m kib_per_thread=0 avx512, runtime=std::thread, cycle_source=rdtsc
+BM_thread_scaling_bulk/8/65536/real_time_cv           4.36 %          1.77 %             7 bytes_per_second=4.32% cycles_per_byte=0.25% kib_per_thread=0.00% avx512, runtime=std::thread, cycle_source=rdtsc
+
+==> resolved backend: avx512
+
+==> medians and cycles/byte CV
+benchmark                                   cycles/byte     GiB/s       cv
+BM_thread_scaling_bulk/8/65536                   0.6873    13.455    0.25%
+
+==> wrote /home/parth/vphilox/results/gcp-cascadelake-icache-ht-scaling.json
+==> wrote /home/parth/vphilox/results/gcp-cascadelake-icache-ht-scaling-environment.txt
+
+==> both arms archived without counters, so this run carries the
+    placement comparison only:
+    results/gcp-cascadelake-icache-phys-scaling.json and results/gcp-cascadelake-icache-ht-scaling.json
+    The i-cache question needs a host with a PMU.

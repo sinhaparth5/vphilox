@@ -10,12 +10,12 @@ endobj
 <</Type/Page/Parent 2 0 R/MediaBox[0 0 980 520]/Resources<</Font<</F1 5 0 R/F2 6 0 R>>>>/Contents 4 0 R>>
 endobj
 4 0 obj
-<</Length 9465>>
+<</Length 9525>>
 stream
 q 1 w 1 J 1 j
 BT /F2 17 Tf 0.09 0.1 0.11 rg 1 0 0 1 32 492 Tm (Aggregate cost per byte against thread count \227 Pi 5, 4 cores) Tj ET
-BT /F1 12 Tf 0.27 0.29 0.33 rg 1 0 0 1 32 472 Tm (Flat means linear scaling: twice the threads, twice the output, same cost per byte. Two visible lines rather than four \227 each working set lands on the other, which is) Tj ET
-BT /F1 12 Tf 0.27 0.29 0.33 rg 1 0 0 1 32 455 Tm (the result. Past four threads the cores are oversubscribed.) Tj ET
+BT /F1 12 Tf 0.27 0.29 0.33 rg 1 0 0 1 32 472 Tm (Flat means the cost of producing a byte does not move with the worker count; it is not a claim about wall-clock speedup, which needs cores too. Two visible lines) Tj ET
+BT /F1 12 Tf 0.27 0.29 0.33 rg 1 0 0 1 32 455 Tm (rather than four \227 each working set lands on the other, which is the result. Past four threads the cores are oversubscribed.) Tj ET
 q 0.9 0.91 0.93 RG 1 w [] 0 d
 32 434 m 948 434 l S Q
 q 0 0.45 0.7 RG 2.4 w [] 0 d
@@ -153,10 +153,10 @@ xref
 0000000060 00000 n 
 0000000111 00000 n 
 0000000232 00000 n 
-0000009747 00000 n 
-0000009835 00000 n 
+0000009807 00000 n 
+0000009895 00000 n 
 trailer
-<</Size 7/Root 1 0 R/ID[<AC783AD13D56446775A055F52D01F8DF><AC783AD13D56446775A055F52D01F8DF>]>>
+<</Size 7/Root 1 0 R/ID[<59C07A5FEF54CD3943218D69F5D52D88><59C07A5FEF54CD3943218D69F5D52D88>]>>
 startxref
-9928
+9988
 %%EOF

@@ -102,9 +102,9 @@ RUNS = {
     # instance rather than two cores of a shared one, which is why it gets its
     # own label: cycles/byte does not transfer between them, and the AVX-512
     # width conversion measured here disagrees with the 4-vCPU host.
-    "cascadelake-32v-avx512-matrix": ("Cascade Lake 32v",  "avx512", "cloud; whole 2-socket host"),
-    "cascadelake-32v-avx2-matrix":   ("Cascade Lake 32v",  "avx2",   "cloud; whole 2-socket host"),
-    "cascadelake-32v-scalar-matrix": ("Cascade Lake 32v",  "scalar", "cloud; whole 2-socket host"),
+    "cascadelake-32v-avx512-matrix": ("Cascade Lake 32v",  "avx512", "cloud; guest reports 2 sockets, 16 cores"),
+    "cascadelake-32v-avx2-matrix":   ("Cascade Lake 32v",  "avx2",   "cloud; guest reports 2 sockets, 16 cores"),
+    "cascadelake-32v-scalar-matrix": ("Cascade Lake 32v",  "scalar", "cloud; guest reports 2 sockets, 16 cores"),
     # Thread scaling. The unpinned run follows the documented protocol and is
     # the one to quote for the curve shape; its high CV above eight threads is
     # itself the finding, because the scheduler is free to land two workers on
@@ -149,9 +149,23 @@ RUNS = {
     # missed it. The focused runs above are the ones the write-up quotes.
     "tigerlake-scaling":             ("Tiger Lake / AVX-512", "avx512",
                                       "harness validation: 4-core desktop host, most rows above CV bar"),
+    # The placement study on a second sixteen-core Cascade Lake instance, run
+    # per arm rather than as a sweep. The instance exposes neither a governor
+    # nor turbo control and has no PMU, so these carry the ratio between two
+    # arms measured minutes apart and nothing absolute: quotable as a penalty,
+    # not as a level, and kept off every cross-machine figure.
+    "gcp-cascadelake-icache-phys-scaling": ("Cascade Lake 32v (gcp)", "avx512",
+                                            "ratios only: no governor, no PMU"),
+    "gcp-cascadelake-icache-ht-scaling":   ("Cascade Lake 32v (gcp)", "avx512",
+                                            "ratios only: no governor, no PMU"),
 }
 
-PUBLISHABLE = {tag for tag, meta in RUNS.items() if not meta[2].startswith("harness")}
+# "harness" runs built the tooling and "ratios only" runs carry a within-host
+# ratio on a machine whose clock is not pinned. Neither belongs on a figure
+# comparing absolute cost per byte, and the quality column is what keeps them
+# off one.
+PUBLISHABLE = {tag for tag, meta in RUNS.items()
+               if not meta[2].startswith(("harness", "ratios only"))}
 
 # The comparison rows, in the order the write-ups quote them.
 MATRIX_ROWS = [
@@ -1030,9 +1044,15 @@ def plot_thread_scaling(runs, outdir):
     if not series:
         return
 
-    deck = ("Flat means linear scaling: twice the threads, twice the output, same cost per "
-            "byte. Two visible lines rather than four — each working set lands on the "
-            "other, which is the result. Past four threads the cores are oversubscribed.")
+    # Not "linear scaling". The y axis is cycles per byte, which is indifferent
+    # to whether the workers ran concurrently; wall-clock throughput is a
+    # different quantity and does not stay flat past the core count. Saying
+    # otherwise here put the claim in the figure itself, where the paper's
+    # prose could not correct it.
+    deck = ("Flat means the cost of producing a byte does not move with the worker count; it "
+            "is not a claim about wall-clock speedup, which needs cores too. Two visible lines "
+            "rather than four — each working set lands on the other, which is the result. "
+            "Past four threads the cores are oversubscribed.")
     ymax = math.ceil(max(v for _, pts, _ in series for _, v in pts) * 1.15 * 10) / 10.0
 
     entries = [(nm, PALETTE[i], MARKERS[i], d) for i, (nm, _, d) in enumerate(series)]

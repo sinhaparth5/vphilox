@@ -2,8 +2,8 @@
 <title>Thread scaling on the Raspberry Pi 5</title>
 <rect width="980" height="520" fill="#FFFFFF"/>
 <text x="32" y="28" font-size="17" fill="#16191D" font-weight="600">Aggregate cost per byte against thread count — Pi 5, 4 cores</text>
-<text x="32" y="48" font-size="12" fill="#454B54">Flat means linear scaling: twice the threads, twice the output, same cost per byte. Two visible lines rather than four — each working set lands on the other, which is</text>
-<text x="32" y="65" font-size="12" fill="#454B54">the result. Past four threads the cores are oversubscribed.</text>
+<text x="32" y="48" font-size="12" fill="#454B54">Flat means the cost of producing a byte does not move with the worker count; it is not a claim about wall-clock speedup, which needs cores too. Two visible lines</text>
+<text x="32" y="65" font-size="12" fill="#454B54">rather than four — each working set lands on the other, which is the result. Past four threads the cores are oversubscribed.</text>
 <line x1="32" y1="86" x2="948" y2="86" stroke="#E6E9ED" stroke-width="1" stroke-linecap="round"/>
 <line x1="32" y1="97.92" x2="58" y2="97.92" stroke="#0072B2" stroke-width="2.4" stroke-linecap="round"/>
 <circle cx="45" cy="97.92" r="5.8" fill="#FFFFFF"/>
