@@ -382,9 +382,15 @@ on a VM; both needed the co-location gate to pass first.
 
 ## The paper
 
-Phase 5's deliverable is `paper/vphilox.tex`, an IEEEtran Computer Society
-journal draft with every number traced to an archived run — `paper/README.md`
+Phase 5's deliverable is `paper/vphilox.tex`, an `acmart` / `acmsmall` journal
+draft with every number traced to an archived run — `paper/README.md`
 maps each table and figure to its source and lists what is still open.
+`acmart.cls` and `ACM-Reference-Format.bst` are vendored under `paper/acmart/`
+and reached through `TEXINPUTS` in `build.sh`, because TeX Live 2025 ships an
+older acmart than ACM distributes and the tracked PDF has to be reproducible
+from this repository. The fonts acmart wants are in `texlive-fonts-extra`;
+without them it falls back to bitmap Computer Modern and microtype kills the
+run with "auto expansion is only possible with scalable fonts".
 
 Two things to know before touching it. **`paper/vphilox.pdf` is tracked**, so
 `paper/build.sh` pins `SOURCE_DATE_EPOCH` to keep rebuilds byte-identical;
@@ -416,10 +422,19 @@ closed its submissions in August 2026, so arXiv is the route and a separate
 Zenodo record for the manuscript is the fallback if endorsement drags. The
 reader and the arXiv endorser are deliberately the same search, since
 endorsement does not auto-fire for an independent researcher on a personal
-email address. The venue for review is IEEE TPDS, chosen because its
-traditional track carries no APC where ACM went fully open access in January
-2026; the paper is in IEEEtran and trimmed to 11 pages against a 12-page review
-cap. The release series opens at
+email address. **IEEE TPDS desk-rejected the paper on scope on 8 October 2026**
+(TPDS-2026-09-0954): no referee saw it, no measurement or claim was questioned,
+and the Associate Editor placed the contribution in "random number and code
+generation and software engineering (e.g., software libraries)". The venue is
+now ACM TOMS, which published both TestU01 and xoshiro256++ and so cannot call
+the subject out of scope, with TOMACS as the sibling fallback. That reverses the
+cost calculation TPDS was chosen on: ACM has no subscription track since January
+2026, so acceptance carries an APC of up to roughly $1,450, requested as a
+discretionary waiver only after acceptance. Submit as a regular paper rather
+than through the Algorithms track, whose ACM Collected Algorithms deposit would
+sit on top of the repository's MIT OR Apache-2.0 terms. TOMS sets no page limit,
+so the trimming the IEEE review cap forced is no longer load-bearing. The
+release series opens at
 `2026.08.1` because `2026.08.0` was never tagged but already had a dated
 changelog section describing the Phase 0/1 scaffold. CI's `release readiness`
 job runs only on a `v*` tag and fails it if the changelog has not been rolled

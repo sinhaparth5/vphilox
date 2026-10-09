@@ -8,7 +8,8 @@ software public as an independent researcher. Each service has a different job:
   to new submissions during a platform migration (see §3).
 - **arXiv** provides the eventual subject-indexed preprint after endorsement.
 - A journal or conference provides peer review; none of the services above
-  does. The venue is IEEE TPDS (see §6).
+  does. The venue is ACM TOMS (see §6); IEEE TPDS desk-rejected the paper on
+  scope in October 2026.
 
 ## 1. Archive the Software on Zenodo
 
@@ -133,55 +134,89 @@ the submission. Follow the [official submission guide](https://info.arxiv.org/he
 ## 6. Submit for Peer Review
 
 Preprints are not the end state; none of the services above provides review.
-The venue is **IEEE Transactions on Parallel and Distributed Systems (TPDS)**,
-chosen on cost. Submit through
-[ScholarOne](https://mc.manuscriptcentral.com/tpds-cs) as a **Regular Paper**;
-TPDS does not accept survey or comment-style submissions.
 
-### Why TPDS and not TOMACS
+### What happened at TPDS
 
-ACM TOMACS is the better fit on scope — its charter names "random number
-generators and testing" outright — and it runs a Replicated Computational
-Results initiative whose badges this repository is unusually well prepared to
-earn, since `run_matrix.sh` records provenance and gates on CV,
-`publish_results.py --check` regenerates every figure in CI, and every
-PractRand and TestU01 log carries a git SHA.
+The paper went to IEEE Transactions on Parallel and Distributed Systems as
+TPDS-2026-09-0954 and came back on 8 October 2026 without going to referees.
+The Associate Editor read it, agreed with what it does, and said it belongs
+somewhere else:
 
-It was ruled out on price. ACM became a fully open-access publisher on
-1 January 2026 and retired the subscription track, so an accepted TOMACS paper
-carries a mandatory APC. The 2026 subsidised rate is reported as $250 for
-ACM/SIG members and $350 otherwise, but that subsidy is announced in terms of
-conferences and a separate source quotes $1,450 for journals, so the real
-number is unconfirmed. ACM's discretionary waiver policy states explicitly that
-being an independent researcher without an institutional affiliation is not by
-itself a demonstration of financial hardship, so no waiver is available here.
+> The primary potential contributions of this work are in random number and
+> code generation and software engineering (e.g., software libraries) and
+> better suited to related venues. Thus, the manuscript is not a good fit for
+> TPDS.
 
-TPDS is hybrid: the traditional, non-open-access track carries no APC. Author-
-paid open access exists as an option and is not needed. The paper is also
-already written in IEEEtran, so no conversion is required.
+That is the risk this section already named, and it cost five weeks rather than
+the month or two estimated. Nothing in the report questions a measurement, a
+claim or the writing. The paper was not asked to change; it was asked to go to
+a journal whose charter covers what it is.
 
-The cost of the free route is time rather than money. TPDS scope is parallel and
-distributed systems, and a desk rejection on fit would cost a month or two and
-force the venue choice again.
+### The venue is ACM TOMS
 
-### Two constraints, both now met
+**ACM Transactions on Mathematical Software**, submitted through Manuscript
+Central at <https://mc.manuscriptcentral.com/toms>. Confirm the portal from the
+journal's own page before uploading, since ACM moves these.
 
-- **Twelve pages.** TPDS caps review versions at 12 pages. The draft sat at
-  exactly 12 and is now 11, which leaves one page of headroom. Keep it there:
-  overlength charges on the accepted version are mandatory and non-negotiable,
-  so a reviewer asking for one more experiment is what turns a free submission
-  into a paid one.
-- **The parallel result leads.** The draft's spine used to be portable
-  serialized state and single-threaded throughput, with the parallel material
-  two thirds of the way in. Section 8 now opens by stating the invariance
-  claim — output independent of thread count, scheduling and backend — before
-  any timing, and the introduction promises all three axes rather than only the
-  standard-library one. Keep it that way: the hyperthreading finding and
-  thread-count independence are what make this a TPDS paper and not a
-  throughput report.
+TOMS is where this paper's own closest references were published. TestU01
+(L'Ecuyer and Simard, 2007) is a TOMS paper and so is xoshiro256++ (Blackman
+and Vigna, 2021); the Mersenne Twister went to TOMACS in 1998. Those three are
+cited in Sections 2, 7 and 9. A venue that published the generator this paper
+measures against, the battery it is validated with, and the competitor it
+reports losing to is not going to call the subject out of scope.
 
-IEEE permits preprints on arXiv and other repositories; after acceptance the
-posted version must carry the IEEE copyright notice. Neither the arXiv route in
-§3 nor a Zenodo fallback record compromises a TPDS submission, and a manuscript
-under review is a stronger thing to tell a prospective endorser than a preprint
-link alone.
+TOMACS remains the sibling fallback and its charter names random number
+generation outright. Take TOMS first: the TPDS editor's own words were "random
+number and code generation and software engineering (e.g., software
+libraries)", and software for mathematical computation is the TOMS charter
+rather than the TOMACS one.
+
+### Submit as a regular paper, not an Algorithm
+
+TOMS runs a separate **Algorithms** track whose papers deposit their software
+into the ACM Collected Algorithms and receive an algorithm number. Do not use
+it here. The CALGO deposit carries ACM's own software terms, and this library
+is MIT OR Apache-2.0 on GitHub and archived on Zenodo under the same terms. A
+regular research paper cites the repository and the DOI, keeps the licence, and
+loses nothing the paper is arguing for.
+
+### The APC is back, and it is the real cost
+
+ACM became a fully open-access publisher on 1 January 2026 and retired the
+subscription track, so an accepted TOMS paper carries a mandatory APC. This was
+the whole reason TPDS was chosen first. Reported 2026 journal rates are $1,300
+and $1,800 list, subsidised to $950 and $1,450, but the figures come from
+secondary sources and ACM's current price list is the one that binds.
+
+ACM's discretionary waiver policy says that stating an inability to pay is not
+by itself sufficient, and that ACM weighs whether the author's institution could
+reasonably be expected to join ACM Open. An author with no institution at all is
+a better case under that second test than a funded one at a non-participating
+university, not a worse one, but it is still discretionary and it is decided
+after acceptance, during the e-rights process. Geographic waivers do not apply
+to the United Kingdom.
+
+So the sequence is: submit, get reviewed, and only then find out the price. A
+rejection costs nothing. An acceptance may cost up to about $1,450, and the
+waiver request is made at that point and not before. Decide now whether that
+outcome is acceptable, because withdrawing an accepted paper over the APC wastes
+the referees' time as well as your own.
+
+### What the template change did and did not do
+
+The manuscript moved from IEEEtran to `acmart` in the `acmsmall` format. Only
+the class and the reference handling changed: the references became a `.bib`
+for ACM-Reference-Format, CCS concepts and ACM keywords replaced the IEEE index
+terms, and the double-column floats became single-column ones. No measurement,
+claim or section moved.
+
+TOMS sets no page limit for a regular submission, so the two constraints this
+section used to track are gone. The twelve-page cap does not apply, and the
+parallel result no longer has to lead for scope reasons. Leaving Section 8 where
+it is costs nothing, so leave it: thread-count independence is still the
+property the library exists for.
+
+ACM permits preprints on arXiv and other repositories. Neither the arXiv route
+in Section 3 nor a Zenodo fallback record compromises a TOMS submission, and a
+manuscript under review is a stronger thing to tell a prospective endorser than
+a preprint link alone.
