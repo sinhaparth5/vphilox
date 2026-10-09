@@ -32,13 +32,47 @@ ships v2.16, and ACM asks for the current one.
 
 ## 1. Manuscript type
 
-  Regular paper (research paper)
+  1  Research Paper        <- pick this one
 
-NOT the Algorithms track. An Algorithms paper deposits its software into the ACM
-Collected Algorithms under ACM's own terms; vphilox is MIT OR Apache-2.0 on
-GitHub and archived on Zenodo, and the regular track cites that record instead.
+The portal offers eight. What the other seven are, and why none of them:
 
-TOMS sets no page limit on a regular submission, so the 20 pages are fine.
+  2  Algorithm Papers      deposits the software into the ACM Collected
+                           Algorithms under ACM's terms. vphilox is MIT OR
+                           Apache-2.0 on GitHub and archived on Zenodo, and
+                           the regular track cites that record instead.
+  3  Remark                a short comment on an algorithm TOMS already
+                           published. This is not one.
+  4  Software Release      a major release of a package that already has a
+                           published design paper and an existing user base.
+                           vphilox has neither, and these run under ten pages
+                           on an expedited track.
+  5  Regular Paper for     a research paper that opts into Replicated
+     RCR Initiative        Computational Results review. See below.
+  6  RCR Report            written by the RCR reviewer, not by the author.
+  -  Introductions         editorial matter.
+  -  Editorial             editorial matter.
+  -  Special Issue on      closed 15 June 2026.
+     Mixed-Precision GPU
+
+TOMS sets no page limit on a research paper, so the 20 pages are fine.
+
+### Why not type 5, the RCR track
+
+The repository is built for RCR and would survive most of it. publish_results.py
+--check regenerates every figure from archived JSON in CI, run_matrix.sh records
+provenance and refuses a run over 1% CV, and every PractRand and TestU01 log
+carries the git SHA of the binary that wrote it.
+
+The headline numbers are the problem. They are cycles per byte on six named
+machines, and the paper's own method section says cycles per byte does not
+transfer across hosts. An RCR reviewer would need AVX-512 hardware, a NEON
+board, and a bare-metal SMT machine where the co-location gate actually passes,
+because run_placement.sh correctly refuses a VM. Finding that reviewer adds
+months to a paper that has already lost five weeks to the wrong venue.
+
+Submit as type 1 and let the editor route it. The cover letter already says the
+RCR material is there, and nothing in the repository has to change if they take
+it up.
 
 
 ## 2. Open access and the APC
@@ -63,36 +97,22 @@ time.
 
 ## 3. Title
 
+Limit is 50 words. This is 7.
+
 Portable, Seekable Random Streams for Parallel CPU Simulation
 
 
 ## 4. Abstract
 
-The full version is 270 words. If a shorter one is needed, cut from "The cost of
-those properties" onward.
+Limit is 200 words. The manuscript's abstract is 270, so it does not fit and
+this 198-word version goes in the box. Nothing was softened: what came out is
+the mechanism behind the format disagreement, the phrase "with no
+coordination", and some connective tissue. Every measured number survives.
 
-A long simulation that checkpoints its random generator and resumes on a
-different machine is relying on a property that std::mt19937 does not have. The
-C++ standard fixes the text format of an engine's stream operators only
-partially, and the three major standard libraries disagree on both the numeric
-base of the digits and the order of the 624 state words. A checkpoint written
-under libstdc++ fails to load under the MSVC standard library, and loads without
-any diagnostic, at the wrong position, under libc++. This paper describes
-vphilox, a header-only C++20 library that removes the failure by changing what is
-stored. The generator is Philox4x32-10, a counter-based construction whose entire
-state is a key and a position, so a checkpoint is six 32-bit integers and a word
-offset, not a snapshot of engine internals. The same property gives
-constant-time seek and gives each worker an independent substream with no
-coordination, so a task draws the same numbers whatever the thread count and
-schedule. The cost of those properties is the question the design has to answer,
-because the earlier attempt to adopt Philox in a production machine-learning
-library was rejected on the grounds that scalar Philox runs at one tenth the
-speed of the Mersenne Twister. We report that the tenfold penalty did not
-reproduce on any of five processors measured, and that interleaving independent
-counters across SIMD lanes brings the generator to between 0.22x and 0.75x the
-cost per byte of std::mt19937 on the bulk path. Aggregate cost per byte is flat
-across thread counts, and the first parallel limit we find is hyperthread
-co-location, not the generator.
+A simulation that checkpoints its generator and resumes on a different machine relies on a property std::mt19937 does not have. The C++ standard fixes an engine's stream format only partially, so the three major standard libraries disagree on the digit base and the order of the 624 state words. A checkpoint written under libstdc++ fails under MSVC's, and under libc++ loads at the wrong position with no diagnostic. vphilox is a header-only C++20 library that removes the failure by changing what is stored. Its generator is Philox4x32-10, whose entire state is a key and a position: a checkpoint is six 32-bit integers and a word offset. That also gives constant-time seek and an independent substream per worker, so a task draws the same numbers whatever the thread count and schedule. Philox was once rejected from a production machine-learning library as ten times slower than the Mersenne Twister. That penalty did not reproduce on any of five processors measured, and interleaving counters across SIMD lanes brings the bulk path to 0.22x to 0.75x the cost per byte of std::mt19937. Aggregate cost per byte is flat across thread counts, and the first parallel limit is hyperthread co-location, not the generator.
+
+Paste it as plain text. The box has no LaTeX, so std::mt19937 and 0.22x are
+already written the way they need to appear.
 
 
 ## 5. CCS concepts
