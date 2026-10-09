@@ -1,6 +1,6 @@
 # generated/
 
-Submission artifacts for IEEE Transactions on Parallel and Distributed Systems.
+Submission artifacts for ACM Transactions on Mathematical Software.
 
 Everything here is built from sources in this repository. Nothing here is edited
 by hand, and nothing here is the source of truth: if a file disagrees with
@@ -8,38 +8,55 @@ by hand, and nothing here is the source of truth: if a file disagrees with
 
 | File | What it is |
 |---|---|
-| `vphilox-tpds.pdf` | the manuscript, 12 pages, uploaded as Main Document (PDF) |
-| `vphilox-tpds-source.zip` | `vphilox.tex`, `IEEEtran.cls`, `figures/`, uploaded as Main Document (LaTeX) |
+| `vphilox-toms.pdf` | the manuscript, 20 pages, uploaded as the main document |
+| `vphilox-toms-source.zip` | `vphilox.tex`, `vphilox.bib`, `vphilox.bbl`, `acmart.cls`, `ACM-Reference-Format.bst`, `figures/` |
 | `vphilox-cover-letter.pdf` | cover letter to the Editor-in-Chief |
 | `vphilox-cover-letter.tex` | its source, which lives here because nothing else builds it |
-| `submission-pack.md` | every ScholarOne form field, for copy and paste |
+| `submission-pack.md` | every submission form field, for copy and paste |
+
+The previous bundle was for IEEE TPDS, which desk-rejected the paper on scope in
+October 2026 without sending it to referees. That history is in
+`docs/publishing-guide.md`; the files it produced are in git and are not here.
 
 ## Template
 
-`paper/vphilox.tex` uses `\documentclass[lettersize,journal]{IEEEtran}`, which is
-the sample file in IEEE's `Computer_Society_LaTeX_template.zip`. It is
-deliberately not `[10pt,journal,compsoc]`. The how-to shipped in that same zip
-still lists compsoc for Computer Society journals, but the editorial office
-rejects compsoc submissions, so the sample file binds and the how-to does not.
-Do not revert this on the strength of the how-to.
+`paper/vphilox.tex` uses `\documentclass[acmsmall,screen,review]{acmart}`, from
+the template at <https://www.acm.org/publications/proceedings-template>.
+`acmsmall` is the ACM small-format journal layout that TOMS uses. `review`
+numbers the lines for referees. `anonymous` is absent on purpose: TOMS makes the
+referees anonymous to the author rather than the author anonymous to the
+referees, which is what lets Section 1 disclose that this paper's author
+submitted the pull request it quotes.
+
+`acmart.cls` and `ACM-Reference-Format.bst` are vendored under `paper/acmart/`
+at v2.20 rather than taken from the TeX tree, which on TeX Live 2025 is v2.16.
+Both are LPPL and `paper/acmart/LICENSE` travels with them.
+
+The fonts acmart calls for are not in a base TeX install. Libertine, newtx and
+inconsolata are all in `texlive-fonts-extra`. Without them acmart falls back to
+bitmap Computer Modern and microtype stops the run with *auto expansion is only
+possible with scalable fonts*, which is the first thing to check if the build
+dies with no PDF and no obvious error.
 
 ## Rebuilding
 
 ```bash
+paper/stage-figures.sh           # populates paper/figures/
 paper/build.sh --strict          # writes paper/vphilox.pdf, fails on an
                                  # overfull box or an undefined reference
-cp paper/vphilox.pdf generated/vphilox-tpds.pdf
+cp paper/vphilox.pdf generated/vphilox-toms.pdf
 ```
 
-The zip is the flat directory arXiv and ScholarOne both want: `vphilox.tex`,
-`IEEEtran.cls` from the TeX distribution, and the three staged figure PDFs.
-`paper/stage-figures.sh` populates `paper/figures/`.
+The zip is the flat directory both ACM and arXiv want. It carries the class and
+the bibliography style alongside the source, so it builds on a machine that has
+neither, and it carries `vphilox.bbl` so a submission system that does not run
+BibTeX still gets the references.
 
 The cover letter:
 
 ```bash
 cd generated
-SOURCE_DATE_EPOCH=$(date -u -d 2026-09-14 +%s) FORCE_SOURCE_DATE=1 \
+SOURCE_DATE_EPOCH=$(date -u -d 2026-10-09 +%s) FORCE_SOURCE_DATE=1 \
   pdflatex -interaction=nonstopmode -halt-on-error vphilox-cover-letter.tex
 ```
 
@@ -50,13 +67,22 @@ the source expects the paper they already have. Unpack the zip somewhere clean,
 build it, and compare:
 
 ```bash
-cd "$(mktemp -d)" && unzip -q <path>/vphilox-tpds-source.zip && cd vphilox-source
-export SOURCE_DATE_EPOCH=$(date -u -d 2026-09-14 +%s) FORCE_SOURCE_DATE=1
+cd "$(mktemp -d)" && unzip -q <path>/vphilox-toms-source.zip && cd vphilox-source
+export SOURCE_DATE_EPOCH=$(date -u -d 2026-10-09 +%s) FORCE_SOURCE_DATE=1
+pdflatex -interaction=nonstopmode -halt-on-error vphilox.tex
+bibtex vphilox
 for i in 1 2; do pdflatex -interaction=nonstopmode -halt-on-error vphilox.tex; done
-cmp vphilox.pdf <path>/vphilox-tpds.pdf
+cmp vphilox.pdf <path>/vphilox-toms.pdf
 ```
 
 `paper/build.sh` pins `SOURCE_DATE_EPOCH` from `PAPER_DATE` for exactly this
 reason, so the comparison is byte for byte rather than approximate. Bump
 `PAPER_DATE` in `paper/build.sh` when the draft is revised and rebuild
 everything here afterwards: the date appears on the title page.
+
+One thing had to change for that comparison to hold. Both `\graphicspath`
+entries hold the same figures, and pdftex stamps whichever path it loaded each
+one from into the output as `/PTEX.FileName`, so the same source produced
+different bytes depending on whether `stage-figures.sh` had been run.
+`\pdfsuppressptexinfo=-1` in the preamble drops those stamps, and the build is
+now path-independent.

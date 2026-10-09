@@ -1,44 +1,62 @@
-# TPDS submission pack
+# TOMS submission pack
 
-Portal: https://mc.manuscriptcentral.com/tpds-cs
-(If that does not resolve to TPDS, go to https://www.computer.org/csdl/journal/td
-and use "Submit a Paper".)
+Portal: https://mc.manuscriptcentral.com/toms
+(Confirm it from https://dl.acm.org/journal/toms first. ACM moves these, and the
+journal page always carries the current "Submit" link.)
 
 ## Files in this directory
 
-  vphilox-tpds.pdf          upload as Main Document - PDF
-  vphilox-tpds-source.zip   upload as Main Document - LaTeX
-  vphilox-cover-letter.pdf  upload as Cover letter / Comments
+  vphilox-toms.pdf          upload as the main document (PDF)
+  vphilox-toms-source.zip   upload as the LaTeX source
+  vphilox-cover-letter.pdf  upload as the cover letter
 
-The zip holds vphilox.tex, IEEEtran.cls and figures/ (three PDFs). No .pdf
-inside. It is test-compiled from a clean directory and reproduces the uploaded
-PDF byte for byte: 12 pages, no overfull boxes, no undefined references.
+The zip holds vphilox.tex, vphilox.bib, vphilox.bbl, acmart.cls,
+ACM-Reference-Format.bst and figures/ (three PDFs). No .pdf of the paper inside.
+It is test-compiled from a clean directory, with a real BibTeX pass, and
+reproduces the uploaded PDF byte for byte: 20 pages, no overfull boxes, no
+undefined references.
+
 
 ## Template
 
-  \documentclass[lettersize,journal]{IEEEtran}
+  \documentclass[acmsmall,screen,review]{acmart}
 
-This is the sample file in IEEE's Computer_Society_LaTeX_template.zip. It is NOT
-[10pt,journal,compsoc], which the how-to in that same zip still lists for
-Computer Society journals: the editorial office rejects compsoc submissions.
-The sample file binds, not the how-to.
+acmsmall is the ACM small-format journal layout TOMS uses. "review" numbers the
+lines for referees. "anonymous" is deliberately absent: TOMS referees are
+anonymous to the author, not the author to the referees, and the XGBoost
+conflict is disclosed in a Section 1 footnote that anonymising would remove.
 
-
-## 1. Article Type
-
-  Regular Paper
-
-The 12-page limit applies to this type and the manuscript is 12 pages. Do not
-pick Open Access unless you intend to pay the APC; traditional submission
-carries no charge.
+The class and the .bst are vendored in the zip at acmart v2.20. TeX Live 2025
+ships v2.16, and ACM asks for the current one.
 
 
-## 2. Peer Review Type
+## 1. Manuscript type
 
-  Single anonymized
+  Regular paper (research paper)
 
-Identifying information stays in the manuscript, which is where the XGBoost
-conflict is already disclosed in a footnote.
+NOT the Algorithms track. An Algorithms paper deposits its software into the ACM
+Collected Algorithms under ACM's own terms; vphilox is MIT OR Apache-2.0 on
+GitHub and archived on Zenodo, and the regular track cites that record instead.
+
+TOMS sets no page limit on a regular submission, so the 20 pages are fine.
+
+
+## 2. Open access and the APC
+
+ACM has had no subscription track since 1 January 2026, so acceptance carries a
+mandatory APC. Reported 2026 journal rates are $1,300 and $1,800 list,
+subsidised to $950 and $1,450; ACM's own price list is the one that binds.
+
+There is nothing to decide at submission. The charge is handled after acceptance
+during the e-rights process, which is also when a discretionary waiver is
+requested. ACM weighs whether the author's institution could reasonably join ACM
+Open; having no institution is a better case under that test than a funded post
+at a non-participating university, but it stays discretionary. Geographic
+waivers do not cover the United Kingdom.
+
+Decide before submitting whether an acceptance that costs up to roughly $1,450
+is acceptable. Withdrawing an accepted paper over the APC wastes the referees'
+time.
 
 
 ## 3. Title
@@ -48,8 +66,8 @@ Portable, Seekable Random Streams for Parallel CPU Simulation
 
 ## 4. Abstract
 
-ScholarOne accepted the full 270-word version. If a shorter one is ever needed,
-cut from "The cost of those properties" onward.
+The full version is 270 words. If a shorter one is needed, cut from "The cost of
+those properties" onward.
 
 A long simulation that checkpoints its random generator and resumes on a
 different machine is relying on a property that std::mt19937 does not have. The
@@ -75,24 +93,33 @@ across thread counts, and the first parallel limit we find is hyperthread
 co-location, not the generator.
 
 
-## 5. Keywords
+## 5. CCS concepts
 
-The picker is the ACM CCS category tree, not the IEEE Thesaurus. Six, all in
-trees that match the paper:
+These are in the manuscript already, as \ccsdesc lines. The submission form may
+ask for them again:
 
-  C.1.2  Multiple Data Stream Architectures (Multiprocessors)
-  C.4    Performance of Systems
-  D.1.3  Concurrent Programming
-  D.2m.a Software libraries
-  D.4.5  Reliability
-  G.3.j  Random number generation
+  500  Mathematics of computing -> Mathematical software
+  500  Software and its engineering -> Software libraries and repositories
+  300  Mathematics of computing -> Probabilistic algorithms
+  300  Computer systems organization -> Single instruction, multiple data
+  100  Mathematics of computing -> Mathematical software performance
+  100  Computing methodologies -> Parallel algorithms
 
-Do not use B.1.5.b (microcode), H.5.2.b (benchmarking under HCI) or I.3.1.d
-(parallel processing under Computer Graphics). Right words, wrong disciplines,
-and editors pick reviewers partly from these.
+The concept_id numbers in the CCSXML block were taken from published ACM papers
+rather than retyped, because they are not guessable. Regenerate the block from
+https://dl.acm.org/ccs at camera ready, which is when ACM asks for it anyway.
+That is also the moment to add "Random number generation" if the tool offers it
+under Probability and statistics; it was left out rather than invented.
 
 
-## 6. Authors and affiliations
+## 6. Keywords
+
+Counter-based random number generation, Philox, portable serialized state,
+constant-time seek, SIMD vectorization, reproducible parallel streams, thread
+scaling, C++20, statistical testing
+
+
+## 7. Authors and affiliations
 
   Title                Mr.
   Name                 Parth Kumar Sinha
@@ -101,17 +128,18 @@ and editors pick reviewers partly from these.
   Country              United Kingdom
   Corresponding        yes
 
-Affiliations: leave "Not provided". That field only determines eligibility for
-institutional APC discounts, and the traditional track carries no charge. Do not
-attach an organisation you are not at.
+Affiliation: independent researcher, Oxford, United Kingdom. Do not attach an
+organisation you are not at. Under ACM Open the affiliation field decides
+whether an institution's agreement covers the APC, so an invented one would be a
+billing claim as well as a false statement.
 
 
-## 7. Funders
+## 8. Funders
 
 No funding was received for this research.
 
 
-## 8. Additional Information
+## 9. Additional information
 
   Previously submitted to this journal?   No
   Previously published, in whole or part? No
@@ -119,8 +147,8 @@ No funding was received for this research.
   Opposed reviewers                       none
   Code associated with the manuscript?    Yes
   Data associated with the manuscript?    Yes, and it will be shared
-    - I have included a link in my manuscript        (Availability section)
-    - I have uploaded my data to a data repository   (Zenodo)
+    - link in the manuscript                        (Availability section)
+    - uploaded to a data repository                 (Zenodo)
 
 Data repository block, exactly:
 
@@ -132,16 +160,25 @@ Data repository block, exactly:
 The DOI field takes the bare identifier. A "doi:" prefix or a full URL fails
 validation. The Title field wants the dataset's title, not a link.
 
+TOMS asks for a complete software package, and this one is already public. If
+the form offers a replicated-computational-results review, accept it: every
+figure regenerates from archived JSON under CI, and every PractRand and TestU01
+log carries the git SHA of the binary that wrote it.
 
-## 9. Final Review
+Do not volunteer the TPDS history. It was a scope decision by one editor, no
+referee saw the paper, and nothing in it was asked to change. ACM does not ask.
 
-  - the page count reads 12 in ScholarOne's own proof, not just in your PDF
+
+## 10. Final review
+
+  - the page count reads 20 in the portal's own proof, not just in your PDF
   - figures are legible in that proof; it re-renders and can downsample
   - the byline under the title reads "Parth Kumar Sinha"
-  - article type is Regular and Open Access is not selected
+  - manuscript type is the regular research track, not Algorithms
   - ORCID is attached
+  - the CCS concepts block survived the upload
 
-ScholarOne emails a manuscript ID. Keep it.
+Manuscript Central emails a manuscript ID. Keep it.
 
 
 ## Zenodo
@@ -161,4 +198,4 @@ corrected to "Sinha, Parth Kumar" to match the paper.
 ## After submitting
 
 Consider posting the preprint to Preprints.org so the work has a public
-timestamp while review runs. TPDS permits preprints, and the same PDF works.
+timestamp while review runs. ACM permits preprints, and the same PDF works.
