@@ -240,16 +240,20 @@ jobs:
             echo "paper untouched; skipping the TeX install"
           fi
 
-      # IEEEtran is in texlive-publishers, algorithm2e in texlive-science, and
-      # adjustbox / cleveref / todonotes in texlive-latex-extra. Naming them
-      # rather than installing texlive-full keeps this to a few minutes.
+      # acmart.cls is vendored under paper/acmart/, so texlive-publishers is
+      # no longer needed, but the fonts it calls for are: Libertine, newtx and
+      # inconsolata all live in texlive-fonts-extra, and without them acmart
+      # falls back to bitmap Computer Modern and microtype aborts the run on
+      # "auto expansion is only possible with scalable fonts". adjustbox and
+      # cleveref are in texlive-latex-extra. Naming the packages rather than
+      # installing texlive-full keeps this to a few minutes.
       - name: Install TeX
         if: steps.changed.outputs.build == 'true'
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
             texlive-latex-base texlive-latex-recommended texlive-latex-extra \
-            texlive-publishers texlive-science texlive-fonts-recommended
+            texlive-fonts-recommended texlive-fonts-extra
 
       # --strict, because the paper's quality bar is zero overfull boxes and
       # zero undefined references, and a draft that quietly loses a \cref

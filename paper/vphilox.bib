@@ -1,0 +1,103 @@
+% SPDX-License-Identifier: MIT OR Apache-2.0
+% Copyright (c) 2026 Parth Sinha
+%
+% The references were an inline thebibliography while the paper was in
+% IEEEtran. ACM-Reference-Format.bst builds the ACM reference style from
+% these entries instead, so the formatting is the style file's job and not
+% something to hand-maintain in the body.
+
+@inproceedings{salmon2011,
+  author    = {Salmon, John K. and Moraes, Mark A. and Dror, Ron O. and Shaw, David E.},
+  title     = {Parallel Random Numbers: As Easy as 1, 2, 3},
+  booktitle = {Proceedings of the 2011 International Conference for High Performance
+               Computing, Networking, Storage and Analysis},
+  series    = {SC '11},
+  year      = {2011},
+  pages     = {16:1--16:12},
+  publisher = {ACM},
+  address   = {New York, NY, USA},
+  doi       = {10.1145/2063384.2063405}
+}
+
+@article{matsumoto1998,
+  author  = {Matsumoto, Makoto and Nishimura, Takuji},
+  title   = {Mersenne Twister: A 623-Dimensionally Equidistributed Uniform
+             Pseudo-Random Number Generator},
+  journal = {ACM Transactions on Modeling and Computer Simulation},
+  volume  = {8},
+  number  = {1},
+  year    = {1998},
+  pages   = {3--30},
+  doi     = {10.1145/272991.272995}
+}
+
+@techreport{oneill2014,
+  author      = {O'Neill, Melissa E.},
+  title       = {{PCG}: A Family of Simple Fast Space-Efficient Statistically Good
+                 Algorithms for Random Number Generation},
+  institution = {Harvey Mudd College},
+  address     = {Claremont, CA, USA},
+  number      = {HMC-CS-2014-0905},
+  year        = {2014}
+}
+
+@article{blackman2021,
+  author  = {Blackman, David and Vigna, Sebastiano},
+  title   = {Scrambled Linear Pseudorandom Number Generators},
+  journal = {ACM Transactions on Mathematical Software},
+  volume  = {47},
+  number  = {4},
+  year    = {2021},
+  pages   = {36:1--36:32},
+  doi     = {10.1145/3460772}
+}
+
+@article{lecuyer2007,
+  author  = {L'Ecuyer, Pierre and Simard, Richard},
+  title   = {{TestU01}: A C Library for Empirical Testing of Random Number Generators},
+  journal = {ACM Transactions on Mathematical Software},
+  volume  = {33},
+  number  = {4},
+  year    = {2007},
+  pages   = {22:1--22:40},
+  doi     = {10.1145/1268776.1268777}
+}
+
+@misc{practrand,
+  author       = {Doty-Humphrey, Chris},
+  title        = {{PractRand}: Practically Random, C++ Library of Statistical Tests
+                  for {RNGs}},
+  howpublished = {Release PractRand-pre0.95, which reports its own version as 0.95},
+  url          = {https://sourceforge.net/projects/pracrand/},
+  note         = {Accessed 26 August 2026}
+}
+
+@manual{curand,
+  author       = {{NVIDIA Corporation}},
+  title        = {{cuRAND} Library Programming Guide},
+  note         = {cuRAND 10.4.1, CUDA Toolkit 13.1},
+  url          = {https://docs.nvidia.com/cuda/curand/},
+  year         = {2026}
+}
+
+@misc{xgboostbug,
+  author       = {CharlesHMJr},
+  title        = {{XGBoostError}: Input Stream Corrupted When Unpickling a
+                  Linux-Trained Booster on Windows (xgboost 3.3.0)},
+  howpublished = {dmlc/xgboost issue \#12459, GitHub},
+  month        = aug,
+  year         = {2026},
+  url          = {https://github.com/dmlc/xgboost/issues/12459},
+  note         = {Accessed 26 August 2026}
+}
+
+@misc{xgboostrng,
+  author       = {Mitchell, Rory},
+  title        = {Review Comment on Pull Request \#12485, ``Make the Serialized
+                  {RNG} State Portable Across Platforms''},
+  howpublished = {dmlc/xgboost, GitHub},
+  month        = aug,
+  year         = {2026},
+  url          = {https://github.com/dmlc/xgboost/pull/12485\#issuecomment-5355357794},
+  note         = {Accessed 26 August 2026}
+}

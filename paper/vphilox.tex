@@ -1,67 +1,66 @@
-\documentclass[lettersize,journal]{IEEEtran}
-% The template IEEE's Template Selector hands out for Computer Society
-% journals (Computer_Society_LaTeX_template.zip). Not [10pt,journal,compsoc]:
-% the how-to in that same zip still lists compsoc, but the editorial office
-% rejects it, so the sample file rather than the how-to is what binds.
-% For a conference submission the only change is the class options:
-%   \documentclass[conference]{IEEEtran}
-% and dropping the \IEEEcompsoc* commands in the author block below.
+\documentclass[acmsmall,screen,review]{acmart}
+% ACM small-format journal class, which is what TOMS uses, taken from the
+% template at https://www.acm.org/publications/proceedings-template
+% (acmart v2.20, 2026/08/16). The class and the bibliography style are
+% vendored under paper/acmart/ rather than taken from the local TeX tree:
+% TeX Live 2025 ships v2.16, and this paper's PDF is tracked, so the build has
+% to pin the class the same way it pins the date.
+%
+% 'review' turns on line numbers for referees. 'anonymous' is deliberately
+% absent -- TOMS referees are anonymous to the author, not the author to the
+% referees -- which is what lets Section I disclose that this paper's author
+% submitted the pull request it quotes.
+%
+% The previous version of this file was IEEEtran, for TPDS. The class is the
+% only reason any of the markup below differs.
 
 % ---------------------------------------------------------------
 % Core mathematics packages
 % ---------------------------------------------------------------
-\usepackage{amsmath, amssymb, amsthm, mathtools}
+% acmart loads amssymb, booktabs, caption, graphicx, hyperref, microtype and
+% natbib itself. Loading any of those again, or loading hyperref with options,
+% is an error rather than a duplicate.
+\usepackage{amsmath, amsthm, mathtools}
 \usepackage{bm}
-
-% ---------------------------------------------------------------
-% Algorithms
-% ---------------------------------------------------------------
 
 % ---------------------------------------------------------------
 % Graphics, figures, and plots
 % ---------------------------------------------------------------
-\usepackage{graphicx}
 \graphicspath{{figures/}{../docs/benchmarks/plots/}}
 \usepackage{adjustbox}
+% pdftex stamps the path it loaded each included PDF from into the output as
+% /PTEX.FileName. Both \graphicspath entries hold the same figures, so without
+% this the tracked PDF's bytes depend on whether stage-figures.sh has been run,
+% and the submitted source stops reproducing the submitted PDF.
+\ifdefined\pdfsuppressptexinfo\pdfsuppressptexinfo=-1\fi
 
 % ---------------------------------------------------------------
 % Tables
 % ---------------------------------------------------------------
-\usepackage{booktabs}
 \usepackage{tabularx}
 
 % ---------------------------------------------------------------
-% Cross-referencing and citations
+% Cross-referencing
 % ---------------------------------------------------------------
-% cite.sty rather than natbib: IEEE numbers its references and sorts and
-% compresses runs of them, which is what this gives and what IEEEtran.bst
-% expects. natbib's author-year machinery has nothing to do here.
-\usepackage{cite}
-\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
+% cite.sty is gone with IEEEtran: acmart loads natbib and
+% ACM-Reference-Format.bst expects it.
 \usepackage[capitalise,noabbrev]{cleveref}
-
-% ---------------------------------------------------------------
-% Typography
-% ---------------------------------------------------------------
-\usepackage{microtype}
-% No geometry and no parskip here: IEEEtran fixes the page geometry to the
-% IEEE specification, and IEEE paragraphs are indented rather than spaced.
-% Loading either would silently produce a document that is not the format.
 
 % ---------------------------------------------------------------
 % Miscellaneous
 % ---------------------------------------------------------------
 \usepackage{xcolor}
-\usepackage{todonotes}
 \usepackage{listings}
 \lstset{basicstyle=\ttfamily\footnotesize, columns=fullflexible,
         breaklines=true, frame=single, framesep=3pt, xleftmargin=0pt,
         showstringspaces=false, aboveskip=6pt, belowskip=6pt}
 
 % ---------------------------------------------------------------
-% Theorem environments (amsthm)
+% Theorem environments
 % ---------------------------------------------------------------
-\theoremstyle{remark}
+% acmart predefines theorem, lemma, corollary, definition and example but not
+% remark, so this is the one that still has to be declared.
+\theoremstyle{acmdefinition}
 \newtheorem{remark}{Remark}
 
 % ---------------------------------------------------------------
@@ -72,21 +71,35 @@
 \newcommand{\key}{\mathbf{k}}
 \newcommand{\code}[1]{\texttt{#1}}
 
+% ---------------------------------------------------------------
+% Journal and rights metadata
+% ---------------------------------------------------------------
+% These carry SAMPLE values until ACM sends the rights form after acceptance,
+% which is when the real \setcopyright, \acmDOI, volume and article number
+% arrive. They are here because acmart warns on a journal article without
+% them, not because any of it is known yet.
+\acmJournal{TOMS}
+\acmYear{2026}
+\copyrightyear{2026}
+\acmVolume{0}
+\acmNumber{0}
+\acmArticle{0}
+\acmMonth{10}
+\setcopyright{none}
+
 \begin{document}
 
-\title{Portable, Seekable Random Streams for\\Parallel CPU Simulation}
+\title{Portable, Seekable Random Streams for Parallel CPU Simulation}
 
-\author{Parth~Kumar~Sinha%
-\thanks{P. K. Sinha is an independent researcher in Oxford, United Kingdom.
-E-mail: sinhaparth555@gmail.com. ORCID 0009-0002-3120-9301.}%
-\thanks{Source, measurement data and the scripts that regenerate every figure in
-this paper: \url{https://github.com/sinhaparth5/vphilox}}%
-\thanks{Manuscript received \today.}}
+\author{Parth Kumar Sinha}
+\orcid{0009-0002-3120-9301}
+\email{sinhaparth555@gmail.com}
+\affiliation{%
+  \institution{Independent researcher}
+  \city{Oxford}
+  \country{United Kingdom}}
 
-\markboth{IEEE Transactions on Parallel and Distributed Systems,~Vol.~XX, No.~X, Month~Year}%
-{Sinha: Portable, Seekable Random Streams for Parallel CPU Simulation}
-
-\maketitle
+\renewcommand{\shortauthors}{Sinha}
 
 \begin{abstract}
 A long simulation that checkpoints its random generator and resumes on a
@@ -113,15 +126,62 @@ bulk path. Aggregate cost per byte is flat across thread counts, and the first
 parallel limit we find is hyperthread co-location, not the generator.
 \end{abstract}
 
-\begin{IEEEkeywords}
-Random number generation, parallel processing, multithreading, instruction sets,
-multicore processing, checkpointing, software libraries, benchmark testing,
-reproducibility of results.
-\end{IEEEkeywords}
+% The concept identifiers below were taken from published ACM articles rather
+% than retyped, since the numbers are not guessable. Regenerate the block from
+% https://dl.acm.org/ccs at camera ready, which is also when ACM asks for it.
+\begin{CCSXML}
+<ccs2012>
+ <concept>
+  <concept_id>10002950.10003705</concept_id>
+  <concept_desc>Mathematics of computing~Mathematical software</concept_desc>
+  <concept_significance>500</concept_significance>
+ </concept>
+ <concept>
+  <concept_id>10011007.10011006.10011072</concept_id>
+  <concept_desc>Software and its engineering~Software libraries and repositories</concept_desc>
+  <concept_significance>500</concept_significance>
+ </concept>
+ <concept>
+  <concept_id>10002950.10003648.10003671</concept_id>
+  <concept_desc>Mathematics of computing~Probabilistic algorithms</concept_desc>
+  <concept_significance>300</concept_significance>
+ </concept>
+ <concept>
+  <concept_id>10010520.10010521.10010528.10010534</concept_id>
+  <concept_desc>Computer systems organization~Single instruction, multiple data</concept_desc>
+  <concept_significance>300</concept_significance>
+ </concept>
+ <concept>
+  <concept_id>10002950.10003714.10003715.10003748</concept_id>
+  <concept_desc>Mathematics of computing~Mathematical software performance</concept_desc>
+  <concept_significance>100</concept_significance>
+ </concept>
+ <concept>
+  <concept_id>10010147.10010169.10010170</concept_id>
+  <concept_desc>Computing methodologies~Parallel algorithms</concept_desc>
+  <concept_significance>100</concept_significance>
+ </concept>
+</ccs2012>
+\end{CCSXML}
+
+\ccsdesc[500]{Mathematics of computing~Mathematical software}
+\ccsdesc[500]{Software and its engineering~Software libraries and repositories}
+\ccsdesc[300]{Mathematics of computing~Probabilistic algorithms}
+\ccsdesc[300]{Computer systems organization~Single instruction, multiple data}
+\ccsdesc[100]{Mathematics of computing~Mathematical software performance}
+\ccsdesc[100]{Computing methodologies~Parallel algorithms}
+
+\keywords{Counter-based random number generation, Philox, portable serialized
+state, constant-time seek, SIMD vectorization, reproducible parallel streams,
+thread scaling, C++20, statistical testing}
+
+\received{9 October 2026}
+
+\maketitle
 
 \section{Introduction}\label{sec:intro}
 
-\IEEEPARstart{C}{onsider} a Monte Carlo simulation that runs for a week on a
+Consider a Monte Carlo simulation that runs for a week on a
 cluster, writes a checkpoint every hour, and is restarted after a node failure
 onto whatever hardware the scheduler has free. For the restart to be
 scientifically meaningful, the random number generator must resume at exactly
@@ -360,7 +420,7 @@ what allows the engine to choose any refill size.
 Each backend also advertises \code{preferred\_blocks}, the block count at which
 it runs without a tail. \Cref{tab:widths} lists the four.
 
-\begin{table*}[t]
+\begin{table}[t]
 \centering
 \caption{Interleaving width per backend. On x86 the width is one counter per
 32-bit lane. NEON carries four lanes per register but two independent groups
@@ -375,7 +435,7 @@ AVX-512  & 16 & 16 counters per \code{\_\_m512i} \\
 NEON     & 8  & 4 counters per \code{uint32x4\_t}, 2 groups interleaved \\
 \bottomrule
 \end{tabular}
-\end{table*}
+\end{table}
 
 \subsection{Why the multiplies are the difficulty}
 
@@ -543,7 +603,7 @@ unit at once. Its own throughput matrix is archived as harness validation and
 quoted nowhere, because a four-core machine running a full desktop cannot hold
 the variation bar across a whole sweep.
 
-\begin{table*}[t]
+\begin{table}[t]
 \centering
 \caption{Measurement hosts. Two are bare metal and four are cloud instances with
 dedicated virtual CPUs. The 32-vCPU Cascade Lake entry reports a two-socket,
@@ -562,7 +622,7 @@ Cascade Lake 32v  & Intel Xeon, cloud, 32 vCPU, guest reports 2 sockets, 16 core
 Tiger Lake        & Intel Core i5-11300H, 4 cores $\times$ 2 threads, bare metal, no turbo & 3100 & \code{avx512} & placement mechanism \\
 \bottomrule
 \end{tabularx}
-\end{table*}
+\end{table}
 
 Turbo is disabled on the Tiger Lake host so that reference cycles and core
 cycles coincide: the timestamp counter ticks at that part's base clock, so with
@@ -586,7 +646,7 @@ makes them byte-reproducible and therefore checkable.
 \Cref{tab:matrix} gives cost per byte for each generator divided by
 \code{std::mt19937} on the same machine. Lower is faster.
 
-\begin{table*}[t]
+\begin{table}[t]
 \centering
 \caption{Cost per byte relative to \code{std::mt19937} on the same machine.
 Bold marks the lowest cost achieved by vphilox in each column.}\label{tab:matrix}
@@ -603,7 +663,7 @@ vphilox, \code{operator()} & 1.15 & 0.79 & 0.51 & 0.58 & 0.68 \\
 vphilox, \code{generate\_n} & \textbf{0.75} & \textbf{0.38} & \textbf{0.22} & \textbf{0.24} & \textbf{0.33} \\
 \bottomrule
 \end{tabular}
-\end{table*}
+\end{table}
 
 \subsection{The wide-multiply objection}
 
@@ -625,7 +685,10 @@ unspecialised case honestly, and once by specialising it.
 \subsection{The refill buffer is the remaining cost}
 
 The gap between the two vphilox rows in \cref{tab:matrix} is the refill buffer.
-Satisfying \code{std::uniform\_random\_bit\_generator} requires a per-call
+Satisfying \code{std::uniform\_\allowbreak random\_\allowbreak bit\_\allowbreak generator}
+% One column is not wide enough for this name to sit on a line with any
+% other word, so it is given somewhere to break.
+requires a per-call
 interface, so the engine generates into an aligned 64-word buffer and hands out
 words; the bulk entry points run the kernel straight into the caller's buffer
 and skip the copy.
@@ -644,13 +707,13 @@ a few percent, and by 65536 words it has gone. The two fastest kernels pay the
 most for a call too small to amortise the setup, which is the same effect seen
 from the other direction.
 
-\begin{figure*}[t]
+\begin{figure}[t]
 \centering
-\includegraphics[width=0.80\textwidth]{generate-n-sweep.pdf}
+\includegraphics[width=\linewidth]{generate-n-sweep.pdf}
 \caption{Cost of a bulk call relative to the raw kernel on the same machine,
 against call size in words. The dashed line per machine is the per-call
 interface through the refill buffer.}\label{fig:sweep}
-\end{figure*}
+\end{figure}
 
 \subsection{AVX-512 and the frequency licence}\label{sec:avx512}
 
@@ -660,7 +723,7 @@ some workloads. The concern applies here, since dispatch prefers the widest
 available kernel. It does not appear: \cref{tab:avx512} gives bulk cost per byte
 with the backend pinned, same binary in each row.
 
-\begin{table*}[t]
+\begin{table}[t]
 \centering
 \caption{Bulk kernel cost per byte by pinned backend, cycles per byte, same
 binary in every row. Width conversion is the AVX-512 speedup as a fraction of
@@ -676,7 +739,7 @@ Cascade Lake 32v  & 2.2883 & 0.8740 & \textbf{0.4747} & $1.84\times$ & 92\% \\
 Cascade Lake 4v   & 2.4142 & 0.8537 & \textbf{0.5466} & $1.56\times$ & 78\% \\
 \bottomrule
 \end{tabular}
-\end{table*}
+\end{table}
 
 What the table establishes is an absence: on every part measured here the
 512-bit kernel wins, and on the one part whose cores are not shared a probe
@@ -866,14 +929,14 @@ adds no coordination cost as workers are added, which is the claim; it is not
 evidence of linear speedup, which needs cores as well. \Cref{fig:scaling} draws
 $\bar{c}$ for both working sets.
 
-\begin{figure*}[t]
+\begin{figure}[t]
 \centering
-\includegraphics[width=0.80\textwidth]{thread-scaling.pdf}
+\includegraphics[width=\linewidth]{thread-scaling.pdf}
 \caption{Aggregate cost per byte, \cref{eq:aggcpb}, against thread count on the
 Raspberry Pi 5. Four series are drawn and two are visible, because each working
 set lands on the other. Wall-clock throughput is not on this axis and does not
 stay flat; \cref{tab:piscaling} carries it.}\label{fig:scaling}
-\end{figure*}
+\end{figure}
 
 Four cores are too few to reach a knee, which is why the placement study
 exists.
@@ -894,13 +957,13 @@ bend where they did. It stays flat to sixteen and bends only when the mask packs
 siblings deliberately, which a guest whose affinity had no physical effect could
 not produce.
 
-\begin{figure*}[t]
+\begin{figure}[t]
 \centering
-\includegraphics[width=0.80\textwidth]{scaling-placement.pdf}
+\includegraphics[width=\linewidth]{scaling-placement.pdf}
 \caption{Aggregate cost per byte against thread placement, Cascade Lake, two
 sockets, sixteen physical cores. Dashed lines are the 4~MiB working
 set.}\label{fig:placement}
-\end{figure*}
+\end{figure}
 
 The mechanism is that the kernel is execution-port-bound. Two hardware threads
 sharing one core's multiply ports do not have two cores' worth of issue
@@ -1280,69 +1343,7 @@ and \code{CITATION.cff} in the repository carries the same identifier.
 % ---------------------------------------------------------------
 % References
 % ---------------------------------------------------------------
-\begin{thebibliography}{10}
-
-\bibitem{salmon2011}
-J.~K.~Salmon, M.~A.~Moraes, R.~O.~Dror, and D.~E.~Shaw,
-``Parallel random numbers: As easy as 1, 2, 3,''
-in \textit{Proceedings of the International Conference for High Performance
-Computing, Networking, Storage and Analysis (SC'11)},
-Seattle, WA, USA, 2011, pp.~16:1--16:12.
-
-\bibitem{matsumoto1998}
-M.~Matsumoto and T.~Nishimura,
-``Mersenne twister: A 623-dimensionally equidistributed uniform pseudo-random
-number generator,''
-\textit{ACM Transactions on Modeling and Computer Simulation},
-vol.~8, no.~1, pp.~3--30, 1998.
-
-\bibitem{oneill2014}
-M.~E.~O'Neill,
-``PCG: A family of simple fast space-efficient statistically good algorithms
-for random number generation,''
-Tech.\ Rep.\ HMC-CS-2014-0905, Harvey Mudd College, Claremont, CA, USA, 2014.
-
-\bibitem{blackman2021}
-D.~Blackman and S.~Vigna,
-``Scrambled linear pseudorandom number generators,''
-\textit{ACM Transactions on Mathematical Software},
-vol.~47, no.~4, pp.~36:1--36:32, 2021.
-
-\bibitem{lecuyer2007}
-P.~L'Ecuyer and R.~Simard,
-``TestU01: A C library for empirical testing of random number generators,''
-\textit{ACM Transactions on Mathematical Software},
-vol.~33, no.~4, pp.~22:1--22:40, 2007.
-
-\bibitem{practrand}
-C.~Doty-Humphrey,
-``PractRand: Practically random, C++ library of statistical tests for RNGs,''
-release PractRand-pre0.95, which reports its own version as 0.95.
-[Online]. Available: \url{https://sourceforge.net/projects/pracrand/}
-
-\bibitem{curand}
-NVIDIA Corporation,
-\textit{cuRAND Library Programming Guide},
-cuRAND 10.4.1, CUDA Toolkit 13.1.
-[Online]. Available: \url{https://docs.nvidia.com/cuda/curand/}
-
-\bibitem{xgboostbug}
-CharlesHMJr,
-``XGBoostError: input stream corrupted when unpickling a Linux-trained Booster
-on Windows (xgboost 3.3.0),''
-dmlc/xgboost issue \#12459, GitHub, Aug.~13, 2026.
-[Online]. Available: \url{https://github.com/dmlc/xgboost/issues/12459}
-(accessed Aug.~26, 2026).
-
-\bibitem{xgboostrng}
-R.~Mitchell,
-review comment on pull request \#12485,
-``Make the serialized RNG state portable across platforms,''
-dmlc/xgboost, GitHub, Aug.~20, 2026.
-[Online]. Available:
-\url{https://github.com/dmlc/xgboost/pull/12485#issuecomment-5355357794}
-(accessed Aug.~26, 2026).
-
-\end{thebibliography}
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{vphilox}
 
 \end{document}

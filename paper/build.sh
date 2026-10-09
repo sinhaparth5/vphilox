@@ -20,11 +20,16 @@
 #
 # CI runs --strict. The warnings are the paper's quality bar rather than
 # cosmetics: an undefined reference means a \cref lost its target, and an
-# overfull box means something ran past the column, which in a two-column
-# format is usually a table that was written against a full-width measure.
+# overfull box means something ran past the measure, which in acmsmall is
+# usually a table that was written against a wider one.
+#
+# acmart.cls and ACM-Reference-Format.bst are vendored under acmart/ and found
+# through TEXINPUTS below. The local TeX tree has an older acmart, and the
+# tracked PDF has to be reproducible from the sources in this repository
+# rather than from whatever the machine happens to have installed.
 set -euo pipefail
 
-PAPER_DATE="${PAPER_DATE:-2026-09-14}"
+PAPER_DATE="${PAPER_DATE:-2026-10-09}"
 strict=0
 
 while [[ $# -gt 0 ]]; do
@@ -40,7 +45,14 @@ SOURCE_DATE_EPOCH="$(date -u -d "$PAPER_DATE" +%s)"
 export SOURCE_DATE_EPOCH
 export FORCE_SOURCE_DATE=1
 
-# Two passes: the second resolves \cref and the hyperref outlines.
+export TEXINPUTS="./acmart:"
+export BSTINPUTS="./acmart:"
+
+# pdflatex, bibtex, pdflatex, pdflatex: the first pass writes the .aux the
+# bibliography is built from, and two more resolve \cref, the citation numbers
+# and the hyperref outlines.
+pdflatex -interaction=nonstopmode -halt-on-error vphilox.tex >/dev/null
+bibtex vphilox >/dev/null
 for _ in 1 2; do
     pdflatex -interaction=nonstopmode -halt-on-error vphilox.tex >/dev/null
 done

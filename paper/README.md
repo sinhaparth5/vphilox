@@ -1,12 +1,14 @@
 # The paper
 
 Phase 5 draft of *Portable, Seekable Random Streams for Parallel CPU
-Simulation*, targeting an arXiv preprint under cs.PF / cs.MS.
+Simulation*, under review at ACM Transactions on Mathematical Software, and
+targeting an arXiv preprint under cs.MS / cs.PF.
 
-`vphilox.tex` is a single standalone file with an inline `thebibliography`.
-That is deliberate: arXiv takes a flat directory happily, and one file plus
-five figure PDFs is the whole submission. Switching to an external `.bib`
-later is a preamble change plus `\bibliography{refs}`.
+`vphilox.tex` plus `vphilox.bib` is the whole manuscript. The references were
+an inline `thebibliography` while the paper was in IEEEtran; ACM supplies a
+`.bst` and expects it to do the formatting, so the entries moved into a `.bib`
+and the style file now decides how they look. For arXiv, submit the built
+`vphilox.bbl` alongside the source so arXiv does not have to run BibTeX.
 
 ## Build
 
@@ -43,10 +45,13 @@ stale figure fails loudly instead of ending up in the submission. `figures/` is
 gitignored because those copies are generated; the tracked originals live under
 `docs/`.
 
-Builds clean at **12 pages**: zero errors, zero overfull boxes, zero undefined
-references, verified by CI rather than asserted. The count was 15 under the
-`article` class this draft started in; two-column IEEEtran is denser, so the
-paper lost three pages while gaining the Phase 4 sections.
+Builds clean at **20 pages**: zero errors, zero overfull boxes, zero undefined
+references, verified by CI rather than asserted. The page count is not
+comparable across templates and says nothing about length. The same text was 15
+pages under `article`, 12 under two-column IEEEtran, and is 20 under `acmsmall`,
+which sets one wide column in 10pt Libertine. TOMS sets no page limit for a
+regular submission, so the trimming that the IEEE review cap forced is no longer
+load-bearing.
 
 The tracked `vphilox.pdf` is the one CI built, so it is current with the source.
 
@@ -144,11 +149,28 @@ Sections 8.3, 8.4 and 9.1.
 
 ## Template
 
-This draft uses `IEEEtran` in the Computer Society journal format, which is what
-TPDS, TC and TSE use. A conference submission changes the class options to
-`[conference]` and drops the `\IEEEcompsoc*` commands in the author block;
-nothing in the body depends on the class. `texlive-publishers` provides
-`IEEEtran`.
+This draft uses `acmart` in the `acmsmall` format, which is what TOMS, TOMACS
+and the other ACM small-format journals use. The class options are
+`[acmsmall,screen,review]`: `review` numbers the lines for referees, and
+`anonymous` is absent because TOMS makes the referees anonymous to the author
+rather than the author anonymous to the referees. That is also what lets Section
+1 disclose that the author of this paper submitted the pull request it quotes.
+
+`acmart.cls` and `ACM-Reference-Format.bst` are **vendored under `acmart/`**
+rather than taken from the local TeX tree, and `build.sh` points `TEXINPUTS` and
+`BSTINPUTS` at them. TeX Live 2025 ships acmart v2.16 and ACM is on v2.20, and
+the tracked PDF has to be reproducible from this repository rather than from
+whatever a given machine happens to have installed. Both files are LPPL, and
+`acmart/LICENSE` travels with them.
+
+The fonts acmart calls for are not in the base TeX install. Libertine, newtx and
+inconsolata are all in `texlive-fonts-extra`, and without them acmart falls back
+to bitmap Computer Modern, at which point microtype stops the run with *auto
+expansion is only possible with scalable fonts*. That is the first thing to
+check if the build dies with no PDF and no obvious error.
+
+The previous draft was IEEEtran, for IEEE TPDS. The class is the only reason any
+of the markup differs; nothing in the body depends on it.
 
 ## House rules the prose follows
 
