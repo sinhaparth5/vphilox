@@ -6,12 +6,18 @@ Everything here is built from sources in this repository. Nothing here is edited
 by hand, and nothing here is the source of truth: if a file disagrees with
 `paper/`, the file here is stale and should be rebuilt.
 
+TOMS reviews new submissions double-anonymous, so the manuscript exists twice.
+Only the anonymous one goes to the portal.
+
 | File | What it is |
 |---|---|
-| `vphilox-toms.pdf` | the manuscript, 20 pages, uploaded as the main document |
-| `vphilox-toms-source.zip` | `vphilox.tex`, `vphilox.bib`, `vphilox.bbl`, `acmart.cls`, `ACM-Reference-Format.bst`, `figures/` |
+| `vphilox-toms-anonymous.pdf` | 19 pages, the main document for review |
+| `vphilox-toms-title-page.pdf` | title, author, affiliation, the conflict disclosure, and the two identifiers the anonymous build withholds |
+| `vphilox-toms-title-page.tex` | its source |
 | `vphilox-cover-letter.pdf` | cover letter to the Editor-in-Chief |
 | `vphilox-cover-letter.tex` | its source, which lives here because nothing else builds it |
+| `vphilox-toms.pdf` | 20 pages, the named build. The repository's and arXiv's copy, not the portal's |
+| `vphilox-toms-source.zip` | the LaTeX source. For after acceptance: it names the author |
 | `submission-pack.md` | every submission form field, for copy and paste |
 
 The previous bundle was for IEEE TPDS, which desk-rejected the paper on scope in
@@ -41,11 +47,17 @@ dies with no PDF and no obvious error.
 ## Rebuilding
 
 ```bash
-paper/stage-figures.sh           # populates paper/figures/
-paper/build.sh --strict          # writes paper/vphilox.pdf, fails on an
-                                 # overfull box or an undefined reference
-cp paper/vphilox.pdf generated/vphilox-toms.pdf
+paper/stage-figures.sh                    # populates paper/figures/
+paper/build.sh --strict                   # -> paper/vphilox.pdf, the named one
+paper/build.sh --anonymous --strict       # -> paper/vphilox-anon.pdf
+cp paper/vphilox.pdf      generated/vphilox-toms.pdf
+cp paper/vphilox-anon.pdf generated/vphilox-toms-anonymous.pdf
 ```
+
+Both come from one source. `--anonymous` passes the class option through
+`\PassOptionsToClass` and builds under a separate jobname, so neither
+overwrites the other, and three `\ifanon` branches in the body cover what the
+class cannot see. Adding anonymous mode did not move the named PDF's bytes.
 
 The zip is the flat directory both ACM and arXiv want. It carries the class and
 the bibliography style alongside the source, so it builds on a machine that has

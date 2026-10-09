@@ -4,17 +4,67 @@ Portal: https://mc.manuscriptcentral.com/toms
 (Confirm it from https://dl.acm.org/journal/toms first. ACM moves these, and the
 journal page always carries the current "Submit" link.)
 
-## Files in this directory
+## Files, and which ones go up now
 
-  vphilox-toms.pdf          upload as the main document (PDF)
-  vphilox-toms-source.zip   upload as the LaTeX source
-  vphilox-cover-letter.pdf  upload as the cover letter
+TOMS reviews new submissions double-anonymous. The portal's own words: "Please
+provide your title page and main document file separately. Your title page
+should include: the complete title, author names, and author affiliations. Your
+main manuscript file should be completely anonymized."
+
+Upload exactly these three, in this order:
+
+  1  vphilox-toms-anonymous.pdf      Main Document
+  2  vphilox-toms-title-page.pdf     Title Page
+  3  vphilox-cover-letter.pdf        Cover Letter
+
+Match the designation names to whatever the dropdown actually offers. If there
+is no Title Page designation, use Supplemental File and name it "Title page".
+
+Do NOT upload yet:
+
+  -  vphilox-toms.pdf                the named build, 20 pages. This is the
+                                     repository's and arXiv's copy. Uploading
+                                     it to the portal breaks anonymity.
+  -  vphilox-toms-source.zip         the LaTeX source. The upload instructions
+                                     that ask for a zip under Supplemental
+                                     Files are headed "FOR ACCEPTED PAPERS".
+                                     The source names the author in \author,
+                                     so sending it now defeats the point.
 
 The zip holds vphilox.tex, vphilox.bib, vphilox.bbl, acmart.cls,
 ACM-Reference-Format.bst and figures/ (three PDFs). No .pdf of the paper inside.
 It is test-compiled from a clean directory, with a real BibTeX pass, and
-reproduces the uploaded PDF byte for byte: 20 pages, no overfull boxes, no
+reproduces the named PDF byte for byte: 20 pages, no overfull boxes, no
 undefined references.
+
+### What the anonymous build changes
+
+One source, two outputs. `paper/build.sh --anonymous` passes the class option
+and writes vphilox-anon.pdf; without it you get the named vphilox.pdf, and that
+file's bytes did not move when anonymous mode was added.
+
+acmart handles the author block, the running head, the contact footer and the
+hyperref /Author metadata. Three things in the body it cannot see, each behind
+an \ifanon branch in the source:
+
+  - The Section 1 footnote. Suppressing a conflict disclosure outright would
+    hide it from the referee, so the anonymous build says the authors are not
+    independent of the quoted exchange and points at the title page. The
+    verbatim quotation and the citation both stay: the evaluation exists to
+    answer that sentence, and the pull request is public anyway.
+  - The Availability section. The repository URL carries the author's name and
+    the Zenodo record names its creator, so both move to the title page with a
+    line asking the editor to pass them to reviewers.
+  - \renewcommand{\shortauthors}, which would otherwise override the class.
+
+Verified on the built PDF: no occurrence of the name, the email, the ORCID, the
+repository URL or the DOI in the text layer, and no Author field in the PDF
+metadata. The page count drops from 20 to 19 because the contact block goes.
+
+If you would rather reviewers reach the code directly, mirror the repository on
+anonymous.4open.science and the link can go into the Availability section
+instead of the withholding note. That is a change to make before uploading, not
+after.
 
 
 ## Template

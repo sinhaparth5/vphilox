@@ -8,3 +8,5 @@ figures/
 *.blg
 *.toc
 *.synctex.gz
+# The anonymous build for review; generated/ carries the copy that is uploaded.
+vphilox-anon.pdf
