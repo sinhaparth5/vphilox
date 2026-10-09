@@ -43,8 +43,10 @@ TOMS sets no page limit on a regular submission, so the 20 pages are fine.
 
 ## 2. Open access and the APC
 
-ACM has had no subscription track since 1 January 2026, so acceptance carries a
-mandatory APC. Reported 2026 journal rates are $1,300 and $1,800 list,
+There is no "traditional" or "subscription" option on this form, and no $0
+choice. Do not go looking for one. ACM retired the subscription track on
+1 January 2026 and is a fully open-access publisher, so every accepted paper
+carries an APC. That is the one thing TPDS had that TOMS does not. Reported 2026 journal rates are $1,300 and $1,800 list,
 subsidised to $950 and $1,450; ACM's own price list is the one that binds.
 
 There is nothing to decide at submission. The charge is handled after acceptance
@@ -159,6 +161,12 @@ Data repository block, exactly:
 
 The DOI field takes the bare identifier. A "doi:" prefix or a full URL fails
 validation. The Title field wants the dataset's title, not a link.
+
+If the form has a box for supplementary materials or a software URL, put
+https://github.com/sinhaparth5/vphilox in it. The Availability section and the
+cover letter both carry that link, but neither reaches the editor's screen
+before the manuscript does, and an editor picking referees for a software paper
+is one of the people who most wants to click it.
 
 TOMS asks for a complete software package, and this one is already public. If
 the form offers a replicated-computational-results review, accept it: every
